@@ -1,0 +1,15 @@
+#!/bin/bash
+# 认知引擎正式 CLI 根级兼容壳
+# 优先使用项目 .venv，并转发到正式 CLI 主入口 cognition_engine.cli
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+VENV_PYTHON="$SCRIPT_DIR/.venv/bin/python"
+
+if [ -f "$VENV_PYTHON" ]; then
+  PYTHON_BIN="$VENV_PYTHON"
+else
+  PYTHON_BIN="${PYTHON:-python}"
+fi
+
+export PYTHONPATH="$SCRIPT_DIR${PYTHONPATH:+:$PYTHONPATH}"
+exec "$PYTHON_BIN" -m cognition_engine.cli "$@"

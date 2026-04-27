@@ -1,0 +1,11 @@
+{
+  "file_path": "<output_file>",
+  "format": "md",
+  "framework_id": "adk-2.0.0a3",
+  "generated_at": "<generated_at>",
+  "id": "<metadata_id>",
+  "insight_id": "insight-adk-runner-centrality",
+  "size_bytes": 2885,
+  "title": "决策包: Runner 是请求总控与主要收口器",
+  "type": "decision-pack"
+}

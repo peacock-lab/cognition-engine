@@ -1,0 +1,56 @@
+{
+  "id": "insight-adk-runner-centrality",
+  "framework_id": "adk-2.0.0a3",
+  "type": "architectural_pattern",
+  "category": "core_coordination",
+  "title": "Runner 是请求总控与主要收口器",
+  "description": "ADK 已经被多份正式结果文件共同坐实：Runner 负责获取或创建 session、创建 InvocationContext、驱动执行、消费事件、append 到 session，并向外回传结果。",
+  "confidence": 0.97,
+  "impact": {
+    "architectural": "high",
+    "migration": "high",
+    "product": "medium"
+  },
+  "tags": [
+    "adk",
+    "coordination",
+    "runner",
+    "entry_point"
+  ],
+  "evidence": [
+    {
+      "type": "documentation_reference",
+      "source_file": "core_runtime_map",
+      "source_section": "6. 单次请求运行主链",
+      "source_path": "docs/research/adk-2.0.0a3/core-runtime-map.md",
+      "quote": "`外部入口 -> Runner -> Session/InvocationContext -> 根 agent 或根 node -> NodeRunner/workflow -> Event 入队 -> Runner 消费事件 -> session_service.append_event -> 对外回传`"
+    },
+    {
+      "type": "result_package_reference",
+      "source_file": "anchor_evidence_package",
+      "source_section": "4.2 谁承担请求协调与主要收口已经坐实",
+      "source_path": "docs/research/adk-2.0.0a3/source-audit-evidence-summary.md",
+      "quote": "Runner 承担请求协调与主要收口，其依据已经在全仓审计中明确体现为 session 获取、InvocationContext 创建、事件消费、append 和回传。"
+    }
+  ],
+  "connections": [
+    {
+      "insight_id": "insight-adk-state-context-boundary",
+      "type": "enables",
+      "strength": 0.88,
+      "description": "Runner 负责把状态宿主、执行上下文与事件链串成一个稳定闭环。"
+    },
+    {
+      "insight_id": "insight-adk-event-convergence",
+      "type": "orchestrates",
+      "strength": 0.92,
+      "description": "Runner 既消费 Event 队列，也负责 append 和回传。"
+    }
+  ],
+  "extracted_from": [
+    "anchor_evidence_package",
+    "core_runtime_map"
+  ],
+  "extraction_timestamp": "2026-04-15T16:59:01.227252Z",
+  "version_schema": "1.1"
+}

@@ -1,0 +1,71 @@
+{
+  "id": "insight-adk-state-context-boundary",
+  "framework_id": "adk-2.0.0a3",
+  "type": "state_model",
+  "category": "state_management",
+  "title": "状态在 Session、InvocationContext、Context 间分层寄宿",
+  "description": "ADK 的状态模型不是混写结构。Session 是长期状态宿主，InvocationContext 持有本次调用控制面，Context 作为 node-scope 的局部操作视图，对 session.state 提供 delta-aware 包装。",
+  "confidence": 0.95,
+  "impact": {
+    "architectural": "high",
+    "migration": "high",
+    "product": "high"
+  },
+  "tags": [
+    "adk",
+    "state",
+    "context",
+    "session",
+    "boundary"
+  ],
+  "evidence": [
+    {
+      "type": "documentation_reference",
+      "source_file": "core_runtime_map",
+      "source_section": "7. 上下文与状态寄宿关系",
+      "source_path": "docs/research/adk-2.0.0a3/core-runtime-map.md",
+      "quote": "- `Session.state`、`session.events`、`append_event()` 的语义，决定状态模型与可恢复性的基础边界。"
+    },
+    {
+      "type": "result_package_reference",
+      "source_file": "anchor_evidence_package",
+      "source_section": "5.2 状态如何持有与传递已经有明确边界",
+      "source_path": "docs/research/adk-2.0.0a3/source-audit-evidence-summary.md",
+      "quote": "- `Session.state` 是长期状态宿主"
+    },
+    {
+      "type": "smoke_reference",
+      "source_file": "state_model_smoke",
+      "source_section": "5.2 B 点：temp: 状态边界",
+      "source_path": "docs/research/adk-2.0.0a3/state-event-smoke-checklist.md",
+      "quote": "- B：`temp:` 状态是否只在当前活动对象中可见"
+    }
+  ],
+  "connections": [
+    {
+      "insight_id": "insight-adk-runner-centrality",
+      "type": "depends_on",
+      "strength": 0.86,
+      "description": "状态边界只有放进 Runner 主链里，才会形成稳定的请求闭环。"
+    },
+    {
+      "insight_id": "insight-adk-event-convergence",
+      "type": "informs",
+      "strength": 0.78,
+      "description": "状态变更最终如何附着到事件，需要看状态边界和动作附着关系。"
+    },
+    {
+      "insight_id": "insight-adk-entrypoint-layering",
+      "type": "constrains",
+      "strength": 0.64,
+      "description": "不同入口虽然协议不同，但不能改写这套基础状态寄宿关系。"
+    }
+  ],
+  "extracted_from": [
+    "anchor_evidence_package",
+    "core_runtime_map",
+    "state_model_smoke"
+  ],
+  "extraction_timestamp": "2026-04-15T16:59:01.227252Z",
+  "version_schema": "1.1"
+}

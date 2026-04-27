@@ -1,0 +1,45 @@
+{
+  "id": "insight-adk-event-system",
+  "framework_id": "adk-2.0.0a3",
+  "type": "event_system",
+  "category": "communication_pattern",
+  "title": "基于Event和EventActions的事件收口机制",
+  "description": "ADK使用Event对象承载事件数据，EventActions定义事件处理逻辑，形成标准化的事件收口链",
+  "confidence": 0.85,
+  "impact": {
+    "architectural": "medium",
+    "migration": "medium",
+    "product": "low"
+  },
+  "tags": [
+    "event",
+    "communication",
+    "decoupling"
+  ],
+  "evidence": [
+    {
+      "type": "code_reference",
+      "source_file": "core_runtime_map",
+      "source_section": "6. src/google/adk/events/",
+      "file": "src/google/adk/events/"
+    },
+    {
+      "type": "call_chain",
+      "source_file": "audit_result_002",
+      "source_section": "事件收口链追击",
+      "entry_point": "Event creation",
+      "chain": [
+        "event creation",
+        "event dispatch",
+        "actions execution",
+        "state update"
+      ]
+    }
+  ],
+  "connections": [],
+  "extracted_from": [
+    "core_runtime_map",
+    "audit_result_002"
+  ],
+  "extraction_timestamp": "2026-04-16T00:39:13.627024"
+}

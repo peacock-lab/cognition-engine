@@ -1,0 +1,57 @@
+{
+  "id": "adk-2.0.0a3",
+  "name": "Google Agent Development Kit",
+  "version": "2.0.0a3",
+  "type": "agent_framework",
+  "repository": "https://github.com/google/adk-python",
+  "status": "under_analysis",
+  "metadata": {
+    "language": "python",
+    "architecture_style": "runner_workflow",
+    "primary_entry_points": [
+      "src/google/adk/runners.py",
+      "src/google/adk/cli/main.py"
+    ],
+    "core_modules": [
+      "agents",
+      "workflow",
+      "sessions",
+      "events",
+      "models",
+      "cli"
+    ],
+    "analysis_depth": "deep_audit_completed",
+    "source_documents": [
+      {
+        "source_id": "anchor_evidence_package",
+        "title": "ADK 2.0.0a3 source audit evidence summary",
+        "kind": "result_package",
+        "path": "docs/research/adk-2.0.0a3/source-audit-evidence-summary.md"
+      },
+      {
+        "source_id": "core_runtime_map",
+        "title": "000-ADK2.0.0a3核心运行底图总表-v1",
+        "kind": "long_term_doc",
+        "path": "docs/research/adk-2.0.0a3/core-runtime-map.md"
+      },
+      {
+        "source_id": "state_model_smoke",
+        "title": "000-ADK2.0.0a3状态模型与事件收口链smoke清单-v1",
+        "kind": "smoke_baseline",
+        "path": "docs/research/adk-2.0.0a3/state-event-smoke-checklist.md"
+      }
+    ],
+    "input_channels": [
+      "framework_learning_lab_result_packages",
+      "hermes_dialogue_fuel"
+    ],
+    "source": "adk-2.0.0a3 research migration",
+    "migration_spec": "result-package-to-json-v1"
+  },
+  "timestamps": {
+    "first_analyzed": "2026-04-15",
+    "last_updated": "2026-04-15",
+    "next_review": "2026-05-01"
+  },
+  "version_schema": "1.1"
+}

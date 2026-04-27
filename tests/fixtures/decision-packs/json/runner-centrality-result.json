@@ -1,0 +1,27 @@
+{
+  "closure_id": "formal_cli_decision_pack_minimal_loop",
+  "command": "ce decision-pack --insight insight-adk-runner-centrality",
+  "command_name": "ce decision-pack",
+  "contract_version": "ce-decision-pack-result/v1",
+  "decision_question": "团队是否应将该洞察从技术判断推进为可执行的产品化或架构治理动作。",
+  "decision_summary": "ADK 已经被多份正式结果文件共同坐实：Runner 负责获取或创建 session、创建 InvocationContext、驱动执行、消费事件、append 到 session，并向外回传结果。 这意味着我们可以把“Runner 是请求总控与主要收口器”从技术判断进一步沉淀为面向真实团队协作的产品化能力表达。\n\n- **待决问题**: 是否应围绕“Runner 是请求总控与主要收口器”形成明确的执行取舍。\n- **推荐方案**: 将 Runner 视为正式请求总控层，并围绕它定义统一的执行主链、状态收口约束和对外回传接口。\n- **建议下一步**: 把 Runner 主链职责整理成内部架构说明和接口约束。",
+  "framework_id": "adk-2.0.0a3",
+  "framework_name": "Google Agent Development Kit",
+  "generated_at": "<generated_at>",
+  "insight_id": "insight-adk-runner-centrality",
+  "insight_title": "Runner 是请求总控与主要收口器",
+  "metadata_file": "<metadata_file>",
+  "metadata_id": "<metadata_id>",
+  "next_action": "1. 把 Runner 主链职责整理成内部架构说明和接口约束。",
+  "output_directory": "outputs/decision-packs",
+  "output_file": "<output_file>",
+  "output_title": "决策包: Runner 是请求总控与主要收口器",
+  "output_type": "decision-pack",
+  "recommended_option": "建议采用轻量推进。",
+  "status": "success",
+  "usage": "ce decision-pack --insight <insight_id>",
+  "validation": {
+    "metadata_file_exists": true,
+    "output_file_exists": true
+  }
+}

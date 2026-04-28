@@ -19,18 +19,18 @@ QUICKSTART.md
 Current public version:
 
 ```text
-v0.3.0
+v0.3.1
 ```
 
-`v0.3.0` is positioned as a stable ADK foundation adoption and local real-model workflow release for Cognition Engine.
+`v0.3.1` is positioned as a stable ADK foundation adoption and local real-model workflow release for Cognition Engine.
 
 This README only describes the latest public state of the current `main` branch. Historical versions are preserved through `CHANGELOG.md`, `docs/releases/`, GitHub Releases, and Git tags.
 
 ---
 
-## 1. v0.3.0 boundary
+## 1. v0.3.1 boundary
 
-`v0.3.0` has stabilized:
+`v0.3.1` has stabilized:
 
 1. the ADK-backed workflow main path;
 2. pure installed-mode execution through `CE_DATA_DIR`;
@@ -43,7 +43,7 @@ This README only describes the latest public state of the current `main` branch.
 9. the `ce workflow` result chain: product brief, decision pack, and model enhancement;
 10. output and metadata traceability.
 
-`v0.3.0` does not claim:
+`v0.3.1` does not claim:
 
 1. a public provider interface;
 2. a public `--model-provider` CLI option;
@@ -91,7 +91,7 @@ python -m cognition_engine.cli --help
 
 ## 3. Minimal workflow usage
 
-`v0.3.0` recommends running with an external data root:
+`v0.3.1` recommends running with an external data root:
 
 ```bash
 CE_DATA_DIR="$PWD/data" ce workflow --insight insight-adk-runner-centrality --json
@@ -132,6 +132,12 @@ The current default provider is:
 mock
 ```
 
+Since `v0.3.1`, the regular installation includes the LiteLLM dependency required by the local-model path, locked to:
+
+```text
+litellm==1.82.6
+```
+
 A real provider can be explicitly enabled through environment variables:
 
 ```bash
@@ -143,9 +149,11 @@ ce workflow --insight insight-adk-runner-centrality --json
 Current public boundary:
 
 1. a real provider can explicitly enter the workflow main path;
-2. the `--model-provider` CLI option is not public yet;
-3. the real provider is not the default provider;
-4. public provider capability remains a later-version decision.
+2. the regular installation includes the LiteLLM dependency;
+3. the local-model path still requires a running local Ollama service and an available model;
+4. the `--model-provider` CLI option is not public yet;
+5. the real provider is not the default provider;
+6. public provider capability remains a later-version decision.
 
 ---
 
@@ -292,7 +300,7 @@ Historical versions are preserved through:
 The current version release note is available at:
 
 ```text
-docs/releases/v0.3.0-release-note.md
+docs/releases/v0.3.1-release-note.md
 ```
 
 ---

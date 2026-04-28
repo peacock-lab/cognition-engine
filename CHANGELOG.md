@@ -6,6 +6,34 @@
 
 ---
 
+## v0.3.1
+
+版本定位：`v0.3.0` 发布后的本地模型依赖修复版本。
+
+关键变化：
+
+1. 将 LiteLLM 从可选 `llm` extra 提升为基础依赖；
+2. 将 LiteLLM 锁定为 `litellm==1.82.6`；
+3. 修复普通安装后显式启用本地模型 provider 时缺少 LiteLLM 依赖的问题；
+4. 保持默认 provider 为 `mock`；
+5. 保持真实 provider 通过 `CE_MODEL_PROVIDER=adk_litellm_ollama` 显式启用；
+6. 保持 `--model-provider` CLI 参数暂不公开；
+7. 暂不采用 `litellm` 1.83.7，因为其依赖 `pydantic==2.12.5`，与当前 `pydantic>=2.13.0` 基线冲突；暂不采用 `litellm` 1.83.10 及以上版本，因为当前 Python 3.14 环境会被其 `Requires-Python <3.14` 约束拦截。后续等待 LiteLLM 新版本恢复对 Python 3.14 / Pydantic 2.13+ 的兼容后再升级。
+
+发布说明：
+
+```text
+docs/releases/v0.3.1-release-note.md
+```
+
+发布状态：
+
+```text
+待发布。
+```
+
+---
+
 ## v0.3.0
 
 版本定位：认知引擎 ADK 底座承接与本地真实模型链路稳定版。

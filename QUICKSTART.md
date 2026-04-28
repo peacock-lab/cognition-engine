@@ -1,16 +1,16 @@
 # 快速开始指南
 
-本文描述当前 `main` 分支 / `v0.3.0` 的最小上手路径。
+本文描述当前 `main` 分支 / `v0.3.1` 的最小上手路径。
 
 历史版本的快速开始说明请查看对应 Git tag 或 GitHub Release；当前 `main` 分支的 QUICKSTART 只维护最新公开基线。
 
 当前公开版本：
 
 ```text
-v0.3.0
+v0.3.1
 ```
 
-`v0.3.0` 定位为：**认知引擎 ADK 底座承接与本地真实模型链路稳定版**。
+`v0.3.1` 定位为：**认知引擎 ADK 底座承接与本地真实模型链路稳定版**。
 
 ---
 
@@ -103,7 +103,7 @@ python -m cognition_engine.cli --help
 
 ## 7. 最小运行方式
 
-`v0.3.0` 推荐使用外置运行时数据根目录：
+`v0.3.1` 推荐使用外置运行时数据根目录：
 
 ```bash
 CE_DATA_DIR="$PWD/data" ce workflow --insight insight-adk-runner-centrality --json
@@ -146,6 +146,14 @@ product brief
 mock
 ```
 
+自 `v0.3.1` 起，普通安装已包含本地模型路径所需的 LiteLLM 依赖，并锁定为：
+
+```text
+litellm==1.82.6
+```
+
+本地模型路径仍需要用户本机启动 Ollama，并准备对应模型。
+
 真实 provider 可通过环境变量显式启用：
 
 ```bash
@@ -159,9 +167,11 @@ ce workflow --insight insight-adk-runner-centrality --json
 当前公开边界：
 
 1. 真实 provider 可显式进入 workflow 主链；
-2. 当前不公开 `--model-provider` CLI 参数；
-3. 当前不将真实 provider 设为默认；
-4. provider 公开能力留待后续版本判断。
+2. 普通安装已包含 LiteLLM 依赖；
+3. 本地模型路径仍需要用户本机启动 Ollama 并准备对应模型；
+4. 当前不公开 `--model-provider` CLI 参数；
+5. 当前不将真实 provider 设为默认；
+6. provider 公开能力留待后续版本判断。
 
 ---
 
@@ -254,7 +264,7 @@ python -m pytest tests/unit -q
 README.md
 README.en.md
 CHANGELOG.md
-docs/releases/v0.3.0-release-note.md
+docs/releases/v0.3.1-release-note.md
 outputs/OUTPUT_CONTRACTS.md
 ```
 
@@ -262,7 +272,7 @@ outputs/OUTPUT_CONTRACTS.md
 
 ## 一句话收口
 
-安装项目后，运行以下命令即可体验当前 `v0.3.0` 的最小认知工作流：
+安装项目后，运行以下命令即可体验当前 `v0.3.1` 的最小认知工作流：
 
 ```bash
 CE_DATA_DIR="$PWD/data" ce workflow --insight insight-adk-runner-centrality --json

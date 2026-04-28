@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "cognition-engine"
-version = "0.3.0"
+version = "0.3.1"
 description = "Cognition Engine formal packaging entry and CLI runtime shell."
 readme = "README.md"
 requires-python = ">=3.14"
@@ -23,6 +23,7 @@ dependencies = [
     "discord.py>=2.7.1",
     "gitpython>=3.1.47",
     "google-adk>=2.0.0b1,<2.1",
+    "litellm==1.82.6",
 ]
 
 classifiers = [
@@ -34,9 +35,6 @@ classifiers = [
 [project.optional-dependencies]
 release = [
     "build>=1.4.4",
-]
-llm = [
-    "litellm==1.82.6",
 ]
 
 test = [

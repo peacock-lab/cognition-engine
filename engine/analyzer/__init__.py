@@ -1,2 +1,0 @@
-"""Analyzer package shell."""
-

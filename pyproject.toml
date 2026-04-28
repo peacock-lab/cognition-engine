@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "cognition-engine"
-version = "0.2.0"
+version = "0.3.0"
 description = "Cognition Engine formal packaging entry and CLI runtime shell."
 readme = "README.md"
 requires-python = ">=3.14"
@@ -32,6 +32,9 @@ classifiers = [
 ]
 
 [project.optional-dependencies]
+release = [
+    "build>=1.4.4",
+]
 llm = [
     "litellm==1.82.6",
 ]
@@ -57,10 +60,6 @@ ce = "cognition_engine.cli:main"
 [tool.setuptools.packages.find]
 include = [
     "cognition_engine*",
-    "engine*",
-    "dashboard*",
-    "connectors*",
-    "tools*",
 ]
 
 [tool.pytest.ini_options]

@@ -8,7 +8,7 @@ import os
 from pathlib import Path
 from typing import Any, Dict, Optional, Sequence
 
-from engine.transformer import generate_outputs
+from cognition_engine.rendering import generate_outputs
 
 from cognition_engine.modeling import (
     DEFAULT_PROVIDER,

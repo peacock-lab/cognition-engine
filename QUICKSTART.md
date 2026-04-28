@@ -1,5 +1,28 @@
 # 快速开始指南
 
+
+## v0.3.0 最小运行入口
+
+源码态推荐先使用外置运行时数据根目录：
+
+```bash
+CE_DATA_DIR="$PWD/data" python -m cognition_engine.cli workflow --insight insight-adk-runner-centrality --json
+```
+
+`CE_DATA_DIR` 指向认知引擎外置运行时数据根目录；`CE_INSIGHTS_DIR` 可作为 insight 数据目录的细粒度覆盖入口。
+
+默认 provider 仍为 `mock`。如需在本机环境中显式启用真实 provider，需要本机 Ollama 服务和对应模型，并使用环境变量：
+
+```bash
+CE_DATA_DIR="$PWD/data" \
+CE_MODEL_PROVIDER=adk_litellm_ollama \
+CE_MODEL_TIMEOUT_SECONDS=180 \
+OLLAMA_API_BASE=http://127.0.0.1:11434 \
+python -m cognition_engine.cli workflow --insight insight-adk-runner-centrality --json
+```
+
+当前不公开 `--model-provider` CLI 参数；真实 provider 不是默认路径。Eval、完整观测系统、配置中心与 Runner / 观测 / 上下文系统梳理均不属于 `v0.3.0` 当前公开使用面。
+
 ## 文档定位
 
 本文档用于说明 `cognition-engine` 当前公开版本的最小安装方式、正式 CLI 主入口、Google ADK 依赖关系，以及当前已具备的 `ce brief`、`ce decision-pack` 与 `ce workflow` 使用方式。
@@ -433,6 +456,7 @@ README.md
 outputs/OUTPUT_CONTRACTS.md
 VALIDATION_MODEL.md
 VALIDATION_STATE_FLOW.md
+docs/strategy/007-双仓发布流程固化方案.md
 ```
 
 ---

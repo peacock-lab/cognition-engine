@@ -9,4 +9,8 @@ htmlcov/
 .mypy_cache/
 .ruff_cache/
 .DS_Store
-node_modules/
+reports/
+.vscode/
+.idea/
+*.swp
+*.swo

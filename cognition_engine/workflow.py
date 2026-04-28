@@ -7,7 +7,7 @@ import json
 import os
 from typing import Any, Callable, Dict, Optional, Sequence
 
-from engine.transformer import generate_outputs
+from cognition_engine.rendering import generate_outputs
 
 from cognition_engine.adk_workflow_adapter import (
     WorkflowStep,
@@ -47,7 +47,7 @@ class WorkflowError(ValueError):
 
 
 def list_available_insight_ids() -> list[str]:
-    insights_root = generate_outputs.NEW_PROJECT_PATH / "data" / "insights"
+    insights_root = generate_outputs.resolve_insights_dir()
     if not insights_root.exists():
         return []
 

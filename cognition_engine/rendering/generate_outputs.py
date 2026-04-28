@@ -4,6 +4,7 @@
 """
 
 import json
+import os
 import sys
 from pathlib import Path
 from datetime import datetime
@@ -12,12 +13,49 @@ from typing import Dict, Any, Optional
 if __package__ in {None, ""}:
     sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
-from engine.analyzer.insight_formal_entry import build_insight_formal_entry_record
-from engine.analyzer.framework_metadata_formal_entry import (
+from cognition_engine.formal_entries.insight_formal_entry import build_insight_formal_entry_record
+from cognition_engine.formal_entries.framework_metadata_formal_entry import (
     build_framework_metadata_formal_entry_record,
 )
 
 NEW_PROJECT_PATH = Path(__file__).resolve().parents[2]
+
+DATA_DIR_ENV = "CE_DATA_DIR"
+INSIGHTS_DIR_ENV = "CE_INSIGHTS_DIR"
+
+
+def resolve_data_dir() -> Path:
+    """Resolve the runtime data directory."""
+    env_value = os.environ.get(DATA_DIR_ENV)
+    if env_value:
+        return Path(env_value).expanduser().resolve()
+
+    cwd_candidate = Path.cwd() / "data"
+    if cwd_candidate.exists():
+        return cwd_candidate
+
+    return NEW_PROJECT_PATH / "data"
+
+
+def resolve_insights_dir() -> Path:
+    """Resolve the runtime insights directory.
+
+    Priority:
+    1. CE_INSIGHTS_DIR environment variable.
+    2. CE_DATA_DIR/insights.
+    3. data/insights under the current working directory.
+    4. data/insights near the installed package location.
+    """
+    env_value = os.environ.get(INSIGHTS_DIR_ENV)
+    if env_value:
+        return Path(env_value).expanduser().resolve()
+
+    return resolve_data_dir() / "insights"
+
+
+def resolve_frameworks_dir() -> Path:
+    """Resolve the runtime frameworks directory."""
+    return resolve_data_dir() / "frameworks"
 
 IMPACT_LABELS = {
     "high": "高",
@@ -96,20 +134,22 @@ CATEGORY_BRIEF_PLAYBOOK = {
 
 def load_insight(insight_id: str) -> Optional[Dict[str, Any]]:
     """加载指定ID的洞察"""
-    insights_dir = NEW_PROJECT_PATH / "data" / "insights"
-    
+    insights_dir = resolve_insights_dir()
+    if not insights_dir.exists():
+        return None
+
     for framework_dir in insights_dir.iterdir():
         if framework_dir.is_dir():
             insight_file = framework_dir / f"{insight_id}.json"
             if insight_file.exists():
                 with open(insight_file, 'r', encoding='utf-8') as f:
                     return build_insight_formal_entry_record(json.load(f))
-    
+
     return None
 
 def load_framework(framework_id: str) -> Optional[Dict[str, Any]]:
     """加载框架元数据"""
-    framework_file = NEW_PROJECT_PATH / "data" / "frameworks" / framework_id / "metadata.json"
+    framework_file = resolve_frameworks_dir() / framework_id / "metadata.json"
     if framework_file.exists():
         with open(framework_file, 'r', encoding='utf-8') as f:
             return build_framework_metadata_formal_entry_record(json.load(f))

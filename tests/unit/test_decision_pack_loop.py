@@ -9,7 +9,7 @@ project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
 
 from cognition_engine import cli, decision_pack  # noqa: E402
-from engine.transformer import generate_outputs  # noqa: E402
+from cognition_engine.rendering import generate_outputs  # noqa: E402
 
 
 def install_sample_data(tmp_path: Path) -> None:

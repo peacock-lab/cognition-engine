@@ -7,7 +7,7 @@ from pathlib import Path
 
 from cognition_engine import model_enhancement
 from cognition_engine.modeling import ModelResponse
-from engine.transformer import generate_outputs
+from cognition_engine.rendering import generate_outputs
 
 
 project_root = Path(__file__).parent.parent.parent
@@ -204,7 +204,7 @@ def test_module_entry_outputs_json_with_mock_provider(tmp_path: Path) -> None:
     script = (
         "import json, sys; "
         "from pathlib import Path; "
-        "from engine.transformer import generate_outputs; "
+        "from cognition_engine.rendering import generate_outputs; "
         "generate_outputs.NEW_PROJECT_PATH = Path(sys.argv[1]); "
         "from cognition_engine.model_enhancement import main; "
         "raise SystemExit(main(['--insight', 'insight-adk-runner-centrality', '--json']))"

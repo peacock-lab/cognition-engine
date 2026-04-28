@@ -8,7 +8,7 @@ import sys
 project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
 
-from engine.transformer import generate_outputs  # noqa: E402
+from cognition_engine.rendering import generate_outputs  # noqa: E402
 
 REAL_INSIGHT_IDS = [
     "insight-adk-runner-centrality",

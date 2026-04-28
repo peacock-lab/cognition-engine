@@ -6,7 +6,7 @@ import json
 from pathlib import Path
 from typing import Any, Dict, Optional, Sequence
 
-from engine.transformer import generate_outputs
+from cognition_engine.rendering import generate_outputs
 
 COMMAND_NAME = "ce decision-pack"
 COMMAND_USAGE = "ce decision-pack --insight <insight_id>"

@@ -1,0 +1,16 @@
+{
+  "id": "adk-2.0.0b1",
+  "name": "Google Agent Development Kit",
+  "version": "2.0.0b1",
+  "type": "agent_framework",
+  "package": "google-adk",
+  "dependency_constraint": "google-adk>=2.0.0b1,<2.1",
+  "repository": "https://github.com/google/adk-python",
+  "status": "baseline_metadata_registered",
+  "data_asset_stage": "framework_metadata_only",
+  "notes": [
+    "This metadata registers the ADK 2.0.0b1 framework asset baseline.",
+    "It does not imply that b1 insight samples have been created.",
+    "Historical adk-2.0.0a3 data remains as smoke and regression assets."
+  ]
+}

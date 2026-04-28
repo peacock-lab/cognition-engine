@@ -1,107 +1,49 @@
 # Cognition Engine｜认知引擎
 
-
-## v0.3.0 阶段边界
-
-`v0.3.0` 定位为认知引擎 ADK 底座承接与本地真实模型链路稳定版。
-
-本阶段已经压实：ADK-backed workflow、纯安装态 `CE_DATA_DIR` 运行入口、`CE_INSIGHTS_DIR` 细粒度覆盖入口、真实 provider 通过环境变量进入 workflow 主链，以及 ADK b1 framework metadata 最低入口。
-
-当前默认 provider 仍为 `mock`。真实 provider 可通过 `CE_MODEL_PROVIDER=adk_litellm_ollama` 显式启用，当前不公开 `--model-provider` CLI 参数，也不将真实 provider 设为默认。
-
-`adk-2.0.0a3` 仍作为历史 smoke / fixtures / 回归数据资产保留；当前正式依赖主路为 `google-adk>=2.0.0b1,<2.1`，并已建立 `adk-2.0.0b1` framework metadata 最低入口。
-
-Runner / 观测 / 上下文三条主线统一移交 `v0.4.0` 系统梳理。`v0.3.0` 不宣称 provider 公开、Eval 完成、完整 Observability 完成或配置中心已建立。
-
 `cognition-engine` 是一个基于 Google ADK 的轻量级认知产品闭环项目。
 
-当前公开面优先展示已经压实的正式 CLI 产品能力：
+当前公开版本：
 
 ```text
-正式 CLI 入口
-→ ce brief
-→ 产品简报输出
-→ metadata 留痕
-
-正式 CLI 入口
-→ ce decision-pack
-→ 决策包输出
-→ metadata 留痕
-
-正式 CLI 入口
-→ ce workflow
-→ product brief + decision pack + model enhancement 组合结果
-→ 子产物 metadata 留痕
+v0.3.0
 ```
 
-换句话说，当前最重要的使用方式是：
+`v0.3.0` 定位为：**认知引擎 ADK 底座承接与本地真实模型链路稳定版**。
 
-```bash
-ce brief --insight <insight_id>
-ce decision-pack --insight <insight_id>
-ce workflow --insight <insight_id>
-```
-
-其中：
-
-1. `ce brief` 会把一条结构化洞察转换为一份可阅读、可追踪的产品简报。
-2. `ce decision-pack` 会把一条结构化洞察转换为一份可阅读、可追踪的决策包。
-3. `ce workflow` 会执行第一条 `insight-to-decision workflow`，顺序组合产品简报、决策包和模型增强产物，并返回组合结果。
-
-英文摘要入口：
-
-```text
-README.en.md
-```
+本 README 只描述当前 `main` 分支的最新公开口径。历史版本通过 `CHANGELOG.md`、`docs/releases/`、GitHub Releases 和 Git tag 保留，不在 README 中展开。
 
 ---
 
-## 当前版本
+## 1. v0.3.0 阶段边界
 
-当前版本：
+`v0.3.0` 已完成：
 
-```text
-v0.1.1
-```
+1. ADK-backed workflow 主链稳定；
+2. 纯安装态 `CE_DATA_DIR` 运行入口；
+3. `CE_INSIGHTS_DIR` 细粒度 insight 覆盖入口；
+4. 真实 provider 可通过环境变量进入 workflow 主链；
+5. 默认 provider 继续保持 `mock`；
+6. `google-adk>=2.0.0b1,<2.1` 依赖主路；
+7. `adk-2.0.0b1` framework metadata 最低入口；
+8. `adk-2.0.0a3` 历史 smoke / fixtures / 回归数据资产保留；
+9. `ce workflow` 的 product brief + decision pack + model enhancement 组合结果；
+10. output / metadata 留痕。
 
-`v0.1.1` 是 `v0.1.0` 之后的一次公开说明面小修补版本。
+`v0.3.0` 不宣称：
 
-它主要澄清：
+1. provider 已公开；
+2. `--model-provider` CLI 参数已公开；
+3. 真实 provider 已成为默认；
+4. Eval 已完成；
+5. 完整 Observability 已完成；
+6. 正式配置中心已建立；
+7. Runner / 观测 / 上下文三条主线已系统梳理完成。
 
-1. Google ADK 依赖关系
-2. 安装路径
-3. 正式 CLI 入口
-4. 第一条产品闭环边界
-
-当前版本已补充 `ce decision-pack` 说明面能力，但这不等于已经触发公仓发布、版本号推进或第二正式产品闭环公开宣布。
-
----
-
-## Google ADK 依赖说明
-
-`cognition-engine` 当前以 Google ADK 2.0.0b1+ 作为受控智能体框架依赖。
-
-依赖已经在 `pyproject.toml` 中声明：
-
-```toml
-google-adk>=2.0.0b1,<2.1
-```
-
-通常不需要单独手动安装 Google ADK。
-
-执行：
-
-```bash
-python -m pip install -e .
-```
-
-时，Python 包安装流程会读取 `pyproject.toml`，并自动安装包括 `google-adk` 在内的声明依赖。
-
-本项目不是复制 Google ADK 源码，而是在 Google ADK 依赖之上构建面向认知产出的产品化闭环。
+Runner / 观测 / 上下文三条主线统一移交后续版本继续梳理。
 
 ---
 
-## 安装
+## 2. 安装
 
 克隆公开仓：
 
@@ -117,7 +59,7 @@ python -m venv .venv
 source .venv/bin/activate
 ```
 
-以 editable 模式安装项目：
+安装项目：
 
 ```bash
 python -m pip install -U pip
@@ -127,220 +69,169 @@ python -m pip install -e .
 确认 CLI 可用：
 
 ```bash
-python -m cognition_engine.cli --help
 ce --help
-```
-
----
-
-## 正式 CLI 入口
-
-当前正式入口是：
-
-```bash
-ce
-python -m cognition_engine.cli
-```
-
-推荐首次执行：
-
-```bash
 python -m cognition_engine.cli --help
-ce status --json
-ce brief --insight insight-adk-runner-centrality
-ce brief --insight insight-adk-runner-centrality --json
-ce decision-pack --insight insight-adk-runner-centrality
-ce decision-pack --insight insight-adk-runner-centrality --json
+```
+
+---
+
+## 3. 最小运行方式
+
+`v0.3.0` 推荐使用外置数据根目录运行：
+
+```bash
+CE_DATA_DIR="$PWD/data" ce workflow --insight insight-adk-runner-centrality --json
+```
+
+也可以显式覆盖 insight 数据目录：
+
+```bash
+CE_DATA_DIR="$PWD/data" \
+CE_INSIGHTS_DIR="$PWD/data/insights" \
+ce workflow --insight insight-adk-runner-centrality --json
+```
+
+当前主入口：
+
+```bash
 ce workflow --insight insight-adk-runner-centrality
 ce workflow --insight insight-adk-runner-centrality --json
 ```
 
-当前公开主产品路径包括：
+`ce workflow` 会按顺序生成：
 
 ```text
-ce brief
-ce decision-pack
-ce workflow
+product brief
+→ decision pack
+→ model enhancement
+→ workflow-level result
+→ metadata
 ```
 
 ---
 
-## 稳定产品简报样例
+## 4. Provider 使用边界
 
-经过人工确认的稳定产品简报样例位于：
-
-```text
-examples/product-briefs/
-```
-
-当前首批样例包括：
+当前默认 provider 为：
 
 ```text
-examples/product-briefs/runner-centrality.md
-examples/product-briefs/event-system.md
+mock
 ```
 
-这些样例用于阅读和展示，不等同于运行产物、metadata 留痕或测试基线。
-
----
-
-## 稳定决策包样例
-
-经过人工确认的稳定决策包样例位于：
-
-```text
-examples/decision-packs/
-```
-
-当前首个样例为：
-
-```text
-examples/decision-packs/runner-centrality.md
-```
-
-该样例来源于正式 `ce decision-pack` 入口，用于阅读和展示，不等同于运行产物、metadata 留痕或测试基线。
-
----
-
-## 第一条产品闭环
-
-当前第一条正式产品闭环是：
+真实 provider 可通过环境变量显式启用：
 
 ```bash
-ce brief --insight insight-adk-runner-centrality
-```
-
-它会执行：
-
-1. 读取结构化洞察
-2. 生成产品简报
-3. 在 `outputs/product-briefs/` 下写入 Markdown 产物
-4. 在 `outputs/.metadata/` 下写入 metadata 留痕
-
-如需 JSON 输出：
-
-```bash
-ce brief --insight insight-adk-runner-centrality --json
-```
-
-当前 JSON 结果遵循：
-
-```text
-ce-brief-result/v1
-```
-
----
-
-## 决策包能力
-
-当前已具备决策包生成能力：
-
-```bash
-ce decision-pack --insight insight-adk-runner-centrality
-```
-
-它会执行：
-
-1. 读取结构化洞察
-2. 生成决策包
-3. 在 `outputs/decision-packs/` 下写入 Markdown 产物
-4. 在 `outputs/.metadata/` 下写入 metadata 留痕
-
-如需 JSON 输出：
-
-```bash
-ce decision-pack --insight insight-adk-runner-centrality --json
-```
-
-当前 JSON 结果遵循：
-
-```text
-ce-decision-pack-result/v1
-```
-
-当前说明只表示 `ce decision-pack` 能力已具备，不等于公仓发布、版本号推进或第二正式产品闭环公开宣布已经完成。
-
----
-
-## 认知工作流能力
-
-当前已具备第一条认知工作流入口：
-
-```bash
-ce workflow --insight insight-adk-runner-centrality
-```
-
-它会按顺序执行：
-
-1. 生成产品简报
-2. 生成决策包
-3. 生成模型增强产物
-4. 返回 workflow-level 组合结果
-
-如需 JSON 输出：
-
-```bash
+CE_MODEL_PROVIDER=adk_litellm_ollama \
+CE_DATA_DIR="$PWD/data" \
 ce workflow --insight insight-adk-runner-centrality --json
 ```
 
-当前 JSON 结果遵循：
+当前公开边界：
 
-```text
-ce-insight-to-decision-workflow-result/v1
-```
-
-当前公开 CLI 中，模型增强步骤默认使用 mock provider；真实 provider 参数暂不作为公开 CLI 使用面。
-
-当前 `ce workflow` 会生成 workflow-level Markdown 汇总产物与 workflow-level metadata；workflow 主路径已完成 ADK-backed 最小承接，但真实 provider 参数仍不进入公开 CLI 使用面。
+1. 真实 provider 可显式进入 workflow 主链；
+2. 当前不公开 `--model-provider` CLI 参数；
+3. 当前不将真实 provider 设为默认；
+4. provider 公开能力留待后续版本判断。
 
 ---
 
-## 当前已验证样本
+## 5. Google ADK 依赖说明
 
-当前已用于稳定性验证的样本包括：
+`cognition-engine` 当前以 Google ADK 2.0.0b1+ 作为受控智能体框架依赖。
 
-```text
-insight-adk-runner-centrality
-insight-adk-event-system
+依赖已在 `pyproject.toml` 中声明：
+
+```toml
+google-adk>=2.0.0b1,<2.1
 ```
 
-这些样本用于验证第一条产品闭环可以稳定生成产品简报输出。
+通常不需要单独手动安装 Google ADK。安装本项目时，Python 包安装流程会读取 `pyproject.toml` 并安装声明依赖。
+
+本项目不是复制 Google ADK 源码，而是在 Google ADK 依赖之上构建面向认知产出的产品化闭环。
 
 ---
 
-## 项目结构
+## 6. 当前公开能力
 
-当前公开发布面聚焦最小产品路径：
+当前公开能力包括：
+
+1. `ce` CLI 入口；
+2. `python -m cognition_engine.cli` 包入口；
+3. `ce workflow` 主工作流入口；
+4. `CE_DATA_DIR` 外置数据根目录；
+5. `CE_INSIGHTS_DIR` insight 数据目录覆盖入口；
+6. 默认 mock provider；
+7. 环境变量显式启用真实 provider；
+8. product brief / decision pack / model enhancement 组合结果；
+9. Markdown 输出；
+10. metadata 留痕；
+11. 最小公开数据资产与样例。
+
+---
+
+## 7. 当前不包含
+
+当前版本不包含：
+
+1. provider 公开接口；
+2. `--model-provider` CLI 参数公开；
+3. Eval 完整能力；
+4. 完整 Observability；
+5. 正式配置中心；
+6. GUI / Web / channel 支持；
+7. 完整多智能体编排；
+8. 完整成熟平台能力；
+9. Runner / 观测 / 上下文三主线系统化治理接口。
+
+---
+
+## 8. 数据资产边界
+
+当前正式依赖主路为：
+
+```text
+google-adk>=2.0.0b1,<2.1
+```
+
+当前数据资产边界：
+
+1. `data/frameworks/adk-2.0.0b1/metadata.json` 是 b1 framework metadata 最低入口；
+2. `data/frameworks/adk-2.0.0a3/metadata.json` 作为历史数据资产保留；
+3. `data/insights/adk-2.0.0a3/` 中的历史样本用于 smoke / fixtures / 回归验证；
+4. 不将 a3 样本伪改为 b1 样本；
+5. b1 insight 样本体系不属于本版本完成边界。
+
+---
+
+## 9. 项目结构
+
+当前公开发布面聚焦最小可用产品路径：
 
 ```text
 cognition-engine/
-├── pyproject.toml
 ├── cognition_engine/
-├── examples/
-│   ├── product-briefs/
-│   └── decision-packs/
-├── outputs/
-│   └── OUTPUT_CONTRACTS.md
-├── tests/
-│   └── unit/
+├── data/
+│   ├── frameworks/
+│   └── insights/
 ├── docs/
-│   ├── strategy/
-│   └── 项目/
+│   └── releases/
+├── examples/
+├── outputs/
+├── tests/
+├── pyproject.toml
 ├── README.md
-├── README.en.md
 ├── QUICKSTART.md
-├── VALIDATION_MODEL.md
-├── VALIDATION_STATE_FLOW.md
+├── CHANGELOG.md
 └── LICENSE
 ```
 
-内部任务链、原始数据、历史探测报告、本地缓存和私有来源材料不属于公开发布面。
+内部任务链、治理过程文件、私仓取证记录、本地缓存、构建产物和未清洗运行产物不属于公开发布面。
 
 ---
 
-## 输出契约
+## 10. 输出契约
 
-关于输出结构、metadata 和 JSON 结果契约，可查看：
+关于公开输出结构，可查看：
 
 ```text
 outputs/OUTPUT_CONTRACTS.md
@@ -356,43 +247,7 @@ ce-insight-to-decision-workflow-result/v1
 
 ---
 
-## 当前范围
-
-当前版本支持：
-
-1. 通过 `pyproject.toml` 进行正式包安装
-2. 通过 `ce` 使用正式 CLI 入口
-3. 通过 `python -m cognition_engine.cli` 使用包入口
-4. 通过 `ce brief` 运行第一条产品闭环
-5. 通过 `ce decision-pack` 生成决策包
-6. 通过 `ce workflow` 执行第一条 `insight-to-decision workflow`
-7. Markdown 产品简报输出
-8. Markdown 决策包输出
-9. metadata 留痕输出
-10. 产品简报、决策包与 workflow 的最小单元测试覆盖
-11. 稳定产品简报样例展示
-12. 稳定决策包样例展示
-
----
-
-## 当前不包含
-
-当前版本不声明：
-
-1. 第二正式产品闭环公开宣布完成
-2. 公仓发布或版本号推进已经触发
-3. Docker 支持
-3. GUI / Web / channel 支持
-4. 完整多智能体编排
-5. 高级评估工作流
-6. 所有输出类型达到同等成熟度
-7. 完整成熟平台
-8. 测试基线样例体系
-10. 完整 metadata 样例体系
-
----
-
-## 测试
+## 11. 测试
 
 安装测试依赖：
 
@@ -400,27 +255,29 @@ ce-insight-to-decision-workflow-result/v1
 python -m pip install -e ".[test]"
 ```
 
-运行最小单元测试：
+运行当前公开单元测试：
 
 ```bash
-python -m pytest tests/unit/test_decision_pack_loop.py tests/unit/test_output_generator.py tests/unit/test_product_brief_loop.py -q
+python -m pytest tests/unit -q
 ```
 
 ---
 
-## 推荐阅读
+## 12. 版本历史
+
+当前 README 描述 `main` 分支最新公开口径。
+
+历史版本说明通过以下位置保留：
+
+1. `CHANGELOG.md`；
+2. `docs/releases/`；
+3. GitHub Releases；
+4. 对应 Git tag。
+
+当前版本发布说明见：
 
 ```text
-QUICKSTART.md
-README.en.md
-examples/product-briefs/README.md
-examples/decision-packs/README.md
-outputs/OUTPUT_CONTRACTS.md
-VALIDATION_MODEL.md
-VALIDATION_STATE_FLOW.md
-docs/strategy/002-v0.1.0对外发布收口说明.md
-docs/strategy/004-v0.1.0最终发布放行清单.md
-docs/strategy/007-双仓发布流程固化方案.md
+docs/releases/v0.3.0-release-note.md
 ```
 
 ---

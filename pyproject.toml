@@ -35,6 +35,7 @@ classifiers = [
 [project.optional-dependencies]
 release = [
     "build>=1.4.4",
+    "twine>=6.2.0",
 ]
 
 test = [

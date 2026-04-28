@@ -1,16 +1,16 @@
 # 快速开始指南
 
-本文描述当前 `main` 分支 / `v0.3.1` 的最小上手路径。
+本文描述当前 `main` 分支 / `v0.3.2` 的最小上手路径。
 
 历史版本的快速开始说明请查看对应 Git tag 或 GitHub Release；当前 `main` 分支的 QUICKSTART 只维护最新公开基线。
 
 当前公开版本：
 
 ```text
-v0.3.1
+v0.3.2
 ```
 
-`v0.3.1` 定位为：**认知引擎 ADK 底座承接与本地真实模型链路稳定版**。
+`v0.3.2` 定位为：**依赖与虚拟环境治理小版本**。业务主链继承 `v0.3.1`，本版本重点新增 `uv.lock`、`uv sync` 分场景规则与发布前干净环境验证。
 
 ---
 
@@ -103,7 +103,7 @@ python -m cognition_engine.cli --help
 
 ## 7. 最小运行方式
 
-`v0.3.1` 推荐使用外置运行时数据根目录：
+`v0.3.2` 推荐使用外置运行时数据根目录：
 
 ```bash
 CE_DATA_DIR="$PWD/data" ce workflow --insight insight-adk-runner-centrality --json
@@ -264,7 +264,7 @@ python -m pytest tests/unit -q
 README.md
 README.en.md
 CHANGELOG.md
-docs/releases/v0.3.1-release-note.md
+docs/releases/v0.3.2-release-note.md
 outputs/OUTPUT_CONTRACTS.md
 ```
 
@@ -272,7 +272,7 @@ outputs/OUTPUT_CONTRACTS.md
 
 ## 一句话收口
 
-安装项目后，运行以下命令即可体验当前 `v0.3.1` 的最小认知工作流：
+安装项目后，运行以下命令即可体验当前 `v0.3.2` 的最小认知工作流：
 
 ```bash
 CE_DATA_DIR="$PWD/data" ce workflow --insight insight-adk-runner-centrality --json

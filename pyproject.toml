@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "cognition-engine"
-version = "0.3.1"
+version = "0.3.2"
 description = "Cognition Engine formal packaging entry and CLI runtime shell."
 readme = "README.md"
 requires-python = ">=3.14"

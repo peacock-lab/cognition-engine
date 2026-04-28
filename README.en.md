@@ -19,18 +19,18 @@ QUICKSTART.md
 Current public version:
 
 ```text
-v0.3.1
+v0.3.2
 ```
 
-`v0.3.1` is positioned as a stable ADK foundation adoption and local real-model workflow release for Cognition Engine.
+`v0.3.2` is positioned as a dependency and virtual-environment governance release. It inherits the business workflow from `v0.3.1` and focuses on `uv.lock`, scenario-based `uv sync` rules, and clean pre-release environment verification.
 
 This README only describes the latest public state of the current `main` branch. Historical versions are preserved through `CHANGELOG.md`, `docs/releases/`, GitHub Releases, and Git tags.
 
 ---
 
-## 1. v0.3.1 boundary
+## 1. v0.3.2 boundary
 
-`v0.3.1` has stabilized:
+`v0.3.2` inherits the business workflow from `v0.3.1` and stabilizes the following environment-governance items:
 
 1. the ADK-backed workflow main path;
 2. pure installed-mode execution through `CE_DATA_DIR`;
@@ -43,7 +43,7 @@ This README only describes the latest public state of the current `main` branch.
 9. the `ce workflow` result chain: product brief, decision pack, and model enhancement;
 10. output and metadata traceability.
 
-`v0.3.1` does not claim:
+`v0.3.2` does not claim:
 
 1. a public provider interface;
 2. a public `--model-provider` CLI option;
@@ -91,7 +91,7 @@ python -m cognition_engine.cli --help
 
 ## 3. Minimal workflow usage
 
-`v0.3.1` recommends running with an external data root:
+`v0.3.2` recommends running with an external data root:
 
 ```bash
 CE_DATA_DIR="$PWD/data" ce workflow --insight insight-adk-runner-centrality --json
@@ -300,7 +300,7 @@ Historical versions are preserved through:
 The current version release note is available at:
 
 ```text
-docs/releases/v0.3.1-release-note.md
+docs/releases/v0.3.2-release-note.md
 ```
 
 ---

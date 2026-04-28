@@ -5,18 +5,18 @@
 当前公开版本：
 
 ```text
-v0.3.1
+v0.3.2
 ```
 
-`v0.3.1` 定位为：**认知引擎 ADK 底座承接与本地真实模型链路稳定版**。
+`v0.3.2` 定位为：**依赖与虚拟环境治理小版本**。业务主链继承 `v0.3.1`，本版本重点新增 `uv.lock`、`uv sync` 分场景规则与发布前干净环境验证。
 
 本 README 只描述当前 `main` 分支的最新公开口径。历史版本通过 `CHANGELOG.md`、`docs/releases/`、GitHub Releases 和 Git tag 保留，不在 README 中展开。
 
 ---
 
-## 1. v0.3.1 阶段边界
+## 1. v0.3.2 阶段边界
 
-`v0.3.1` 已完成：
+`v0.3.2` 继承 `v0.3.1` 的业务主链能力，并完成以下环境治理工作：
 
 1. ADK-backed workflow 主链稳定；
 2. 纯安装态 `CE_DATA_DIR` 运行入口；
@@ -29,7 +29,7 @@ v0.3.1
 9. `ce workflow` 的 product brief + decision pack + model enhancement 组合结果；
 10. output / metadata 留痕。
 
-`v0.3.1` 不宣称：
+`v0.3.2` 不宣称：
 
 1. provider 已公开；
 2. `--model-provider` CLI 参数已公开；
@@ -77,7 +77,7 @@ python -m cognition_engine.cli --help
 
 ## 3. 最小运行方式
 
-`v0.3.1` 推荐使用外置数据根目录运行：
+`v0.3.2` 推荐使用外置数据根目录运行：
 
 ```bash
 CE_DATA_DIR="$PWD/data" ce workflow --insight insight-adk-runner-centrality --json
@@ -285,7 +285,7 @@ python -m pytest tests/unit -q
 当前版本发布说明见：
 
 ```text
-docs/releases/v0.3.1-release-note.md
+docs/releases/v0.3.2-release-note.md
 ```
 
 ---

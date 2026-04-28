@@ -2,7 +2,7 @@
 
 `cognition-engine` is a lightweight cognition product loop built on top of Google ADK.
 
-The main project entry is now Chinese-first. This file provides a concise English summary.
+The main project entry is Chinese-first. This file provides a concise English summary for the current public `main` branch.
 
 Chinese main entry:
 
@@ -16,54 +16,48 @@ Quickstart:
 QUICKSTART.md
 ```
 
----
-
-## Current release
-
-Current version:
+Current public version:
 
 ```text
-v0.1.2
+v0.3.0
 ```
 
-`v0.1.2` is a lightweight patch release after the `v0.1.0` product baseline. It adds the second formal CLI product loop, `ce decision-pack`, and completes the related public documentation, examples, output contracts, regression fixtures, and minimal runtime baseline.
+`v0.3.0` is positioned as a stable ADK foundation adoption and local real-model workflow release for Cognition Engine.
 
-It clarifies:
-
-1. the Google ADK dependency relationship
-2. the installation path
-3. the formal CLI entry points
-4. the first product loop boundary
-
-`ce decision-pack` is now part of the public `v0.1.2` release as the second formal CLI product loop.
+This README only describes the latest public state of the current `main` branch. Historical versions are preserved through `CHANGELOG.md`, `docs/releases/`, GitHub Releases, and Git tags.
 
 ---
 
-## Google ADK dependency
+## 1. v0.3.0 boundary
 
-`cognition-engine` currently uses Google ADK 2.0.0b1+ as its controlled agent-framework dependency.
+`v0.3.0` has stabilized:
 
-The dependency is declared in `pyproject.toml`:
+1. the ADK-backed workflow main path;
+2. pure installed-mode execution through `CE_DATA_DIR`;
+3. fine-grained insight directory override through `CE_INSIGHTS_DIR`;
+4. explicit real provider entry into the workflow main path;
+5. the default `mock` provider;
+6. the `google-adk>=2.0.0b1,<2.1` dependency path;
+7. the minimal `adk-2.0.0b1` framework metadata entry;
+8. retained historical `adk-2.0.0a3` smoke / fixture / regression data assets;
+9. the `ce workflow` result chain: product brief, decision pack, and model enhancement;
+10. output and metadata traceability.
 
-```toml
-google-adk>=2.0.0b1,<2.1
-```
+`v0.3.0` does not claim:
 
-Users normally do not need to install Google ADK manually.
+1. a public provider interface;
+2. a public `--model-provider` CLI option;
+3. a real provider as the default provider;
+4. complete Eval capability;
+5. complete Observability capability;
+6. a formal configuration center;
+7. systematic completion of the Runner, Observability, and Context lines.
 
-When installing this project with:
-
-```bash
-python -m pip install -e .
-```
-
-Python packaging will read `pyproject.toml` and install the declared dependencies, including `google-adk`.
-
-This project does not vendor or copy Google ADK source code. It builds a productized cognition loop on top of the ADK dependency.
+The Runner, Observability, and Context lines are deferred to later versions.
 
 ---
 
-## Installation
+## 2. Installation
 
 Clone the public repository:
 
@@ -79,7 +73,7 @@ python -m venv .venv
 source .venv/bin/activate
 ```
 
-Install the project in editable mode:
+Install the project:
 
 ```bash
 python -m pip install -U pip
@@ -89,158 +83,216 @@ python -m pip install -e .
 Confirm that the CLI is available:
 
 ```bash
-python -m cognition_engine.cli --help
 ce --help
-```
-
----
-
-## Formal CLI entries
-
-The current formal entries are:
-
-```bash
-ce
-python -m cognition_engine.cli
-```
-
-Recommended first commands:
-
-```bash
 python -m cognition_engine.cli --help
-ce status --json
-ce brief --insight insight-adk-runner-centrality
-ce brief --insight insight-adk-runner-centrality --json
-ce decision-pack --insight insight-adk-runner-centrality
-ce decision-pack --insight insight-adk-runner-centrality --json
 ```
-
-The current public product paths are:
-
-```text
-ce brief
-ce decision-pack
-```
-
-Stable product brief examples are available under:
-
-```text
-examples/product-briefs/
-```
-
-These examples are for reading and demonstration. They are not runtime metadata or test baselines.
-
-Stable decision-pack examples are available under:
-
-```text
-examples/decision-packs/
-```
-
-The current sample is:
-
-```text
-examples/decision-packs/runner-centrality.md
-```
-
-This sample is generated from the formal `ce decision-pack` entry. It is for reading and demonstration, not runtime metadata or a test baseline.
 
 ---
 
-## First product loop
+## 3. Minimal workflow usage
 
-The first formal product loop is:
+`v0.3.0` recommends running with an external data root:
 
 ```bash
-ce brief --insight insight-adk-runner-centrality
+CE_DATA_DIR="$PWD/data" ce workflow --insight insight-adk-runner-centrality --json
 ```
 
-It performs the following actions:
-
-1. reads a structured insight
-2. generates a product brief
-3. writes a Markdown output under `outputs/product-briefs/`
-4. writes metadata under `outputs/.metadata/`
-
-JSON output is available with:
+You can also explicitly override the insight data directory:
 
 ```bash
-ce brief --insight insight-adk-runner-centrality --json
+CE_DATA_DIR="$PWD/data" \
+CE_INSIGHTS_DIR="$PWD/data/insights" \
+ce workflow --insight insight-adk-runner-centrality --json
 ```
 
-The JSON result follows the current `ce-brief-result/v1` contract.
-
----
-
-## Decision-pack capability
-
-The current project also supports decision-pack generation:
+Current main entry:
 
 ```bash
-ce decision-pack --insight insight-adk-runner-centrality
+ce workflow --insight insight-adk-runner-centrality
+ce workflow --insight insight-adk-runner-centrality --json
 ```
 
-It performs the following actions:
-
-1. reads a structured insight
-2. generates a decision pack
-3. writes a Markdown output under `outputs/decision-packs/`
-4. writes metadata under `outputs/.metadata/`
-
-JSON output is available with:
-
-```bash
-ce decision-pack --insight insight-adk-runner-centrality --json
-```
-
-The JSON result follows the current `ce-decision-pack-result/v1` contract.
-
-`ce decision-pack` is part of the public `v0.1.2` release as the second formal CLI product loop.
-
----
-
-## Current scope
-
-This release supports:
-
-1. formal package entry through `pyproject.toml`
-2. formal CLI entry through `ce`
-3. package entry through `python -m cognition_engine.cli`
-4. the first product loop through `ce brief`
-5. decision-pack generation through `ce decision-pack`
-6. Markdown product-brief output
-7. Markdown decision-pack output
-8. metadata trace output
-9. minimal unit coverage for product brief and decision pack
-10. stable product brief examples
-11. stable decision-pack examples
-
----
-
-## Not included yet
-
-This release does not claim:
-
-1. Docker support
-2. GUI / Web / channel support
-3. full multi-agent orchestration
-4. advanced evaluation workflows
-5. all output types reaching the same maturity level
-6. a complete mature platform
-
----
-
-## Useful documents
-
-Recommended reading:
+`ce workflow` generates:
 
 ```text
-README.md
-QUICKSTART.md
-examples/product-briefs/README.md
-examples/decision-packs/README.md
+product brief
+→ decision pack
+→ model enhancement
+→ workflow-level result
+→ metadata
+```
+
+---
+
+## 4. Provider boundary
+
+The current default provider is:
+
+```text
+mock
+```
+
+A real provider can be explicitly enabled through environment variables:
+
+```bash
+CE_MODEL_PROVIDER=adk_litellm_ollama \
+CE_DATA_DIR="$PWD/data" \
+ce workflow --insight insight-adk-runner-centrality --json
+```
+
+Current public boundary:
+
+1. a real provider can explicitly enter the workflow main path;
+2. the `--model-provider` CLI option is not public yet;
+3. the real provider is not the default provider;
+4. public provider capability remains a later-version decision.
+
+---
+
+## 5. Google ADK dependency
+
+`cognition-engine` currently uses Google ADK 2.0.0b1+ as its controlled agent-framework dependency.
+
+The dependency is declared in `pyproject.toml`:
+
+```toml
+google-adk>=2.0.0b1,<2.1
+```
+
+Users normally do not need to install Google ADK manually. Python packaging will read `pyproject.toml` and install the declared dependencies when installing this project.
+
+This project does not vendor or copy Google ADK source code. It builds a productized cognition loop on top of the ADK dependency.
+
+---
+
+## 6. Current public capabilities
+
+The current public capability surface includes:
+
+1. the `ce` CLI entry;
+2. the `python -m cognition_engine.cli` package entry;
+3. the `ce workflow` main workflow entry;
+4. the `CE_DATA_DIR` external data root;
+5. the `CE_INSIGHTS_DIR` insight directory override;
+6. the default mock provider;
+7. explicit real provider enablement through environment variables;
+8. product brief / decision pack / model enhancement combined results;
+9. Markdown outputs;
+10. metadata traceability;
+11. minimal public data assets and examples.
+
+---
+
+## 7. Not included yet
+
+This version does not include:
+
+1. a public provider interface;
+2. a public `--model-provider` CLI option;
+3. complete Eval capability;
+4. complete Observability capability;
+5. a formal configuration center;
+6. GUI / Web / channel support;
+7. complete multi-agent orchestration;
+8. a complete mature platform;
+9. systematic governance interfaces for the Runner, Observability, and Context lines.
+
+---
+
+## 8. Data asset boundary
+
+The current formal dependency path is:
+
+```text
+google-adk>=2.0.0b1,<2.1
+```
+
+Current data asset boundary:
+
+1. `data/frameworks/adk-2.0.0b1/metadata.json` is the minimal b1 framework metadata entry;
+2. `data/frameworks/adk-2.0.0a3/metadata.json` is retained as a historical data asset;
+3. historical samples under `data/insights/adk-2.0.0a3/` are used for smoke / fixtures / regression validation;
+4. a3 samples are not renamed into b1 samples;
+5. b1 insight samples are outside the completion boundary of this version.
+
+---
+
+## 9. Public repository structure
+
+The current public release surface focuses on the minimal usable product path:
+
+```text
+cognition-engine/
+├── cognition_engine/
+├── data/
+│   ├── frameworks/
+│   └── insights/
+├── docs/
+│   └── releases/
+├── examples/
+├── outputs/
+├── tests/
+├── pyproject.toml
+├── README.md
+├── README.en.md
+├── QUICKSTART.md
+├── CHANGELOG.md
+└── LICENSE
+```
+
+Internal task chains, governance process files, private evidence records, local caches, build artifacts, and uncleaned runtime outputs are not part of the public release surface.
+
+---
+
+## 10. Output contracts
+
+For the public output structure, see:
+
+```text
 outputs/OUTPUT_CONTRACTS.md
-VALIDATION_MODEL.md
-VALIDATION_STATE_FLOW.md
+```
+
+Current core result contracts include:
+
+```text
+ce-brief-result/v1
+ce-decision-pack-result/v1
+ce-insight-to-decision-workflow-result/v1
+```
+
+---
+
+## 11. Tests
+
+Install test dependencies:
+
+```bash
+python -m pip install -e ".[test]"
+```
+
+Run the current public unit tests:
+
+```bash
+python -m pytest tests/unit -q
+```
+
+---
+
+## 12. Version history
+
+This README describes the latest public state of the `main` branch.
+
+Historical versions are preserved through:
+
+1. `CHANGELOG.md`;
+2. `docs/releases/`;
+3. GitHub Releases;
+4. corresponding Git tags.
+
+The current version release note is available at:
+
+```text
+docs/releases/v0.3.0-release-note.md
 ```
 
 ---

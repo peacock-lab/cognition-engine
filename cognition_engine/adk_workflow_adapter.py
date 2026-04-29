@@ -8,12 +8,27 @@ from datetime import datetime, timezone
 from typing import Any, Callable, Dict, Optional
 from uuid import uuid4
 
+from cognition_engine.events import build_event_trace_governance, serialize_adk_event
+from cognition_engine.invocation import (
+    ProjectInvocationBindingPlugin,
+    adk_invocation_ids,
+    build_invocation_binding_summary,
+)
+from cognition_engine.runtime import (
+    ADK_RUNTIME_PATH,
+    build_adk_runner,
+    collect_runner_events,
+)
+from cognition_engine.sessions import (
+    create_in_memory_session_service,
+    create_session_context,
+)
+
 
 StepBuilder = Callable[[str], Dict[str, Any]]
 
 APP_NAME = "cognition_engine_adk_backed_workflow"
 USER_ID = "cognition-engine-workflow-user"
-ADK_RUNTIME_PATH = "Runner -> Workflow -> BaseNode business steps"
 ADK_ARTIFACT_MAPPING_STATUS = "business_artifact_mapping"
 
 
@@ -80,8 +95,6 @@ class AdkBackedWorkflowAdapter:
 
     async def _run_with_adk(self) -> None:
         from google.adk.agents.context import Context
-        from google.adk.runners import Runner
-        from google.adk.sessions.in_memory_session_service import InMemorySessionService
         from google.adk.workflow import Workflow
         from google.adk.workflow._base_node import START
         from google.adk.workflow._base_node import BaseNode
@@ -132,32 +145,36 @@ class AdkBackedWorkflowAdapter:
             name="ce_adk_backed_insight_to_decision_workflow",
             edges=[(START, *nodes)],
         )
-        session_service = InMemorySessionService()
-        runner = Runner(
+        session_service = create_in_memory_session_service()
+        runner = build_adk_runner(
             app_name=APP_NAME,
-            node=workflow,
+            workflow=workflow,
             session_service=session_service,
+            plugins=[
+                ProjectInvocationBindingPlugin(invocation_id=self.invocation_id),
+            ],
         )
-        session = await session_service.create_session(
+        session_context = await create_session_context(
+            session_service,
             app_name=APP_NAME,
             user_id=USER_ID,
         )
-        self.session_id = session.id
-        self.context_id = f"adk-session:{session.id}"
+        self.session_id = session_context.session_id
+        self.context_id = session_context.context_id
         message = types.Content(
             role="user",
             parts=[types.Part(text=f"ce workflow insight_id={self.insight_id}")],
         )
 
-        events = []
-        async for event in runner.run_async(
+        events = await collect_runner_events(
+            runner,
             user_id=USER_ID,
-            session_id=session.id,
+            session_id=session_context.session_id,
+            invocation_id=self.invocation_id,
             new_message=message,
-        ):
-            events.append(event)
+        )
 
-        self.adk_events = [_serialize_adk_event(event) for event in events]
+        self.adk_events = [serialize_adk_event(event) for event in events]
 
     def _step_by_name(self, step_name: str) -> WorkflowStep:
         for step in self.steps:
@@ -229,6 +246,12 @@ class AdkBackedWorkflowAdapter:
         product_summary = self.child_summaries.get("product_brief")
         decision_summary = self.child_summaries.get("decision_pack")
         enhancement_summary = self.child_summaries.get("model_enhancement")
+        artifact_refs = self._build_artifact_refs()
+        invocation_binding = build_invocation_binding_summary(
+            project_invocation_id=self.invocation_id,
+            adk_events=self.adk_events,
+        )
+        event_governance = build_event_trace_governance(self.adk_events)
         return {
             "workflow_output_file_exists": False,
             "workflow_metadata_file_exists": False,
@@ -258,9 +281,41 @@ class AdkBackedWorkflowAdapter:
             ),
             "adk_backed_workflow": True,
             "adk_session_mapped": bool(self.session_id),
+            "adk_session_id_mapped": bool(self.session_id),
             "adk_invocation_mapped": bool(self.invocation_id),
+            "adk_invocation_bound": invocation_binding["adk_invocation_bound"],
+            "adk_invocation_id_mapped": bool(adk_invocation_ids(self.adk_events)),
+            "adk_invocation_event_count": invocation_binding[
+                "adk_invocation_event_count"
+            ],
+            "adk_invocation_mismatch": invocation_binding[
+                "adk_invocation_mismatch"
+            ],
+            "adk_event_fields_bound": event_governance["adk_event_fields_bound"],
+            "adk_event_coverage_available": event_governance[
+                "adk_event_coverage_available"
+            ],
+            "adk_event_error_count": event_governance["adk_event_error_count"],
+            "adk_event_interrupted_count": event_governance[
+                "adk_event_interrupted_count"
+            ],
+            "project_execution_id_mapped": bool(self.execution_id),
+            "project_context_id_mapped": bool(self.context_id),
+            "project_invocation_id_mapped": bool(self.invocation_id),
             "adk_events_mapped": bool(self.adk_events or self.business_events),
-            "adk_artifacts_mapped": True,
+            "adk_runner_events_mapped": bool(self.adk_events),
+            "business_step_events_mapped": bool(self.business_events),
+            "adk_artifacts_mapped": bool(artifact_refs),
+            "business_artifact_refs_mapped": any(
+                ref.get("kind") == "business_output" for ref in artifact_refs
+            ),
+            "workflow_summary_artifact_mapped": False,
+            "output_files_mapped": all(
+                bool(ref.get("path")) for ref in artifact_refs
+            ) if artifact_refs else False,
+            "metadata_files_mapped": all(
+                bool(ref.get("metadata_file")) for ref in artifact_refs
+            ) if artifact_refs else False,
             "legacy_fallback_used": False,
         }
 
@@ -335,6 +390,20 @@ def add_workflow_artifact_ref(result: Dict[str, Any]) -> None:
             "metadata_id": result.get("metadata_id"),
         }
     )
+    validation = result.setdefault("validation", {})
+    validation["adk_artifacts_mapped"] = bool(artifact_refs)
+    validation["business_artifact_refs_mapped"] = any(
+        ref.get("kind") == "business_output" for ref in artifact_refs
+    )
+    validation["workflow_summary_artifact_mapped"] = any(
+        ref.get("kind") == "workflow_summary" for ref in artifact_refs
+    )
+    validation["output_files_mapped"] = all(
+        bool(ref.get("path")) for ref in artifact_refs
+    ) if artifact_refs else False
+    validation["metadata_files_mapped"] = all(
+        bool(ref.get("metadata_file")) for ref in artifact_refs
+    ) if artifact_refs else False
 
 
 def _summarize_child_result(child_result: Dict[str, Any]) -> Dict[str, Any]:
@@ -374,26 +443,6 @@ def _validation_value(
         return False
     validation = child_summary.get("validation", {})
     return bool(validation.get(key))
-
-
-def _serialize_adk_event(event: object) -> Dict[str, Any]:
-    node_info = getattr(event, "node_info", None)
-    node_path = getattr(node_info, "path", None)
-    return {
-        "author": getattr(event, "author", None),
-        "node_name": _extract_node_name(node_path),
-        "node_path": node_path,
-        "output": getattr(event, "output", None),
-    }
-
-
-def _extract_node_name(node_path: Optional[str]) -> Optional[str]:
-    if not node_path:
-        return None
-    node_name = node_path.rsplit("/", 1)[-1]
-    if "@" in node_name:
-        node_name = node_name.rsplit("@", 1)[0]
-    return node_name
 
 
 def _now_utc_iso() -> str:

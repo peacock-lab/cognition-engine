@@ -1,295 +1,127 @@
-# Cognition Engine｜认知引擎
+# Cognition Engine
 
-`cognition-engine` 是一个基于 Google ADK 的轻量级认知产品闭环项目。
+`cognition-engine` 是一个基于 Google ADK 的认知引擎 / 中间件骨架。它把认知工作流中的上下文、调用、事件、运行、会话、产物与治理记录拆成可测试、可组合的源码帽子，为后续更完整的 agent runtime 与治理能力提供稳定内核。
 
-当前公开版本：
+当前版本：
 
 ```text
-v0.3.2
+v0.4.0
 ```
 
-`v0.3.2` 定位为：**依赖与虚拟环境治理小版本**。业务主链继承 `v0.3.1`，本版本重点新增 `uv.lock`、`uv sync` 分场景规则与发布前干净环境验证。
+`v0.4.0` 是核心骨架转正阶段性发布。它不是完整产品化平台发布，也不是遥测、配置中心、契约中心或全量 agent governance platform 的完成声明。
 
-本 README 只描述当前 `main` 分支的最新公开口径。历史版本通过 `CHANGELOG.md`、`docs/releases/`、GitHub Releases 和 Git tag 保留，不在 README 中展开。
+## v0.4.0 重点
 
----
+本版本将核心运行时骨架整理为 ADK 对齐的模块结构：
 
-## 1. v0.3.2 阶段边界
+- `cognition_engine.artifacts`: ADK FileArtifactService 绑定骨架。
+- `cognition_engine.invocation`: ADK Invocation 原生语义绑定骨架。
+- `cognition_engine.events`: ADK Event / Trace 字段绑定骨架。
+- `cognition_engine.runtime`: Runtime / Runner 适配骨架。
+- `cognition_engine.sessions`: Session 绑定骨架。
+- `cognition_engine.workflows`: Workflow 结果与流程绑定骨架。
+- `cognition_engine.control_plane`: control-plane 治理记录与 bundle 骨架。
 
-`v0.3.2` 继承 `v0.3.1` 的业务主链能力，并完成以下环境治理工作：
+`control_plane` 当前可生成并组合以下记录：
 
-1. ADK-backed workflow 主链稳定；
-2. 纯安装态 `CE_DATA_DIR` 运行入口；
-3. `CE_INSIGHTS_DIR` 细粒度 insight 覆盖入口；
-4. 真实 provider 可通过环境变量进入 workflow 主链；
-5. 默认 provider 继续保持 `mock`；
-6. `google-adk>=2.0.0b1,<2.1` 依赖主路；
-7. `adk-2.0.0b1` framework metadata 最低入口；
-8. `adk-2.0.0a3` 历史 smoke / fixtures / 回归数据资产保留；
-9. `ce workflow` 的 product brief + decision pack + model enhancement 组合结果；
-10. output / metadata 留痕。
+- Context Record
+- Run Record
+- Event Trace
+- Artifact Manifest
+- Control Plane Bundle
 
-`v0.3.2` 不宣称：
+这些记录用于把一次认知运行的关键上下文、运行结果、事件轨迹与产物索引收束为可检查的数据结构。它们仍处在骨架建设阶段，不等同于完整观测平台或正式治理控制台。
 
-1. provider 已公开；
-2. `--model-provider` CLI 参数已公开；
-3. 真实 provider 已成为默认；
-4. Eval 已完成；
-5. 完整 Observability 已完成；
-6. 正式配置中心已建立；
-7. Runner / 观测 / 上下文三条主线已系统梳理完成。
+## 安装
 
-Runner / 观测 / 上下文三条主线统一移交后续版本继续梳理。
-
----
-
-## 2. 安装
-
-克隆公开仓：
+项目优先使用 `uv` 管理依赖、测试与构建：
 
 ```bash
-git clone git@github.com:peacock-lab/cognition-engine.git
+git clone <repo-url>
 cd cognition-engine
-```
-
-创建并激活虚拟环境：
-
-```bash
-python -m venv .venv
-source .venv/bin/activate
-```
-
-安装项目：
-
-```bash
-python -m pip install -U pip
-python -m pip install -e .
+uv sync --extra test --extra release
 ```
 
 确认 CLI 可用：
 
 ```bash
-ce --help
-python -m cognition_engine.cli --help
+uv run python -m cognition_engine.cli --help
 ```
 
----
-
-## 3. 最小运行方式
-
-`v0.3.2` 推荐使用外置数据根目录运行：
+如果本机暂时不能使用 `uv`，可以退回到标准 Python editable 安装；但这不是本项目当前推荐路径：
 
 ```bash
-CE_DATA_DIR="$PWD/data" ce workflow --insight insight-adk-runner-centrality --json
+python -m venv .venv
+source .venv/bin/activate
+python -m pip install -e ".[test,release]"
 ```
 
-也可以显式覆盖 insight 数据目录：
+## CLI 入口
+
+当前公开入口聚焦在最小可运行的认知工作流与说明面生成：
 
 ```bash
-CE_DATA_DIR="$PWD/data" \
-CE_INSIGHTS_DIR="$PWD/data/insights" \
-ce workflow --insight insight-adk-runner-centrality --json
+uv run ce brief --insight insight-adk-runner-centrality --json
+uv run ce decision-pack --insight insight-adk-runner-centrality --json
+uv run ce workflow --insight insight-adk-runner-centrality --json
+uv run python -m cognition_engine.workflow --insight insight-adk-runner-centrality --json
 ```
 
-当前主入口：
+`python -m cognition_engine.workflow` 是现有兼容入口；新骨架能力主要沉淀在 `cognition_engine.workflows`、`runtime`、`sessions`、`events`、`invocation`、`artifacts` 与 `control_plane` 下。
+
+真实 workflow 运行会在 `outputs/` 下生成运行产物与元数据。发布验证或本地 smoke 后，请按需要清理相关输出，避免把运行产物带入构建或公仓同步。
+
+## 验证
+
+推荐先运行聚焦单测：
 
 ```bash
-ce workflow --insight insight-adk-runner-centrality
-ce workflow --insight insight-adk-runner-centrality --json
+uv run python -m pytest \
+  tests/unit/test_workflow_loop.py \
+  tests/unit/test_control_plane_bundle.py \
+  tests/unit/test_adk_file_artifact_binding.py \
+  tests/unit/test_adk_workflow_adapter.py \
+  tests/unit/test_invocation_context.py \
+  tests/unit/test_events_event_trace.py \
+  tests/unit/test_runtime_runner.py \
+  tests/unit/test_sessions_session.py \
+  tests/unit/test_workflows_workflow.py \
+  -q
 ```
 
-`ce workflow` 会按顺序生成：
-
-```text
-product brief
-→ decision pack
-→ model enhancement
-→ workflow-level result
-→ metadata
-```
-
----
-
-## 4. Provider 使用边界
-
-当前默认 provider 为：
-
-```text
-mock
-```
-
-自 `v0.3.1` 起，普通安装已包含本地模型路径所需的 LiteLLM 依赖，并锁定为：
-
-```text
-litellm==1.82.6
-```
-
-真实 provider 可通过环境变量显式启用：
+发布前构建 dry-run：
 
 ```bash
-CE_MODEL_PROVIDER=adk_litellm_ollama \
-CE_DATA_DIR="$PWD/data" \
-ce workflow --insight insight-adk-runner-centrality --json
+rm -rf dist build *.egg-info
+uv run python -m build --sdist --wheel
 ```
 
-当前公开边界：
+构建后应确认 wheel / sdist 版本为 `0.4.0`，且不包含 `outputs/`、`tasks/`、`docs/项目/`、`docs/推进资产库/`、`.adk-artifacts`、`__pycache__` 或 `.venv`。
 
-1. 真实 provider 可显式进入 workflow 主链；
-2. 普通安装已包含 LiteLLM 依赖；
-3. 本地模型路径仍需要用户本机启动 Ollama 并准备对应模型；
-4. 当前不公开 `--model-provider` CLI 参数；
-5. 当前不将真实 provider 设为默认；
-6. provider 公开能力留待后续版本判断。
+## 发布状态
 
----
+本仓库中的 `v0.4.0` 材料处于发布准备修补状态：
 
-## 5. Google ADK 依赖说明
+- 包元数据目标版本：`0.4.0`
+- Git tag：待发布决策后补充
+- GitHub Release：待发布决策后补充
+- PyPI：待发布决策后补充
+- 公仓同步：待公仓边界取证后执行
 
-`cognition-engine` 当前以 Google ADK 2.0.0b1+ 作为受控智能体框架依赖。
-
-依赖已在 `pyproject.toml` 中声明：
-
-```toml
-google-adk>=2.0.0b1,<2.1
-```
-
-通常不需要单独手动安装 Google ADK。安装本项目时，Python 包安装流程会读取 `pyproject.toml` 并安装声明依赖。
-
-本项目不是复制 Google ADK 源码，而是在 Google ADK 依赖之上构建面向认知产出的产品化闭环。
-
----
-
-## 6. 当前公开能力
-
-当前公开能力包括：
-
-1. `ce` CLI 入口；
-2. `python -m cognition_engine.cli` 包入口；
-3. `ce workflow` 主工作流入口；
-4. `CE_DATA_DIR` 外置数据根目录；
-5. `CE_INSIGHTS_DIR` insight 数据目录覆盖入口；
-6. 默认 mock provider；
-7. 环境变量显式启用真实 provider；
-8. product brief / decision pack / model enhancement 组合结果；
-9. Markdown 输出；
-10. metadata 留痕；
-11. 最小公开数据资产与样例。
-
----
-
-## 7. 当前不包含
-
-当前版本不包含：
-
-1. provider 公开接口；
-2. `--model-provider` CLI 参数公开；
-3. Eval 完整能力；
-4. 完整 Observability；
-5. 正式配置中心；
-6. GUI / Web / channel 支持；
-7. 完整多智能体编排；
-8. 完整成熟平台能力；
-9. Runner / 观测 / 上下文三主线系统化治理接口。
-
----
-
-## 8. 数据资产边界
-
-当前正式依赖主路为：
+发布草稿材料位于：
 
 ```text
-google-adk>=2.0.0b1,<2.1
+docs/项目/认知引擎 v0.4.0 版本建设项目/release/
 ```
 
-当前数据资产边界：
+## 当前边界
 
-1. `data/frameworks/adk-2.0.0b1/metadata.json` 是 b1 framework metadata 最低入口；
-2. `data/frameworks/adk-2.0.0a3/metadata.json` 作为历史数据资产保留；
-3. `data/insights/adk-2.0.0a3/` 中的历史样本用于 smoke / fixtures / 回归验证；
-4. 不将 a3 样本伪改为 b1 样本；
-5. b1 insight 样本体系不属于本版本完成边界。
+`v0.4.0` 不声明以下能力已经完成：
 
----
+- 产品化用户接入闭环完成；
+- telemetry / tracing 全栈正式集成完成；
+- 配置中心、契约中心或策略中心完成；
+- 完整 agent governance platform 完成；
+- GitHub Release、PyPI 上传或公仓同步已经执行。
 
-## 9. 项目结构
-
-当前公开发布面聚焦最小可用产品路径：
-
-```text
-cognition-engine/
-├── cognition_engine/
-├── data/
-│   ├── frameworks/
-│   └── insights/
-├── docs/
-│   └── releases/
-├── examples/
-├── outputs/
-├── tests/
-├── pyproject.toml
-├── README.md
-├── QUICKSTART.md
-├── CHANGELOG.md
-└── LICENSE
-```
-
-内部任务链、治理过程文件、私仓取证记录、本地缓存、构建产物和未清洗运行产物不属于公开发布面。
-
----
-
-## 10. 输出契约
-
-关于公开输出结构，可查看：
-
-```text
-outputs/OUTPUT_CONTRACTS.md
-```
-
-当前核心结果契约包括：
-
-```text
-ce-brief-result/v1
-ce-decision-pack-result/v1
-ce-insight-to-decision-workflow-result/v1
-```
-
----
-
-## 11. 测试
-
-安装测试依赖：
-
-```bash
-python -m pip install -e ".[test]"
-```
-
-运行当前公开单元测试：
-
-```bash
-python -m pytest tests/unit -q
-```
-
----
-
-## 12. 版本历史
-
-当前 README 描述 `main` 分支最新公开口径。
-
-历史版本说明通过以下位置保留：
-
-1. `CHANGELOG.md`；
-2. `docs/releases/`；
-3. GitHub Releases；
-4. 对应 Git tag。
-
-当前版本发布说明见：
-
-```text
-docs/releases/v0.3.2-release-note.md
-```
-
----
-
-## License
-
-Apache License 2.0
+它的价值在于把 ADK 对齐的核心运行时骨架整理到可测试、可构建、可继续演进的状态。

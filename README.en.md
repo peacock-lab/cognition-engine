@@ -1,310 +1,127 @@
 # Cognition Engine
 
-`cognition-engine` is a lightweight cognition product loop built on top of Google ADK.
+`cognition-engine` is a Google ADK-based cognition engine and middleware skeleton. It organizes context, invocation, events, runtime, sessions, workflow results, artifacts, and governance records into testable Python modules.
 
-The main project entry is Chinese-first. This file provides a concise English summary for the current public `main` branch.
-
-Chinese main entry:
+Current version:
 
 ```text
-README.md
+v0.4.0
 ```
 
-Quickstart:
+`v0.4.0` is a core-skeleton formalization release. It does not claim a finished product onboarding flow, a full telemetry stack, a configuration or contract center, or a complete agent governance platform.
 
-```text
-QUICKSTART.md
-```
+## What Is Included
 
-Current public version:
+The v0.4.0 skeleton is aligned around these source modules:
 
-```text
-v0.3.2
-```
+- `cognition_engine.artifacts`: ADK FileArtifactService binding skeleton.
+- `cognition_engine.invocation`: ADK Invocation semantic binding skeleton.
+- `cognition_engine.events`: ADK Event / Trace field binding skeleton.
+- `cognition_engine.runtime`: runtime and runner adapter skeleton.
+- `cognition_engine.sessions`: session binding skeleton.
+- `cognition_engine.workflows`: workflow result and workflow binding skeleton.
+- `cognition_engine.control_plane`: governance records and bundle skeleton.
 
-`v0.3.2` is positioned as a dependency and virtual-environment governance release. It inherits the business workflow from `v0.3.1` and focuses on `uv.lock`, scenario-based `uv sync` rules, and clean pre-release environment verification.
+The control-plane layer currently covers:
 
-This README only describes the latest public state of the current `main` branch. Historical versions are preserved through `CHANGELOG.md`, `docs/releases/`, GitHub Releases, and Git tags.
+- Context Record
+- Run Record
+- Event Trace
+- Artifact Manifest
+- Control Plane Bundle
 
----
+These records make one cognition run easier to inspect and package. They are still skeleton-level governance records, not a finished observability or governance console.
 
-## 1. v0.3.2 boundary
+## Install
 
-`v0.3.2` inherits the business workflow from `v0.3.1` and stabilizes the following environment-governance items:
-
-1. the ADK-backed workflow main path;
-2. pure installed-mode execution through `CE_DATA_DIR`;
-3. fine-grained insight directory override through `CE_INSIGHTS_DIR`;
-4. explicit real provider entry into the workflow main path;
-5. the default `mock` provider;
-6. the `google-adk>=2.0.0b1,<2.1` dependency path;
-7. the minimal `adk-2.0.0b1` framework metadata entry;
-8. retained historical `adk-2.0.0a3` smoke / fixture / regression data assets;
-9. the `ce workflow` result chain: product brief, decision pack, and model enhancement;
-10. output and metadata traceability.
-
-`v0.3.2` does not claim:
-
-1. a public provider interface;
-2. a public `--model-provider` CLI option;
-3. a real provider as the default provider;
-4. complete Eval capability;
-5. complete Observability capability;
-6. a formal configuration center;
-7. systematic completion of the Runner, Observability, and Context lines.
-
-The Runner, Observability, and Context lines are deferred to later versions.
-
----
-
-## 2. Installation
-
-Clone the public repository:
+This project uses `uv` as the preferred dependency, test, and build entry:
 
 ```bash
-git clone git@github.com:peacock-lab/cognition-engine.git
+git clone <repo-url>
 cd cognition-engine
+uv sync --extra test --extra release
 ```
 
-Create and activate a virtual environment:
+Check the CLI:
+
+```bash
+uv run python -m cognition_engine.cli --help
+```
+
+A standard editable Python install can still be used when `uv` is unavailable, but it is not the default path for this repository:
 
 ```bash
 python -m venv .venv
 source .venv/bin/activate
+python -m pip install -e ".[test,release]"
 ```
 
-Install the project:
+## CLI Entries
+
+Current public CLI entries focus on minimal workflow execution and public-facing generated summaries:
 
 ```bash
-python -m pip install -U pip
-python -m pip install -e .
+uv run ce brief --insight insight-adk-runner-centrality --json
+uv run ce decision-pack --insight insight-adk-runner-centrality --json
+uv run ce workflow --insight insight-adk-runner-centrality --json
+uv run python -m cognition_engine.workflow --insight insight-adk-runner-centrality --json
 ```
 
-Confirm that the CLI is available:
+`python -m cognition_engine.workflow` remains a compatibility entry. The newer skeleton code lives under `workflows`, `runtime`, `sessions`, `events`, `invocation`, `artifacts`, and `control_plane`.
+
+Real workflow runs may create files under `outputs/`. Clean generated outputs before release checks or public repository synchronization.
+
+## Verification
+
+Focused tests:
 
 ```bash
-ce --help
-python -m cognition_engine.cli --help
+uv run python -m pytest \
+  tests/unit/test_workflow_loop.py \
+  tests/unit/test_control_plane_bundle.py \
+  tests/unit/test_adk_file_artifact_binding.py \
+  tests/unit/test_adk_workflow_adapter.py \
+  tests/unit/test_invocation_context.py \
+  tests/unit/test_events_event_trace.py \
+  tests/unit/test_runtime_runner.py \
+  tests/unit/test_sessions_session.py \
+  tests/unit/test_workflows_workflow.py \
+  -q
 ```
 
----
-
-## 3. Minimal workflow usage
-
-`v0.3.2` recommends running with an external data root:
+Build dry-run:
 
 ```bash
-CE_DATA_DIR="$PWD/data" ce workflow --insight insight-adk-runner-centrality --json
+rm -rf dist build *.egg-info
+uv run python -m build --sdist --wheel
 ```
 
-You can also explicitly override the insight data directory:
+The built wheel and sdist should be versioned `0.4.0` and must not include private task chains, generated outputs, local virtual environments, cache folders, or internal project-governance documents.
 
-```bash
-CE_DATA_DIR="$PWD/data" \
-CE_INSIGHTS_DIR="$PWD/data/insights" \
-ce workflow --insight insight-adk-runner-centrality --json
-```
+## Release Status
 
-Current main entry:
+The v0.4.0 materials are in release-preparation repair:
 
-```bash
-ce workflow --insight insight-adk-runner-centrality
-ce workflow --insight insight-adk-runner-centrality --json
-```
+- Package metadata target: `0.4.0`
+- Git tag: pending final release decision
+- GitHub Release: pending final release decision
+- PyPI: pending final release decision
+- Public repository sync: pending public-boundary evidence
 
-`ce workflow` generates:
+Release draft materials are stored under:
 
 ```text
-product brief
-→ decision pack
-→ model enhancement
-→ workflow-level result
-→ metadata
+docs/项目/认知引擎 v0.4.0 版本建设项目/release/
 ```
 
----
+## Boundaries
 
-## 4. Provider boundary
+v0.4.0 does not claim:
 
-The current default provider is:
+- a complete productized user-consumption loop;
+- full telemetry or tracing integration;
+- a finished configuration center, contract center, or policy center;
+- a complete agent governance platform;
+- completed GitHub Release, PyPI upload, or public repository synchronization.
 
-```text
-mock
-```
-
-Since `v0.3.1`, the regular installation includes the LiteLLM dependency required by the local-model path, locked to:
-
-```text
-litellm==1.82.6
-```
-
-A real provider can be explicitly enabled through environment variables:
-
-```bash
-CE_MODEL_PROVIDER=adk_litellm_ollama \
-CE_DATA_DIR="$PWD/data" \
-ce workflow --insight insight-adk-runner-centrality --json
-```
-
-Current public boundary:
-
-1. a real provider can explicitly enter the workflow main path;
-2. the regular installation includes the LiteLLM dependency;
-3. the local-model path still requires a running local Ollama service and an available model;
-4. the `--model-provider` CLI option is not public yet;
-5. the real provider is not the default provider;
-6. public provider capability remains a later-version decision.
-
----
-
-## 5. Google ADK dependency
-
-`cognition-engine` currently uses Google ADK 2.0.0b1+ as its controlled agent-framework dependency.
-
-The dependency is declared in `pyproject.toml`:
-
-```toml
-google-adk>=2.0.0b1,<2.1
-```
-
-Users normally do not need to install Google ADK manually. Python packaging will read `pyproject.toml` and install the declared dependencies when installing this project.
-
-This project does not vendor or copy Google ADK source code. It builds a productized cognition loop on top of the ADK dependency.
-
----
-
-## 6. Current public capabilities
-
-The current public capability surface includes:
-
-1. the `ce` CLI entry;
-2. the `python -m cognition_engine.cli` package entry;
-3. the `ce workflow` main workflow entry;
-4. the `CE_DATA_DIR` external data root;
-5. the `CE_INSIGHTS_DIR` insight directory override;
-6. the default mock provider;
-7. explicit real provider enablement through environment variables;
-8. product brief / decision pack / model enhancement combined results;
-9. Markdown outputs;
-10. metadata traceability;
-11. minimal public data assets and examples.
-
----
-
-## 7. Not included yet
-
-This version does not include:
-
-1. a public provider interface;
-2. a public `--model-provider` CLI option;
-3. complete Eval capability;
-4. complete Observability capability;
-5. a formal configuration center;
-6. GUI / Web / channel support;
-7. complete multi-agent orchestration;
-8. a complete mature platform;
-9. systematic governance interfaces for the Runner, Observability, and Context lines.
-
----
-
-## 8. Data asset boundary
-
-The current formal dependency path is:
-
-```text
-google-adk>=2.0.0b1,<2.1
-```
-
-Current data asset boundary:
-
-1. `data/frameworks/adk-2.0.0b1/metadata.json` is the minimal b1 framework metadata entry;
-2. `data/frameworks/adk-2.0.0a3/metadata.json` is retained as a historical data asset;
-3. historical samples under `data/insights/adk-2.0.0a3/` are used for smoke / fixtures / regression validation;
-4. a3 samples are not renamed into b1 samples;
-5. b1 insight samples are outside the completion boundary of this version.
-
----
-
-## 9. Public repository structure
-
-The current public release surface focuses on the minimal usable product path:
-
-```text
-cognition-engine/
-├── cognition_engine/
-├── data/
-│   ├── frameworks/
-│   └── insights/
-├── docs/
-│   └── releases/
-├── examples/
-├── outputs/
-├── tests/
-├── pyproject.toml
-├── README.md
-├── README.en.md
-├── QUICKSTART.md
-├── CHANGELOG.md
-└── LICENSE
-```
-
-Internal task chains, governance process files, private evidence records, local caches, build artifacts, and uncleaned runtime outputs are not part of the public release surface.
-
----
-
-## 10. Output contracts
-
-For the public output structure, see:
-
-```text
-outputs/OUTPUT_CONTRACTS.md
-```
-
-Current core result contracts include:
-
-```text
-ce-brief-result/v1
-ce-decision-pack-result/v1
-ce-insight-to-decision-workflow-result/v1
-```
-
----
-
-## 11. Tests
-
-Install test dependencies:
-
-```bash
-python -m pip install -e ".[test]"
-```
-
-Run the current public unit tests:
-
-```bash
-python -m pytest tests/unit -q
-```
-
----
-
-## 12. Version history
-
-This README describes the latest public state of the `main` branch.
-
-Historical versions are preserved through:
-
-1. `CHANGELOG.md`;
-2. `docs/releases/`;
-3. GitHub Releases;
-4. corresponding Git tags.
-
-The current version release note is available at:
-
-```text
-docs/releases/v0.3.2-release-note.md
-```
-
----
-
-## License
-
-Apache License 2.0
+Its purpose is to make the ADK-aligned runtime skeleton testable, buildable, and ready for the next release decision.

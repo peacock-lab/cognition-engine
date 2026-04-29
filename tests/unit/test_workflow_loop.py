@@ -111,8 +111,60 @@ def test_workflow_success_executes_three_child_loops(tmp_path: Path) -> None:
     assert result["invocation_id"].startswith("ce-adk-invocation-")
     assert result["adk_runtime"] == "Runner -> Workflow -> BaseNode business steps"
     assert len(result["artifact_refs"]) == 4
+    assert {ref["kind"] for ref in result["artifact_refs"]} == {
+        "business_output",
+        "workflow_summary",
+    }
+    assert {ref["mapping_status"] for ref in result["artifact_refs"]} == {
+        "business_artifact_mapping"
+    }
     assert result["event_summary"]["adk_event_count"] >= 3
     assert result["event_summary"]["business_event_count"] >= 6
+    assert {
+        event["adk_invocation_id"] for event in result["event_summary"]["adk_events"]
+    } == {result["invocation_id"]}
+    assert all(ref["adk_artifact_bound"] is True for ref in result["artifact_refs"])
+    assert {
+        ref["adk_artifact_service"] for ref in result["artifact_refs"]
+    } == {"FileArtifactService"}
+    assert all(ref["adk_artifact_key"] for ref in result["artifact_refs"])
+    assert all(ref["adk_artifact_version"] == 0 for ref in result["artifact_refs"])
+    assert all(ref["adk_artifact_uri"] for ref in result["artifact_refs"])
+    assert all(ref["adk_artifact_metadata"]["execution_id"] == result["execution_id"] for ref in result["artifact_refs"])
+    control_plane = result["control_plane"]
+    assert control_plane["bundle_type"] == "control_plane_bundle"
+    assert control_plane["execution_id"] == result["execution_id"]
+    assert control_plane["context_record"]["execution_id"] == result["execution_id"]
+    assert control_plane["run_record"]["execution_id"] == result["execution_id"]
+    assert control_plane["event_trace"]["execution_id"] == result["execution_id"]
+    assert control_plane["artifact_manifest"]["execution_id"] == result["execution_id"]
+    assert control_plane["artifact_manifest"]["artifact_count"] == 4
+    assert control_plane["artifact_manifest"]["adk_artifact_bound_count"] == 4
+    assert control_plane["artifact_manifest"]["adk_artifact_binding_error_count"] == 0
+    assert len(control_plane["artifact_manifest"]["adk_artifact_bindings"]) == 4
+    assert control_plane["event_trace"]["adk_event_count"] >= 3
+    assert control_plane["event_trace"]["business_event_count"] >= 6
+    assert control_plane["event_trace"]["project_invocation_id"] == result["invocation_id"]
+    assert control_plane["event_trace"]["adk_invocation_ids"] == [result["invocation_id"]]
+    assert control_plane["event_trace"]["adk_invocation_bound"] is True
+    assert control_plane["event_trace"]["adk_invocation_mismatch"] is False
+    assert control_plane["event_trace"]["adk_event_records"]
+    assert control_plane["event_trace"]["adk_event_total_count"] >= 3
+    assert control_plane["event_trace"]["adk_event_field_coverage"][
+        "adk_event_with_invocation_id_count"
+    ] >= 3
+    assert control_plane["event_trace"]["adk_event_fields_bound"] is True
+    assert control_plane["event_trace"]["adk_event_coverage_available"] is True
+    assert control_plane["event_trace"]["adk_event_error_count"] == 0
+    assert control_plane["event_trace"]["adk_event_interrupted_count"] == 0
+    assert control_plane["event_trace"]["adk_event_author_summary"]
+    assert control_plane["event_trace"]["adk_event_node_summary"]
+    assert control_plane["run_record"]["adk_invocation_id"] == result["invocation_id"]
+    assert control_plane["run_record"]["adk_invocation_bound"] is True
+    assert control_plane["run_record"]["adk_event_total_count"] >= 3
+    assert control_plane["run_record"]["adk_event_field_coverage"][
+        "adk_event_with_id_count"
+    ] >= 3
 
 
 def test_workflow_validation_records_all_child_files(tmp_path: Path) -> None:
@@ -132,10 +184,31 @@ def test_workflow_validation_records_all_child_files(tmp_path: Path) -> None:
         "model_enhancement_metadata_file_exists": True,
         "adk_backed_workflow": True,
         "adk_session_mapped": True,
+        "adk_session_id_mapped": True,
         "adk_invocation_mapped": True,
+        "adk_invocation_bound": True,
+        "adk_invocation_id_mapped": True,
+        "adk_invocation_event_count": result["validation"]["adk_invocation_event_count"],
+        "adk_invocation_mismatch": False,
+        "adk_event_fields_bound": True,
+        "adk_event_coverage_available": True,
+        "adk_event_error_count": 0,
+        "adk_event_interrupted_count": 0,
+        "project_execution_id_mapped": True,
+        "project_context_id_mapped": True,
+        "project_invocation_id_mapped": True,
         "adk_events_mapped": True,
+        "adk_runner_events_mapped": True,
+        "business_step_events_mapped": True,
         "adk_artifacts_mapped": True,
+        "business_artifact_refs_mapped": True,
+        "workflow_summary_artifact_mapped": True,
+        "output_files_mapped": True,
+        "metadata_files_mapped": True,
         "legacy_fallback_used": False,
+        "adk_file_artifacts_bound": True,
+        "adk_file_artifact_binding_attempted": True,
+        "adk_file_artifact_binding_errors": False,
     }
     assert (tmp_path / result["output_file"]).exists()
     assert (tmp_path / result["metadata_file"]).exists()
@@ -167,6 +240,8 @@ def test_workflow_output_markdown_and_metadata_are_saved(tmp_path: Path) -> None
     assert result["model_enhancement"]["output_file"] in workflow_text
     assert result["execution_id"] in workflow_text
     assert "ADK-backed 承接映射" in workflow_text
+    assert "artifact_mapping_status: `business_artifact_mapping`" in workflow_text
+    assert "artifact_boundary: `business artifact mapping over cognition-engine outputs / metadata`" in workflow_text
     assert "## 一页结论" not in workflow_text
     assert "## 模型增强内容" not in workflow_text
     assert not (tmp_path / "outputs" / "workflow").exists()

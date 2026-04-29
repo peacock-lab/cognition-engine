@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "cognition-engine"
-version = "0.3.2"
-description = "Cognition Engine formal packaging entry and CLI runtime shell."
+version = "0.4.0"
+description = "Google ADK-aligned cognition engine and runtime skeleton."
 readme = "README.md"
 requires-python = ">=3.14"
 dependencies = [

@@ -2,20 +2,21 @@
 
 认知引擎是一个面向 AI 协作研发场景的治理型运行控制面项目。
 
-当前公开版本：`v0.5.1`
+当前公开版本：`v0.5.2`
 
-v0.5.1 是认知引擎在 `v0.5.0` 模块化包结构基线之后的发布工程补丁版本。本版本重点补强 PyPI 包元数据、子包发布说明接入、多包构建检查与公开安装验证路径，为后续更稳定的发布流程和运行控制面能力演进提供基础。
+v0.5.2 是认知引擎在 `v0.5.1` 发布工程补丁之后的发布治理自动化增强版本。本版本重点补强发布前安全网、PyPI 目标版本存在性检查、token 环境变量轻量检查、发布后复验入口与公仓公开面边界检查，为后续更稳定的多包发布流程提供基础。
 
 ## 当前版本定位
 
-v0.5.1 聚焦于发布工程补丁，重点包括：
+v0.5.2 聚焦于发布治理自动化增强，重点包括：
 
-1. 将 10 个子包的 README 接入 PyPI long_description；
-2. 清零子包 `twine check` 中的 long_description 相关 warning；
-3. 将根包与 10 个子包版本同步到 `0.5.1`；
-4. 将根包依赖同步到 `cognition-engine-*==0.5.1`；
-5. 保持根聚合包与子包的模块化发布结构；
-6. 保持公开主线为模块化包结构，不扩大为完整产品化运行时平台。
+1. 将根包与 10 个子包版本同步到 `0.5.2`；
+2. 将根包依赖同步到 `cognition-engine-*==0.5.2`；
+3. 固化 PyPI 目标版本存在性检查；
+4. 固化发布 token 环境变量轻量检查；
+5. 固化 PyPI 发布后安装复验；
+6. 固化公仓公开面边界检查；
+7. 提供发布安全网总入口，用于统一聚合发布前与发布后检查结果。
 
 ## 当前包结构
 
@@ -40,10 +41,10 @@ v0.5.1 聚焦于发布工程补丁，重点包括：
 从 PyPI 安装：
 
 ```bash
-uv pip install --prerelease=allow cognition-engine==0.5.1
+uv pip install --prerelease=allow cognition-engine==0.5.2
 ```
 
-说明：v0.5.1 当前依赖 `google-adk>=2.0.0b1`，安装时需要允许预发布依赖解析。
+说明：v0.5.2 当前依赖 `google-adk>=2.0.0b1`，安装时需要允许预发布依赖解析。
 
 或从源码安装：
 
@@ -55,10 +56,10 @@ pip install .
 
 ## 最小验证路径
 
-完成安装后，可执行 v0.5.1 主线包导入 smoke 验证：
+完成安装后，可执行 v0.5.2 主线包导入 smoke 验证：
 
 ```bash
-python -c "import contract_core, runtime_container, adk_adapter, observability_hub; print('cognition-engine 0.5.1 import ok')"
+python -c "import contract_core, runtime_container, adk_adapter, observability_hub; print('cognition-engine 0.5.2 import ok')"
 ```
 
 如需在源码开发环境中运行测试，可执行：
@@ -69,7 +70,7 @@ pytest
 
 ## 当前能力边界
 
-v0.5.1 主要修补公开包发布元数据、构建检查和安装验证基础，不承诺完整产品化运行时平台。
+v0.5.2 主要增强发布治理自动化与公开发布安全网，不承诺完整产品化运行时平台。
 
 当前版本不承诺：
 
@@ -78,7 +79,7 @@ v0.5.1 主要修补公开包发布元数据、构建检查和安装验证基础�
 3. 完整生产级多模型调度；
 4. 完整企业级配置中心；
 5. 完整 ADK 能力封装替代；
-6. 自动 PyPI 发布、自动 tag 或自动 GitHub Release。
+6. 自动 PyPI 上传、自动 tag 或自动 GitHub Release。
 
 ## 文档入口
 

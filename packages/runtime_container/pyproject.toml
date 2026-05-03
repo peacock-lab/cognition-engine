@@ -1,13 +1,13 @@
 [project]
 name = "cognition-engine-runtime-container"
-version = "0.5.1"
+version = "0.5.2"
 readme = "README.md"
 description = "Thin runtime-container facade package for Cognition Engine."
 requires-python = ">=3.14"
 dependencies = [
-  "cognition-engine-runtime==0.5.1",
-  "cognition-engine-composition==0.5.1",
-  "cognition-engine-contract-core==0.5.1",
+  "cognition-engine-runtime==0.5.2",
+  "cognition-engine-composition==0.5.2",
+  "cognition-engine-contract-core==0.5.2",
 ]
 
 [build-system]

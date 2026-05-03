@@ -10,21 +10,21 @@ build-backend = "setuptools.build_meta"
 #   historical material, but it is not part of the v0.5.0 formal release face.
 [project]
 name = "cognition-engine"
-version = "0.5.1"
+version = "0.5.2"
 description = "Aggregate distribution package for the Cognition Engine v0.5.0 multi-package baseline."
 readme = "README.md"
 requires-python = ">=3.14"
 dependencies = [
-    "cognition-engine-schemas==0.5.1",
-    "cognition-engine-behavior-contracts==0.5.1",
-    "cognition-engine-config-contexts==0.5.1",
-    "cognition-engine-config-assembly==0.5.1",
-    "cognition-engine-runtime==0.5.1",
-    "cognition-engine-composition==0.5.1",
-    "cognition-engine-contract-core==0.5.1",
-    "cognition-engine-adk-adapter==0.5.1",
-    "cognition-engine-observability-hub==0.5.1",
-    "cognition-engine-runtime-container==0.5.1",
+    "cognition-engine-schemas==0.5.2",
+    "cognition-engine-behavior-contracts==0.5.2",
+    "cognition-engine-config-contexts==0.5.2",
+    "cognition-engine-config-assembly==0.5.2",
+    "cognition-engine-runtime==0.5.2",
+    "cognition-engine-composition==0.5.2",
+    "cognition-engine-contract-core==0.5.2",
+    "cognition-engine-adk-adapter==0.5.2",
+    "cognition-engine-observability-hub==0.5.2",
+    "cognition-engine-runtime-container==0.5.2",
 ]
 
 classifiers = [

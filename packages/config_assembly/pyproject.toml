@@ -1,6 +1,7 @@
 [project]
 name = "cognition-engine-config-assembly"
-version = "0.5.0"
+version = "0.5.1"
+readme = "README.md"
 description = "Configuration assembly package for Cognition Engine."
 requires-python = ">=3.14"
 dependencies = [

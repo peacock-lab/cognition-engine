@@ -1,12 +1,13 @@
 [project]
 name = "cognition-engine-config-contexts"
-version = "0.5.0"
+version = "0.5.1"
+readme = "README.md"
 description = "Configuration contexts and Config Views for Cognition Engine."
 requires-python = ">=3.14"
 dependencies = [
   "pydantic>=2.13.0",
-  "cognition-engine-schemas==0.5.0",
-  "cognition-engine-config-assembly==0.5.0",
+  "cognition-engine-schemas==0.5.1",
+  "cognition-engine-config-assembly==0.5.1",
 ]
 
 [build-system]

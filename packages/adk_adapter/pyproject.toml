@@ -1,12 +1,13 @@
 [project]
 name = "cognition-engine-adk-adapter"
-version = "0.5.0"
+version = "0.5.1"
+readme = "README.md"
 description = "Google ADK adapter implementations for Cognition Engine contracts."
 requires-python = ">=3.14"
 dependencies = [
-  "cognition-engine-behavior-contracts==0.5.0",
-  "cognition-engine-schemas==0.5.0",
-  "cognition-engine-config-contexts==0.5.0",
+  "cognition-engine-behavior-contracts==0.5.1",
+  "cognition-engine-schemas==0.5.1",
+  "cognition-engine-config-contexts==0.5.1",
   "google-adk>=2.0.0b1,<2.1",
 ]
 

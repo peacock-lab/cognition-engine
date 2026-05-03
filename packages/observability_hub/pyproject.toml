@@ -1,0 +1,21 @@
+[project]
+name = "cognition-engine-observability-hub"
+version = "0.5.0"
+description = "Lowest observability-hub intake package for Cognition Engine."
+requires-python = ">=3.14"
+dependencies = [
+  "pydantic>=2.13.0",
+  "cognition-engine-schemas==0.5.0",
+  "cognition-engine-contract-core==0.5.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/observability_hub"]
+
+[tool.uv.sources]
+cognition-engine-schemas = { workspace = true }
+cognition-engine-contract-core = { workspace = true }

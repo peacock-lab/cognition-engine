@@ -1,0 +1,46 @@
+from __future__ import annotations
+
+import re
+from pathlib import Path
+
+
+REPO_ROOT = Path(__file__).resolve().parents[3]
+OBSERVABILITY_HUB_ROOT = REPO_ROOT / "packages" / "observability_hub"
+OBSERVABILITY_HUB_SOURCE_ROOT = OBSERVABILITY_HUB_ROOT / "src" / "observability_hub"
+UPSTREAM_SOURCE_ROOTS = [
+    REPO_ROOT / "packages" / "runtime_container" / "src" / "runtime_container",
+    REPO_ROOT / "packages" / "contract_core" / "src" / "contract_core",
+]
+
+
+def test_observability_hub_declares_only_allowed_first_batch_dependencies() -> None:
+    pyproject = (OBSERVABILITY_HUB_ROOT / "pyproject.toml").read_text(encoding="utf-8")
+
+    assert "cognition-engine-schemas==0.5.0" in pyproject
+    assert "cognition-engine-contract-core==0.5.0" in pyproject
+    assert "pydantic>=2.13.0" in pyproject
+    assert "cognition-engine-runtime-container" not in pyproject
+    assert "cognition-engine-adk-adapter" not in pyproject
+    assert "google-adk" not in pyproject
+    assert "cognition-engine-runtime" not in pyproject
+    assert "cognition-engine-composition" not in pyproject
+
+
+def test_observability_hub_source_does_not_import_forbidden_layers() -> None:
+    forbidden_imports = re.compile(
+        r"^\s*(?:from|import)\s+(?:adk_adapter|runtime_container|runtime|composition|google\.adk)\b",
+        re.MULTILINE,
+    )
+
+    for source_path in OBSERVABILITY_HUB_SOURCE_ROOT.rglob("*.py"):
+        source = source_path.read_text(encoding="utf-8")
+        assert forbidden_imports.search(source) is None, source_path
+
+
+def test_runtime_container_and_contract_core_do_not_reverse_depend_on_observability_hub() -> None:
+    reverse_import = re.compile(r"^\s*(?:from|import)\s+observability_hub\b", re.MULTILINE)
+
+    for source_root in UPSTREAM_SOURCE_ROOTS:
+        for source_path in source_root.rglob("*.py"):
+            source = source_path.read_text(encoding="utf-8")
+            assert reverse_import.search(source) is None, source_path

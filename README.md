@@ -1,40 +1,114 @@
 # Cognition Engine
 
-`cognition-engine` 是一个基于 Google ADK 的认知引擎 / 中间件骨架。它把认知工作流中的上下文、调用、事件、运行、会话、产物与治理记录拆成可测试、可组合的源码帽子，为后续更完整的 agent runtime 与治理能力提供稳定内核。
+`cognition-engine` 当前处于 `v0.5.0` 新基线发布准备阶段。
 
-当前版本：
+`v0.5.0` 已完成根聚合包发布结构修补：根包 `cognition-engine` 已切换为 `0.5.0` 聚合包，依赖自营核心包、代理适配包和依赖型支撑包；但最终公仓发布、Git tag、GitHub Release 与 PyPI 发布动作尚未执行。
+
+## 当前状态
+
+当前仓库的真实状态可以概括为：
 
 ```text
-v0.4.0
+1. v0.5.0 新主线已经转向 packages/* workspace 多包结构；
+2. v0.5.0 采用“根包统一入口 + 自营核心包 + 代理适配包 + 依赖型支撑包”的第二层早期分发模块化方案；
+3. 根包 cognition-engine 已切换为 0.5.0 聚合包；
+4. 安装 cognition-engine 可自动解析并安装 10 个 v0.5.0 子包；
+5. 四层主入口已经成立；
+6. 正式支撑面已经收敛为依赖型发布边界；
+7. 旧 cognition_engine/、ce 与旧 workflow 不进入 v0.5.0 正式发布面；
+8. packages/* 构建、隔离安装与严格 import smoke 已通过；
+9. 当前尚未执行最终 Git tag、公仓同步、GitHub Release 或 PyPI 发布。
 ```
 
-`v0.4.0` 是核心骨架转正阶段性发布。它不是完整产品化平台发布，也不是遥测、配置中心、契约中心或全量 agent governance platform 的完成声明。
+## v0.5.0 发布结构
 
-## v0.4.0 重点
+`v0.5.0` 发布结构分为四类：
 
-本版本将核心运行时骨架整理为 ADK 对齐的模块结构：
+```text
+根包：
+cognition-engine
 
-- `cognition_engine.artifacts`: ADK FileArtifactService 绑定骨架。
-- `cognition_engine.invocation`: ADK Invocation 原生语义绑定骨架。
-- `cognition_engine.events`: ADK Event / Trace 字段绑定骨架。
-- `cognition_engine.runtime`: Runtime / Runner 适配骨架。
-- `cognition_engine.sessions`: Session 绑定骨架。
-- `cognition_engine.workflows`: Workflow 结果与流程绑定骨架。
-- `cognition_engine.control_plane`: control-plane 治理记录与 bundle 骨架。
+自营核心包：
+cognition-engine-contract-core
+cognition-engine-runtime-container
+cognition-engine-observability-hub
 
-`control_plane` 当前可生成并组合以下记录：
+代理 / 生态适配包：
+cognition-engine-adk-adapter
 
-- Context Record
-- Run Record
-- Event Trace
-- Artifact Manifest
-- Control Plane Bundle
+依赖型支撑包：
+cognition-engine-schemas
+cognition-engine-behavior-contracts
+cognition-engine-config-contexts
+cognition-engine-config-assembly
+cognition-engine-runtime
+cognition-engine-composition
+```
 
-这些记录用于把一次认知运行的关键上下文、运行结果、事件轨迹与产物索引收束为可检查的数据结构。它们仍处在骨架建设阶段，不等同于完整观测平台或正式治理控制台。
+对应源码入口如下：
 
-## 安装
+- `packages/contract_core/`：公共契约层，自营核心包
+- `packages/runtime_container/`：运行时治理容器，自营核心包
+- `packages/adk_adapter/`：ADK 能力适配实现层，代理 / 生态适配包
+- `packages/observability_hub/`：观测平台与事实 intake，自营核心包
 
-项目优先使用 `uv` 管理依赖、测试与构建：
+## 正式支撑面
+
+当前已锁定的依赖型支撑包源码面为：
+
+```text
+packages/behavior_contracts/
+packages/schemas/
+packages/config_contexts/
+packages/config_assembly/
+config/
+packages/runtime/
+packages/composition/
+```
+
+这些目录属于 `v0.5.0` 主线的依赖型支撑层。它们作为正式 PyPI distribution 存在，并随根包或核心包安装时自动解析安装；但它们不作为普通用户优先手动安装对象，也不作为产品叙事主入口。
+
+## 旧兼容面
+
+以下对象当前仍保留，但都应按“旧兼容面”理解：
+
+```text
+cognition_engine/ = 旧单包源码面 / 历史过渡资产，不进入 v0.5.0 根聚合包 wheel
+ce = 旧兼容 CLI 入口，不作为 v0.5.0 正式 console script
+cognition_engine/workflow.py = 旧 workflow 兼容入口，不作为 v0.5.0 新主线入口
+cognition_engine/workflows/ = 旧 workflow 兼容面，不作为 v0.5.0 新主线入口
+pyproject.toml = v0.5.0 根聚合包元数据，已不再打包旧 cognition_engine/
+```
+
+因此：
+
+- 不应再把 `cognition_engine/` 写成当前正式主线或根包发布内容
+- 不应把 `ce` 写成 `v0.5.0` 正式 CLI 入口
+- 不应把 `workflow.py / workflows/` 写成 `runtime_container` 或 `composition` 的直接替代入口
+
+## 当前已成立的最小闭环
+
+当前已经成立并被复验的最小闭环为：
+
+```text
+contract_core
+-> runtime_container
+-> adk_adapter
+-> ADK Workflow / Runner
+-> RuntimeResult
+-> observability_hub.build_evidence_bundle(...)
+-> EvidenceBundle
+```
+
+这说明：
+
+- 四层主线已经具备最小闭环成立依据
+- `RuntimeResult -> EvidenceBundle` 的最小取证链路已经成立
+- 当前成立的是“最小闭环”，不是完整产品化系统
+
+## 本地开发起步
+
+当前推荐使用 `uv` 管理本地依赖与测试：
 
 ```bash
 git clone <repo-url>
@@ -42,86 +116,95 @@ cd cognition-engine
 uv sync --extra test --extra release
 ```
 
-确认 CLI 可用：
+`v0.5.0` 发布完成后的推荐安装入口将是：
+
+```bash
+pip install cognition-engine
+```
+
+安装根包后，pip 会自动解析安装自营核心包、代理适配包和依赖型支撑包。普通用户不需要手动安装支撑包。
+
+如需在源码仓库内确认旧兼容 CLI 仍可被调用，可运行：
 
 ```bash
 uv run python -m cognition_engine.cli --help
 ```
 
-如果本机暂时不能使用 `uv`，可以退回到标准 Python editable 安装；但这不是本项目当前推荐路径：
+注意：
 
-```bash
-python -m venv .venv
-source .venv/bin/activate
-python -m pip install -e ".[test,release]"
+- 上述命令只用于本地开发与兼容验证
+- 不应把它理解为 `v0.5.0` 正式发布入口
+- 当前 README 只说明发布准备口径，最终 PyPI 发布动作尚未执行
+
+## 推荐验证路径
+
+当前更推荐优先验证 `v0.5.0` 四层主线，而不是先从旧单包入口理解系统。
+
+推荐验证对象：
+
+```text
+tests/packages/*
 ```
 
-## CLI 入口
-
-当前公开入口聚焦在最小可运行的认知工作流与说明面生成：
+其中可直接运行的代表性验证命令为：
 
 ```bash
+uv run pytest tests/packages -q --import-mode=importlib
+```
+
+说明：
+
+- 这组测试覆盖当前 packages/* 新基线测试面
+- `tests/packages` 重名收集冲突已修复，全量收集与全量测试已通过
+
+## 构建与安装验证状态
+
+当前已经完成以下发布前验证：
+
+```text
+1. hatchling 构建后端已补齐；
+2. packages/* 10 个子包全部可构建 wheel；
+3. packages/* 10 个子包全部可隔离安装；
+4. 根包 cognition-engine 已可构建为 0.5.0 聚合 wheel；
+5. 根 wheel 不包含旧 cognition_engine/ 源码；
+6. 安装 cognition-engine==0.5.0 可自动安装 10 个 v0.5.0 子包；
+7. 严格 repo 外部 import smoke 已通过；
+8. 旧 cognition_engine 未被根聚合包安装。
+```
+
+## 旧兼容入口示例
+
+以下命令可以继续用于旧兼容验证，但它们不是 `v0.5.0` 新主线入口：
+
+```bash
+uv run ce workflow --insight insight-adk-runner-centrality --json
 uv run ce brief --insight insight-adk-runner-centrality --json
 uv run ce decision-pack --insight insight-adk-runner-centrality --json
-uv run ce workflow --insight insight-adk-runner-centrality --json
 uv run python -m cognition_engine.workflow --insight insight-adk-runner-centrality --json
 ```
 
-`python -m cognition_engine.workflow` 是现有兼容入口；新骨架能力主要沉淀在 `cognition_engine.workflows`、`runtime`、`sessions`、`events`、`invocation`、`artifacts` 与 `control_plane` 下。
+这些命令可能在 `outputs/` 下生成运行产物。
 
-真实 workflow 运行会在 `outputs/` 下生成运行产物与元数据。发布验证或本地 smoke 后，请按需要清理相关输出，避免把运行产物带入构建或公仓同步。
+如果仅做本地冒烟验证、兼容验证或取证，请在验证后按需清理输出，避免把运行副产物带入后续构建、比对或同步流程。
 
-## 验证
+## 当前不做什么
 
-推荐先运行聚焦单测：
+当前阶段明确不宣称以下事项已经完成：
 
-```bash
-uv run python -m pytest \
-  tests/unit/test_workflow_loop.py \
-  tests/unit/test_control_plane_bundle.py \
-  tests/unit/test_adk_file_artifact_binding.py \
-  tests/unit/test_adk_workflow_adapter.py \
-  tests/unit/test_invocation_context.py \
-  tests/unit/test_events_event_trace.py \
-  tests/unit/test_runtime_runner.py \
-  tests/unit/test_sessions_session.py \
-  tests/unit/test_workflows_workflow.py \
-  -q
-```
+- 不宣称最终 PyPI 发布动作已经执行
+- 不宣称 Git tag 已完成
+- 不宣称公仓同步已完成
+- 不宣称 GitHub Release 已完成
+- 不宣称 `ce` 是 `v0.5.0` 正式 CLI 入口
+- 不宣称 `workflow.py / workflows/` 是 `runtime_container` 的替代入口
+- 不宣称第三层独立运行时或第四层分布式生态已经成立
 
-发布前构建 dry-run：
+## 后续收口方向
 
-```bash
-rm -rf dist build *.egg-info
-uv run python -m build --sdist --wheel
-```
+当前阶段后续仍需继续处理：
 
-构建后应确认 wheel / sdist 版本为 `0.4.0`，且不包含 `outputs/`、`tasks/`、`docs/项目/`、`docs/推进资产库/`、`.adk-artifacts`、`__pycache__` 或 `.venv`。
-
-## 发布状态
-
-本仓库中的 `v0.4.0` 材料处于发布准备修补状态：
-
-- 包元数据目标版本：`0.4.0`
-- Git tag：待发布决策后补充
-- GitHub Release：待发布决策后补充
-- PyPI：待发布决策后补充
-- 公仓同步：待公仓边界取证后执行
-
-发布草稿材料位于：
-
-```text
-docs/项目/认知引擎 v0.4.0 版本建设项目/release/
-```
-
-## 当前边界
-
-`v0.4.0` 不声明以下能力已经完成：
-
-- 产品化用户接入闭环完成；
-- telemetry / tracing 全栈正式集成完成；
-- 配置中心、契约中心或策略中心完成；
-- 完整 agent governance platform 完成；
-- GitHub Release、PyPI 上传或公仓同步已经执行。
-
-它的价值在于把 ADK 对齐的核心运行时骨架整理到可测试、可构建、可继续演进的状态。
+- 修订 `QUICKSTART.md / CHANGELOG.md`，同步最新根聚合包与多 distribution 发布口径
+- 完成公仓同步清单最终裁定
+- 完成 PyPI 发布前最终验证
+- 执行公仓同步、Git tag、GitHub Release 与 PyPI 发布前最终判断
+- 发布后复验根包安装、子包依赖解析、README 展示与 release 记录

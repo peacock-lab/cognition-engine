@@ -22,13 +22,13 @@ pip install .
 
 ## 2. 验证安装
 
-执行基础导入 smoke 验证：
+执行 v0.5.0 主线包导入 smoke 验证：
 
 ```bash
-python -c "import cognition_engine; print('cognition_engine import ok')"
+python -c "import contract_core, runtime_container, adk_adapter, observability_hub; print('cognition-engine v0.5.0 import ok')"
 ```
 
-预期结果：命令能够正常导入 `cognition_engine`，并输出导入成功提示。
+预期结果：命令能够正常导入 v0.5.0 主线包，并输出导入成功提示。
 
 ## 3. 源码测试
 

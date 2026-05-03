@@ -52,10 +52,10 @@ pip install .
 
 ## 最小验证路径
 
-完成安装后，可执行基础导入 smoke 验证：
+完成安装后，可执行 v0.5.0 主线包导入 smoke 验证：
 
 ```bash
-python -c "import cognition_engine; print('cognition_engine import ok')"
+python -c "import contract_core, runtime_container, adk_adapter, observability_hub; print('cognition-engine v0.5.0 import ok')"
 ```
 
 如需在源码开发环境中运行测试，可执行：

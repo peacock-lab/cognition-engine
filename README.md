@@ -39,8 +39,10 @@ v0.5.0 聚焦于公开主线的结构基线，重点包括：
 从 PyPI 安装：
 
 ```bash
-pip install cognition-engine
+uv pip install --prerelease=allow cognition-engine
 ```
+
+说明：v0.5.0 当前依赖 `google-adk>=2.0.0b1`，安装时需要允许预发布依赖解析。
 
 或从源码安装：
 

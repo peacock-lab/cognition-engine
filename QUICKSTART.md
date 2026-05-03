@@ -9,8 +9,10 @@ v0.5.0 是模块化包结构基线版本，重点验证公开主线的包结构�
 从 PyPI 安装：
 
 ```bash
-pip install cognition-engine
+uv pip install --prerelease=allow cognition-engine
 ```
+
+说明：v0.5.0 当前依赖 `google-adk>=2.0.0b1`，安装时需要允许预发布依赖解析。
 
 或从源码安装：
 

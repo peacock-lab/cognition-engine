@@ -1,15 +1,15 @@
 [project]
 name = "cognition-engine-composition"
-version = "0.5.2"
+version = "0.5.3"
 readme = "README.md"
 description = "Composition root package for Cognition Engine."
 requires-python = ">=3.14"
 dependencies = [
-  "cognition-engine-behavior-contracts==0.5.2",
-  "cognition-engine-schemas==0.5.2",
-  "cognition-engine-config-assembly==0.5.2",
-  "cognition-engine-config-contexts==0.5.2",
-  "cognition-engine-runtime==0.5.2",
+  "cognition-engine-behavior-contracts==0.5.3",
+  "cognition-engine-schemas==0.5.3",
+  "cognition-engine-config-assembly==0.5.3",
+  "cognition-engine-config-contexts==0.5.3",
+  "cognition-engine-runtime==0.5.3",
 ]
 
 [build-system]

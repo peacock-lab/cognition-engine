@@ -1,13 +1,13 @@
 [project]
 name = "cognition-engine-runtime"
-version = "0.5.2"
+version = "0.5.3"
 readme = "README.md"
 description = "Runtime orchestration package for Cognition Engine."
 requires-python = ">=3.14"
 dependencies = [
-  "cognition-engine-behavior-contracts==0.5.2",
-  "cognition-engine-schemas==0.5.2",
-  "cognition-engine-config-contexts==0.5.2",
+  "cognition-engine-behavior-contracts==0.5.3",
+  "cognition-engine-schemas==0.5.3",
+  "cognition-engine-config-contexts==0.5.3",
 ]
 
 [build-system]

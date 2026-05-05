@@ -1,6 +1,6 @@
 [project]
 name = "cognition-engine-schemas"
-version = "0.5.3"
+version = "0.5.4"
 readme = "README.md"
 description = "Public data schemas for Cognition Engine."
 requires-python = ">=3.14"

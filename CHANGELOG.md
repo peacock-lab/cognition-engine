@@ -2,6 +2,24 @@
 
 本文档作为认知引擎公开版本历史索引和轻量摘要，不承载内部治理全过程。
 
+## v0.5.4
+
+`v0.5.4` 聚焦 Trusted Publishing 上线与发布工程可信闭环，重点完成公仓最小发布 workflow、PyPI Trusted Publisher 配置链路和发布回退边界建设。
+
+主要变化：
+
+1. 将根包与 10 个子包版本升至 `0.5.4`；
+2. 将根包依赖同步到 `cognition-engine-*==0.5.4`；
+3. 新增公仓最小 PyPI publish workflow，用于 Trusted Publishing 发布路径；
+4. 完成 11 个 PyPI 项目的 Trusted Publisher 配置链路；
+5. 新增公开版 workflow 模板检查工具与对应测试；
+6. 保留 Keychain project token fallback 作为发布失败时的兜底路径；
+7. 继续保持公开主线为模块化包结构，不引入新的用户侧产品能力。
+
+对应发布说明：`v0.5.4-release-note.md`
+
+对应 tag：`v0.5.4`
+
 ## v0.5.3
 
 `v0.5.3` 聚焦发布治理准备能力增强，重点强化发布材料组织、发布前取证、发布流程检查点和人工授权边界。

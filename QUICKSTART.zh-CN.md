@@ -1,40 +1,40 @@
-# Quickstart
+# 快速开始
 
-English | [简体中文](QUICKSTART.zh-CN.md)
+[English](QUICKSTART.md) | 简体中文
 
-This guide shows the minimum local path for Cognition System `v0.7.0`.
+本文档说明 Cognition System `v0.7.0` 的最小本地使用路径。
 
-## 1. Install
+## 1. 安装
 
 ```bash
 python -m pip install --upgrade pip
 python -m pip install "cognition-system==0.7.0"
 ```
 
-Or with uv:
+或使用 uv：
 
 ```bash
 uv pip install "cognition-system==0.7.0"
 ```
 
-## 2. Verify the Package
+## 2. 验证安装
 
 ```bash
 python -c "import importlib.metadata as m; print(m.version('cognition-system'))"
 cognition --help
 ```
 
-Expected result: the installed version is `0.7.0`, and the `cognition` command prints its help text.
+预期结果：安装版本为 `0.7.0`，并且 `cognition` 命令可以打印帮助信息。
 
-## 3. Initialize Configuration
+## 3. 初始化配置
 
 ```bash
 cognition config init --config-root ./config
 ```
 
-This creates a local configuration directory from packaged defaults.
+该命令会基于包内默认配置创建本地配置目录。
 
-## 4. Run a Preflight Check
+## 4. 运行预检
 
 ```bash
 cognition run \
@@ -47,7 +47,7 @@ cognition run \
   --json
 ```
 
-## 5. Try a Local Chat Shell
+## 5. 启动本地 Chat Shell
 
 ```bash
 cognition chat \
@@ -59,7 +59,7 @@ cognition chat \
   --governance-summary-output-ref artifact://local
 ```
 
-Inside the chat shell, use:
+进入 chat shell 后，可以使用：
 
 ```text
 /status
@@ -68,6 +68,6 @@ Inside the chat shell, use:
 /exit
 ```
 
-## Notes
+## 说明
 
-`v0.7.0` is a new public baseline under `cognition-system` package names. Earlier experimental package names are not compatibility targets for this line.
+`v0.7.0` 是 `cognition-system` 包名体系下的公开新基线。更早的实验性包名不是本发布线的兼容目标。

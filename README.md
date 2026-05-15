@@ -1,5 +1,7 @@
 # Cognition System
 
+English | [简体中文](README.zh-CN.md)
+
 Cognition System is a Python 3.14 multi-package baseline for governed AI task workflows, controlled CLI execution, configuration assembly, runtime orchestration, evidence observation, and public-facing gateway experiments.
 
 Current public version: `v0.7.0`
@@ -47,8 +49,21 @@ Useful entry points:
 ```bash
 cognition --json
 cognition config init --config-root ./config
-cognition run --preflight-only --operator-approved --approval-ref approval://local --audit-ref audit://local --sanitized-evidence-ref evidence://local --governance-summary-output-ref artifact://local --json
-cognition chat --chat-session-id local-demo --operator-approved --approval-ref approval://local --audit-ref audit://local --sanitized-evidence-ref evidence://local --governance-summary-output-ref artifact://local
+cognition run \
+  --preflight-only \
+  --operator-approved \
+  --approval-ref approval://local \
+  --audit-ref audit://local \
+  --sanitized-evidence-ref evidence://local \
+  --governance-summary-output-ref artifact://local \
+  --json
+cognition chat \
+  --chat-session-id local-demo \
+  --operator-approved \
+  --approval-ref approval://local \
+  --audit-ref audit://local \
+  --sanitized-evidence-ref evidence://local \
+  --governance-summary-output-ref artifact://local
 ```
 
 ## Package Areas
@@ -76,8 +91,9 @@ This release establishes a corrected public package and CLI baseline. It include
 
 This release does not claim a production hosted service, a complete visual console, automatic tool execution, or unrestricted memory and skills runtime execution.
 
-## More
+## Documentation
 
-- Quick start: `QUICKSTART.md`
-- Version history: `CHANGELOG.md`
+- Quick start: [QUICKSTART.md](QUICKSTART.md)
+- Chinese quick start: [QUICKSTART.zh-CN.md](QUICKSTART.zh-CN.md)
+- Version history: [CHANGELOG.md](CHANGELOG.md)
 - Source repository: https://github.com/peacock-lab/cognition-engine

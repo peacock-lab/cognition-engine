@@ -1,5 +1,7 @@
 # Changelog
 
+[Back to README](README.md)
+
 This file summarizes public release changes for Cognition System.
 
 ## v0.7.0

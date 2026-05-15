@@ -1,8 +1,8 @@
 [project]
-name = "cognition-engine-schemas"
-version = "0.5.4"
-readme = "README.md"
-description = "Public data schemas for Cognition Engine."
+name = "cognition-system-schemas"
+version = "0.7.0"
+readme = { text = "Cognition System v0.7.0 public package. See the version-specific public README in the release repository for usage and boundary notes.", content-type = "text/markdown" }
+description = "Public data schemas for Cognition System."
 requires-python = ">=3.14"
 dependencies = [
   "pydantic>=2.13.0",

@@ -2,24 +2,22 @@
 
 from __future__ import annotations
 
-import asyncio
-from collections.abc import Coroutine
-from threading import Thread
-from typing import Any, TypeVar
+from typing import Any
 
 from adk_adapter.artifact_mapper import AdkArtifactMapper
+from adk_adapter.async_utils import run_sync
 from adk_adapter.errors import error_record_from_exception
 from adk_adapter.event_mapper import AdkEventMapper
 from adk_adapter.invocation_mapper import AdkInvocationMapper
+from adk_adapter.run_config import AdkRunConfigMapper, AdkRunConfigOptions
+from adk_adapter.runner_service import AdkRunnerServiceAdapter, AdkRunnerServiceBundle
+from adk_adapter.workflow_service import AdkWorkflowServiceAdapter
 from behavior_contracts.runtime import WorkflowRunner
 from schemas.runtime import (
     RuntimeStatus,
     WorkflowInput,
     WorkflowResult,
 )
-
-T = TypeVar("T")
-
 
 class AdkWorkflowRunner(WorkflowRunner):
     """Run an ADK workflow and return a standard WorkflowResult."""
@@ -33,6 +31,13 @@ class AdkWorkflowRunner(WorkflowRunner):
         event_mapper: AdkEventMapper | None = None,
         invocation_mapper: AdkInvocationMapper | None = None,
         artifact_mapper: AdkArtifactMapper | None = None,
+        workflow_service: AdkWorkflowServiceAdapter | None = None,
+        runner_service: AdkRunnerServiceAdapter | None = None,
+        service_bundle: AdkRunnerServiceBundle | None = None,
+        artifact_service: Any | None = None,
+        session_service: Any | None = None,
+        run_config: Any | None = None,
+        run_config_options: AdkRunConfigOptions | None = None,
     ) -> None:
         self._workflow = workflow
         self._app_name = app_name
@@ -40,21 +45,31 @@ class AdkWorkflowRunner(WorkflowRunner):
         self._event_mapper = event_mapper or AdkEventMapper()
         self._invocation_mapper = invocation_mapper or AdkInvocationMapper()
         self._artifact_mapper = artifact_mapper or AdkArtifactMapper()
+        self._workflow_service = workflow_service or AdkWorkflowServiceAdapter(
+            workflow=workflow,
+            runner_service=runner_service,
+            app_name=app_name,
+            user_id=user_id,
+            service_bundle=service_bundle
+            or self._service_bundle_from_services(
+                artifact_service=artifact_service,
+                session_service=session_service,
+            ),
+            run_config=run_config,
+            run_config_options=run_config_options,
+        )
+        self._run_config = run_config or self._workflow_service.runner_service.run_config
 
     def run_workflow(self, workflow_input: WorkflowInput) -> WorkflowResult:
         """Execute the configured ADK workflow through a sync contract method."""
 
-        return _run_sync(self._run_workflow_async(workflow_input))
+        return run_sync(self._run_workflow_async(workflow_input))
 
     async def _run_workflow_async(self, workflow_input: WorkflowInput) -> WorkflowResult:
-        from google.adk.runners import InMemoryRunner
         from google.genai import types
 
-        runner = InMemoryRunner(node=self._workflow, app_name=self._app_name)
-        session = await runner.session_service.create_session(
-            app_name=self._app_name,
-            user_id=self._user_id,
-        )
+        runner = self._workflow_service.create_runner()
+        session = await self._workflow_service.runner_service.create_session()
         message = types.Content(
             role="user",
             parts=[types.Part(text=self._message_text(workflow_input))],
@@ -67,6 +82,7 @@ class AdkWorkflowRunner(WorkflowRunner):
                 session_id=session.id,
                 invocation_id=workflow_input.invocation_ref.invocation_id,
                 new_message=message,
+                run_config=self._run_config,
                 yield_user_message=True,
             ):
                 events.append(event)
@@ -86,9 +102,11 @@ class AdkWorkflowRunner(WorkflowRunner):
                 metadata={
                     **workflow_input.metadata,
                     "adapter": "adk_adapter",
+                    "workflow_service": self._workflow_service.metadata(),
                     "app_name": self._app_name,
                     "user_id": self._user_id,
                     "session_id": session.id,
+                    "run_config": AdkRunConfigMapper().metadata(self._run_config),
                     "requested_invocation_id": workflow_input.invocation_ref.invocation_id,
                 },
             )
@@ -147,9 +165,11 @@ class AdkWorkflowRunner(WorkflowRunner):
             metadata={
                 **workflow_input.metadata,
                 "adapter": "adk_adapter",
+                "workflow_service": self._workflow_service.metadata(),
                 "app_name": self._app_name,
                 "user_id": self._user_id,
                 "session_id": session.id,
+                "run_config": AdkRunConfigMapper().metadata(self._run_config),
                 "event_count": len(events),
                 "requested_invocation_id": binding.requested_invocation_id,
                 "adk_invocation_id": binding.adk_invocation_id,
@@ -165,28 +185,18 @@ class AdkWorkflowRunner(WorkflowRunner):
                 return value
         return str(payload or "")
 
-
-def _run_sync(coro: Coroutine[Any, Any, T]) -> T:
-    """Run a coroutine from a sync API, even when a loop is already active."""
-
-    try:
-        asyncio.get_running_loop()
-    except RuntimeError:
-        return asyncio.run(coro)
-
-    result: T | None = None
-    error: BaseException | None = None
-
-    def run_in_thread() -> None:
-        nonlocal result, error
-        try:
-            result = asyncio.run(coro)
-        except BaseException as exc:  # noqa: BLE001
-            error = exc
-
-    thread = Thread(target=run_in_thread)
-    thread.start()
-    thread.join()
-    if error is not None:
-        raise error
-    return result  # type: ignore[return-value]
+    def _service_bundle_from_services(
+        self,
+        *,
+        artifact_service: Any | None,
+        session_service: Any | None,
+    ) -> AdkRunnerServiceBundle | None:
+        if artifact_service is None and session_service is None:
+            return None
+        return AdkRunnerServiceAdapter(
+            workflow=self._workflow,
+            app_name=self._app_name,
+            user_id=self._user_id,
+            artifact_service=artifact_service,
+            session_service=session_service,
+        ).service_bundle

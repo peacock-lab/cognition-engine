@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from behavior_contracts.llm_invocation import GovernedLlmInvocationService
 from behavior_contracts.runtime import (
     InvocationTracker,
     RuntimeEventPublisher,
@@ -29,6 +30,7 @@ class RuntimeDependencies:
     workflow_runner: WorkflowRunner
     invocation_tracker: InvocationTracker | None = None
     event_publisher: RuntimeEventPublisher | None = None
+    llm_invocation_service: GovernedLlmInvocationService | None = None
 
 
 class StandardRuntimeRunner(RuntimeRunner):

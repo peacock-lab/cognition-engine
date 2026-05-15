@@ -1,13 +1,13 @@
 [project]
-name = "cognition-engine-observability-hub"
-version = "0.5.4"
-readme = "README.md"
-description = "Lowest observability-hub intake package for Cognition Engine."
+name = "cognition-system-observability-hub"
+version = "0.7.0"
+readme = { text = "Cognition System v0.7.0 public package. See the version-specific public README in the release repository for usage and boundary notes.", content-type = "text/markdown" }
+description = "Lowest observability-hub intake package for Cognition System."
 requires-python = ">=3.14"
 dependencies = [
   "pydantic>=2.13.0",
-  "cognition-engine-schemas==0.5.4",
-  "cognition-engine-contract-core==0.5.4",
+  "cognition-system-schemas==0.7.0",
+  "cognition-system-contract-core==0.7.0",
 ]
 
 [build-system]
@@ -18,5 +18,5 @@ build-backend = "hatchling.build"
 packages = ["src/observability_hub"]
 
 [tool.uv.sources]
-cognition-engine-schemas = { workspace = true }
-cognition-engine-contract-core = { workspace = true }
+cognition-system-schemas = { workspace = true }
+cognition-system-contract-core = { workspace = true }

@@ -1,13 +1,13 @@
 [project]
-name = "cognition-engine-config-contexts"
-version = "0.5.4"
-readme = "README.md"
-description = "Configuration contexts and Config Views for Cognition Engine."
+name = "cognition-system-config-contexts"
+version = "0.7.0"
+readme = { text = "Cognition System v0.7.0 public package. See the version-specific public README in the release repository for usage and boundary notes.", content-type = "text/markdown" }
+description = "Configuration contexts and Config Views for Cognition System."
 requires-python = ">=3.14"
 dependencies = [
   "pydantic>=2.13.0",
-  "cognition-engine-schemas==0.5.4",
-  "cognition-engine-config-assembly==0.5.4",
+  "cognition-system-schemas==0.7.0",
+  "cognition-system-config-assembly==0.7.0",
 ]
 
 [build-system]
@@ -18,5 +18,5 @@ build-backend = "hatchling.build"
 packages = ["src/config_contexts"]
 
 [tool.uv.sources]
-cognition-engine-schemas = { workspace = true }
-cognition-engine-config-assembly = { workspace = true }
+cognition-system-schemas = { workspace = true }
+cognition-system-config-assembly = { workspace = true }

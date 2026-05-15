@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+import tomllib
 from pathlib import Path
 
 
@@ -14,16 +15,18 @@ UPSTREAM_SOURCE_ROOTS = [
 
 
 def test_observability_hub_declares_only_allowed_first_batch_dependencies() -> None:
-    pyproject = (OBSERVABILITY_HUB_ROOT / "pyproject.toml").read_text(encoding="utf-8")
+    pyproject = tomllib.loads((OBSERVABILITY_HUB_ROOT / "pyproject.toml").read_text(encoding="utf-8"))
+    package_version = pyproject["project"]["version"]
+    dependencies = pyproject["project"]["dependencies"]
 
-    assert "cognition-engine-schemas==0.5.0" in pyproject
-    assert "cognition-engine-contract-core==0.5.0" in pyproject
-    assert "pydantic>=2.13.0" in pyproject
-    assert "cognition-engine-runtime-container" not in pyproject
-    assert "cognition-engine-adk-adapter" not in pyproject
-    assert "google-adk" not in pyproject
-    assert "cognition-engine-runtime" not in pyproject
-    assert "cognition-engine-composition" not in pyproject
+    assert f"cognition-system-schemas=={package_version}" in dependencies
+    assert f"cognition-system-contract-core=={package_version}" in dependencies
+    assert "pydantic>=2.13.0" in dependencies
+    assert all(not dependency.startswith("cognition-system-runtime-container") for dependency in dependencies)
+    assert all(not dependency.startswith("cognition-system-adk-adapter") for dependency in dependencies)
+    assert all(not dependency.startswith("google-adk") for dependency in dependencies)
+    assert all(not dependency.startswith("cognition-system-runtime") for dependency in dependencies)
+    assert all(not dependency.startswith("cognition-system-composition") for dependency in dependencies)
 
 
 def test_observability_hub_source_does_not_import_forbidden_layers() -> None:

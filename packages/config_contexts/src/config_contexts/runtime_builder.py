@@ -8,14 +8,22 @@ from config_assembly.runtime import RuntimeConfigPayload
 
 from config_contexts.runtime import (
     AdapterSelectionConfigView,
+    AdkRunConfigView,
     ArtifactPolicyConfigView,
     EventPolicyConfigView,
     NodeExecutionConfigView,
     ResumePolicyConfigView,
     RuntimeConfigContextBundle,
+    RuntimeLiveLlmConfigView,
+    RuntimeProductizationGateConfigView,
     RuntimeConfigView,
+    RunWorkspacePolicyConfigView,
+    SessionPolicyConfigView,
+    ToolConfirmationConfigView,
+    ToolExposureConfigView,
     WorkflowExecutionConfigView,
 )
+from config_contexts.governance import GovernanceConfigContext
 
 
 class RuntimeConfigContextBuildError(RuntimeError):
@@ -59,6 +67,17 @@ def _section(payload: dict[str, Any], name: str) -> dict[str, Any]:
     return _normalize_legacy_fields(name, value)
 
 
+def _optional_section(payload: dict[str, Any], name: str) -> dict[str, Any]:
+    """Return an optional config section as a mapping."""
+
+    value = payload.get(name)
+    if value is None:
+        return {}
+    if not isinstance(value, dict):
+        raise RuntimeConfigContextBuildError(f"Runtime config section must be a mapping: {name}")
+    return value
+
+
 def _normalize_legacy_fields(section_name: str, section: dict[str, Any]) -> dict[str, Any]:
     """Normalize legacy channel field names to adapter field names."""
 
@@ -94,7 +113,25 @@ def build_runtime_config_contexts(
         artifact_policy=ArtifactPolicyConfigView(
             **_section(payload, "artifact_policy"),
         ),
+        session_policy=SessionPolicyConfigView(
+            **_optional_section(payload, "session_policy"),
+        ),
         adapter_selection=AdapterSelectionConfigView(
             **_section(payload, "adapter_selection"),
         ),
+        adk_run_config=AdkRunConfigView(**_optional_section(payload, "adk_run_config")),
+        productization_gate=RuntimeProductizationGateConfigView(
+            **_optional_section(payload, "productization_gate")
+        ),
+        live_llm=RuntimeLiveLlmConfigView(**_optional_section(payload, "live_llm")),
+        tool_confirmation=ToolConfirmationConfigView(
+            **_optional_section(payload, "tool_confirmation")
+        ),
+        tool_exposure=ToolExposureConfigView(
+            **_optional_section(payload, "tool_exposure")
+        ),
+        run_workspace=RunWorkspacePolicyConfigView(
+            **_optional_section(payload, "run_workspace")
+        ),
+        governance=GovernanceConfigContext(**_optional_section(payload, "governance")),
     )

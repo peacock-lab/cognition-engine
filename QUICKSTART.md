@@ -1,71 +1,58 @@
-# 快速开始
+# Quickstart
 
-本文档用于说明认知引擎当前公开版本 `v0.5.4` 的最小上手路径。
+This guide shows the minimum local path for Cognition System `v0.7.0`.
 
-v0.5.4 是面向 Trusted Publishing 上线的发布工程增强版本，重点增强公仓最小 PyPI publish workflow、PyPI Trusted Publisher 配置链路和发布回退边界；不是完整产品化控制台或完整治理平台版本。
-
-## 1. 安装
-
-从 PyPI 安装：
+## 1. Install
 
 ```bash
-uv pip install --prerelease=allow cognition-engine==0.5.4
+python -m pip install --upgrade pip
+python -m pip install "cognition-system==0.7.0"
 ```
 
-说明：v0.5.4 当前依赖 `google-adk>=2.0.0b1`，安装时需要允许预发布依赖解析。
-
-或从源码安装：
+Or with uv:
 
 ```bash
-git clone https://github.com/peacock-lab/cognition-engine.git
-cd cognition-engine
-pip install .
+uv pip install "cognition-system==0.7.0"
 ```
 
-## 2. 验证安装
-
-执行 v0.5.4 主线包导入 smoke 验证：
+## 2. Verify the Package
 
 ```bash
-python -c "import contract_core, runtime_container, adk_adapter, observability_hub; print('cognition-engine 0.5.4 import ok')"
+python -c "import importlib.metadata as m; print(m.version('cognition-system'))"
+cognition --help
 ```
 
-预期结果：命令能够正常导入 v0.5.4 主线包，并输出导入成功提示。
+Expected result: the installed version is `0.7.0`, and the `cognition` command prints its help text.
 
-注意：v0.5.4 根 distribution 仍是聚合元包，不提供 legacy `cognition_engine` import shell。
-
-## 3. 源码测试
-
-如需在源码开发环境中运行测试，可执行：
+## 3. Initialize Configuration
 
 ```bash
-pytest
+cognition config init --config-root ./config
 ```
 
-## 4. 当前版本适用范围
+This creates a local configuration directory from packaged defaults.
 
-v0.5.4 适合用于：
+## 4. Run a Preflight Check
 
-1. 查看认知引擎当前公开包结构；
-2. 验证模块化源码布局；
-3. 检查包级导入路径；
-4. 验证 PyPI 安装和子包元数据接入；
-5. 理解运行时、适配器、观测、契约、配置与控制面能力的结构基础；
-6. 复用 Trusted Publishing 上线过程中的发布检查、公开 workflow 边界和发布回退设计思路。
+```bash
+cognition run   --preflight-only   --operator-approved   --approval-ref approval://local   --audit-ref audit://local   --sanitized-evidence-ref evidence://local   --governance-summary-output-ref artifact://local   --json
+```
 
-## 5. 当前版本不适合用于
+## 5. Try a Local Chat Shell
 
-v0.5.4 暂不适合作为：
+```bash
+cognition chat   --chat-session-id local-demo   --operator-approved   --approval-ref approval://local   --audit-ref audit://local   --sanitized-evidence-ref evidence://local   --governance-summary-output-ref artifact://local
+```
 
-1. 完整生产级智能体治理平台；
-2. 完整低代码控制台；
-3. 完整多智能体运行时；
-4. 完整 ADK 替代框架；
-5. 完整模型调度平台；
-6. 自动发布工具或 CI/CD 发布系统。
+Inside the chat shell, use:
 
-## 6. 文档入口
+```text
+/status
+/status --json
+/help
+/exit
+```
 
-- 项目首页：`README.md`
-- 版本历史：`CHANGELOG.md`
-- 版本发布说明：`v0.5.4-release-note.md`
+## Notes
+
+`v0.7.0` is a new public baseline under `cognition-system` package names. Earlier experimental package names are not compatibility targets for this line.

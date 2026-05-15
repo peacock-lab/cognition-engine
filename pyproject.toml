@@ -2,29 +2,32 @@
 requires = ["setuptools>=69", "wheel"]
 build-backend = "setuptools.build_meta"
 
-# Root package v0.5.0 release note:
-# - This pyproject now represents the v0.5.0 aggregate distribution package.
-# - The aggregate package depends on the v0.5.0 multi-package baseline under
-#   packages/* and no longer publishes the legacy cognition_engine/ shell.
-# - The legacy cognition_engine/ source tree may remain in the repository as
-#   historical material, but it is not part of the v0.5.0 formal release face.
+# Root package v0.7.0 release note:
+# - This pyproject represents the Cognition System aggregate distribution.
+# - The aggregate package depends on the v0.7.0 multi-package baseline under
+#   packages/*.
+# - The 0.7.0 line is a new PyPI baseline under cognition-system distribution
+#   names.
 [project]
-name = "cognition-engine"
-version = "0.5.4"
-description = "Aggregate distribution package for the Cognition Engine v0.5.0 multi-package baseline."
-readme = "README.md"
+name = "cognition-system"
+version = "0.7.0"
+description = "Aggregate metadata package for the Cognition System v0.7.0 baseline."
+readme = { text = "Cognition System v0.7.0 public aggregate package. See the version-specific public README in the release repository for usage and boundary notes.", content-type = "text/markdown" }
 requires-python = ">=3.14"
 dependencies = [
-    "cognition-engine-schemas==0.5.4",
-    "cognition-engine-behavior-contracts==0.5.4",
-    "cognition-engine-config-contexts==0.5.4",
-    "cognition-engine-config-assembly==0.5.4",
-    "cognition-engine-runtime==0.5.4",
-    "cognition-engine-composition==0.5.4",
-    "cognition-engine-contract-core==0.5.4",
-    "cognition-engine-adk-adapter==0.5.4",
-    "cognition-engine-observability-hub==0.5.4",
-    "cognition-engine-runtime-container==0.5.4",
+    "cognition-system-schemas==0.7.0",
+    "cognition-system-behavior-contracts==0.7.0",
+    "cognition-system-config-assembly==0.7.0",
+    "cognition-system-config-contexts==0.7.0",
+    "cognition-system-runtime==0.7.0",
+    "cognition-system-contract-core==0.7.0",
+    "cognition-system-adk-adapter==0.7.0",
+    "cognition-system-observability-hub==0.7.0",
+    "cognition-system-cognition-agent==0.7.0",
+    "cognition-system-composition==0.7.0",
+    "cognition-system-runtime-container==0.7.0",
+    "cognition-system-product-gateway==0.7.0",
+    "cognition-system-cli==0.7.0",
 ]
 
 classifiers = [
@@ -55,14 +58,15 @@ test = [
 ]
 
 
-# The root distribution is an aggregate metadata package. It intentionally does
-# not include the legacy cognition_engine/ source tree in the v0.5.0 release.
+# The root distribution is an aggregate metadata package. It intentionally has
+# no importable root modules; product code is published from packages/*.
 [tool.setuptools]
 packages = []
 py-modules = []
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+pythonpath = ["."]
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
@@ -76,23 +80,26 @@ markers = [
 ]
 addopts = ["-v", "--tb=short", "--strict-markers"]
 
-# Workspace members under packages/* are the v0.5.0 multi-package baseline.
+# Workspace members under packages/* are the v0.7.0 multi-package baseline.
 [tool.uv.workspace]
 members = [
     "packages/*",
 ]
 
 [tool.uv.sources]
-cognition-engine-schemas = { workspace = true }
-cognition-engine-behavior-contracts = { workspace = true }
-cognition-engine-config-contexts = { workspace = true }
-cognition-engine-config-assembly = { workspace = true }
-cognition-engine-runtime = { workspace = true }
-cognition-engine-composition = { workspace = true }
-cognition-engine-contract-core = { workspace = true }
-cognition-engine-adk-adapter = { workspace = true }
-cognition-engine-observability-hub = { workspace = true }
-cognition-engine-runtime-container = { workspace = true }
+cognition-system-schemas = { workspace = true }
+cognition-system-behavior-contracts = { workspace = true }
+cognition-system-config-contexts = { workspace = true }
+cognition-system-cognition-agent = { workspace = true }
+cognition-system-config-assembly = { workspace = true }
+cognition-system-runtime = { workspace = true }
+cognition-system-composition = { workspace = true }
+cognition-system-contract-core = { workspace = true }
+cognition-system-adk-adapter = { workspace = true }
+cognition-system-observability-hub = { workspace = true }
+cognition-system-runtime-container = { workspace = true }
+cognition-system-cli = { workspace = true }
+cognition-system-product-gateway = { workspace = true }
 
 [dependency-groups]
 dev = [

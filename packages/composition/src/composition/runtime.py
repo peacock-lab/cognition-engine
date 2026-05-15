@@ -43,13 +43,14 @@ def build_standard_runtime_runner(
     workflow_runner: WorkflowRunner,
     invocation_tracker: InvocationTracker | None = None,
     event_publisher: RuntimeEventPublisher | None = None,
+    config_context: RuntimeConfigContextBundle | None = None,
 ) -> StandardRuntimeRunner:
     """Build a StandardRuntimeRunner from config and injected dependencies."""
 
-    config_context = build_runtime_config_context(options)
+    resolved_config_context = config_context or build_runtime_config_context(options)
 
     return StandardRuntimeRunner(
-        config_context=config_context,
+        config_context=resolved_config_context,
         dependencies=RuntimeDependencies(
             workflow_runner=workflow_runner,
             invocation_tracker=invocation_tracker,

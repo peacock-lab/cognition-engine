@@ -1,8 +1,10 @@
-"""Runtime configuration assembly for Cognition Engine."""
+"""Runtime configuration assembly for Cognition System."""
 
 from __future__ import annotations
 
 from copy import deepcopy
+from dataclasses import dataclass
+from importlib import resources
 from pathlib import Path
 from typing import Any
 
@@ -12,6 +14,40 @@ from pydantic import BaseModel, ConfigDict, Field
 
 class RuntimeConfigAssemblyError(RuntimeError):
     """Raised when runtime configuration assembly fails."""
+
+
+@dataclass(frozen=True)
+class ConfigInitFileStatus:
+    """Status for one initialized configuration file."""
+
+    relative_path: str
+    status: str
+
+    def to_json_dict(self) -> dict[str, str]:
+        """Return a JSON-serializable status mapping."""
+
+        return {
+            "relative_path": self.relative_path,
+            "status": self.status,
+        }
+
+
+@dataclass(frozen=True)
+class ConfigInitResult:
+    """Result of initializing a user-owned configuration root."""
+
+    config_root: str
+    source: str
+    files: tuple[ConfigInitFileStatus, ...]
+
+    def to_json_dict(self) -> dict[str, object]:
+        """Return a JSON-serializable result mapping."""
+
+        return {
+            "config_root": self.config_root,
+            "source": self.source,
+            "files": [file.to_json_dict() for file in self.files],
+        }
 
 
 class RuntimeConfigPayload(BaseModel):
@@ -24,6 +60,51 @@ class RuntimeConfigPayload(BaseModel):
     base_file: str
     env_file: str | None = None
     payload: dict[str, Any] = Field(default_factory=dict)
+
+
+_DEFAULT_CONFIG_RESOURCE_ROOT = "default_config"
+_DEFAULT_CONFIG_FILES: tuple[str, ...] = (
+    "base/runtime.yaml",
+    "templates/runtime.template.yaml",
+)
+
+
+def init_default_config_root(
+    config_root: Path,
+    *,
+    overwrite: bool = False,
+) -> ConfigInitResult:
+    """Initialize a user-owned config root from packaged sanitized defaults."""
+
+    root = config_root.expanduser()
+    files: list[ConfigInitFileStatus] = []
+    resource_root = resources.files("config_assembly").joinpath(
+        _DEFAULT_CONFIG_RESOURCE_ROOT
+    )
+
+    for relative_path in _DEFAULT_CONFIG_FILES:
+        resource_file = resource_root.joinpath(*relative_path.split("/"))
+        target_file = root / relative_path
+        target_file.parent.mkdir(parents=True, exist_ok=True)
+        existed = target_file.exists()
+
+        if existed and not overwrite:
+            files.append(ConfigInitFileStatus(relative_path, "skipped"))
+            continue
+
+        target_file.write_text(resource_file.read_text(encoding="utf-8"), encoding="utf-8")
+        files.append(
+            ConfigInitFileStatus(
+                relative_path,
+                "overwritten" if existed else "created",
+            )
+        )
+
+    return ConfigInitResult(
+        config_root=str(root),
+        source="package://config_assembly/default_config",
+        files=tuple(files),
+    )
 
 
 def load_yaml_file(path: Path) -> dict[str, Any]:

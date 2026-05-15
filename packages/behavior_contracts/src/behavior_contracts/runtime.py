@@ -5,9 +5,11 @@ from __future__ import annotations
 from typing import Protocol
 
 from schemas.runtime import (
+    AdkServiceFactsSummaryInput,
     ArtifactDelta,
     NodeExecutionInput,
     NodeExecutionResult,
+    RecordedRunEvidenceInput,
     ResumePoint,
     RuntimeEvent,
     RuntimeInput,
@@ -82,3 +84,23 @@ class InvocationTracker(Protocol):
 
     def next_invocation_id(self) -> str:
         """Return the next invocation id."""
+
+
+class RecordedRunEvidenceProvider(Protocol):
+    """Contract for converting recorded runtime facts into recorded-run evidence."""
+
+    def build_recorded_run_evidence(
+        self,
+        runtime_result: RuntimeResult,
+    ) -> RecordedRunEvidenceInput:
+        """Build recorded-run evidence facts from a runtime result."""
+
+
+class AdkServiceFactsProvider(Protocol):
+    """Contract for converting recorded runtime facts into ADK service facts."""
+
+    def build_adk_service_facts(
+        self,
+        runtime_result: RuntimeResult,
+    ) -> AdkServiceFactsSummaryInput:
+        """Build ADK service facts from a runtime result."""

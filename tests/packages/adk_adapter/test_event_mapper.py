@@ -14,6 +14,7 @@ def test_event_mapper_maps_adk_event_fields_to_runtime_event() -> None:
         id="event-001",
         invocation_id="adk-actual-001",
         author="minimal_node",
+        branch="main",
         node_info=SimpleNamespace(path="workflow@1/minimal_node@1"),
         timestamp=datetime(2026, 5, 1, 12, 0, tzinfo=timezone.utc),
         content={"parts": [{"text": "hello"}]},
@@ -48,6 +49,7 @@ def test_event_mapper_maps_adk_event_fields_to_runtime_event() -> None:
     assert runtime_event.payload["state_delta"] == {"stage": "done"}
     assert runtime_event.payload["artifact_delta"] == {"artifact.md": 1}
     assert runtime_event.metadata["author"] == "minimal_node"
+    assert runtime_event.metadata["branch"] == "main"
     assert runtime_event.metadata["adk_invocation_id"] == "adk-actual-001"
 
 

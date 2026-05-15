@@ -1,0 +1,131 @@
+runtime:
+  runtime_name: "<runtime-name>"
+  execution_mode: "local | remote | hybrid | test"
+  default_workflow_name: "<workflow-name>"
+  enable_event_capture: true
+  enable_state_delta_capture: true
+  enable_artifact_delta_capture: true
+  default_adapter: "<adapter-name>"
+  timeout_seconds: 300
+  retry_policy_ref: "<retry-policy-ref>"
+
+workflow_execution:
+  workflow_name: "<workflow-name>"
+  graph_mode: true
+  allow_dynamic_nodes: true
+  allow_collaborative_agents: false
+  max_node_count: 100
+  max_execution_depth: 20
+  timeout_seconds: 300
+
+node_execution:
+  node_execution_mode: "isolated"
+  enable_node_isolation: true
+  timeout_seconds: 120
+  max_retries: 0
+  allow_parallel_execution: false
+
+resume_policy:
+  enable_resume: true
+  enable_hitl: false
+  resume_storage_policy: "local"
+  resume_token_ttl_seconds: 3600
+  require_human_confirmation: false
+
+event_policy:
+  enable_event_stream: true
+  capture_node_events: true
+  capture_state_deltas: true
+  capture_artifact_deltas: true
+  event_sink_name: "<event-sink-name>"
+
+artifact_policy:
+  enable_artifact_capture: true
+  artifact_sink_name: "<artifact-sink-name>"
+  artifact_name_prefix: "<artifact-prefix>"
+  artifact_version_policy: "timestamp"
+
+adapter_selection:
+  default_runtime_adapter: "<adapter-name>"
+  adk_adapter_enabled: false
+  litellm_adapter_enabled: false
+  hermes_adapter_enabled: false
+  openclaw_adapter_enabled: false
+  fallback_adapter: "<fallback-adapter>"
+
+live_llm:
+  profile: adk_litellm_ollama
+  model_name: ollama/gemma4-pro:latest
+  ollama_api_base: http://127.0.0.1:11434
+  timeout_seconds: 45
+  temperature: 0
+  max_tokens: 64
+  enabled_by_default: false
+
+tool_confirmation:
+  default_require_confirmation: true
+  default_mode: operator_required
+  controlled_live_external_tool_smoke_enabled: false
+  auto_confirmation_allowed: false
+  low_risk_tool_allowlist:
+    - deterministic_external_echo
+  metadata:
+    source: config/templates/runtime.template.yaml
+    adk_feature_status: experimental
+
+tool_exposure:
+  default_profile: readonly_reference
+  profiles:
+    readonly_reference:
+      source_ref: config://templates/runtime/tool_exposure/readonly_reference
+      toolsets:
+        - toolset_name: local_reference_tools
+          toolset_kind: toolset
+          source_ref: local-reference-reader://workspace
+          allowlist_tool_names:
+            - local_reference_reader
+          tool_filter:
+            - local_reference_reader
+          readonly_only: true
+          max_risk_level: low
+          dynamic_toolset: true
+          discovery_credential_ref: credential://not-required
+          execution_credential_ref: credential://not-required
+          reference_reader:
+            enabled: true
+            allowed_roots:
+              - tasks
+              - docs
+            allowed_suffixes:
+              - .md
+              - .txt
+              - .json
+              - .yaml
+              - .yml
+              - .toml
+            max_bytes: 32768
+            max_chars: 6000
+            max_excerpt_lines: 80
+  metadata:
+    source: config/templates/runtime.template.yaml
+    candidate_only: true
+
+run_workspace:
+  enabled_by_default: false
+  workspace_root: .cognition-runs
+  retention_policy: keep
+  cleanup_policy: manual
+  max_write_bytes: 65536
+  metadata:
+    source: config/templates/runtime.template.yaml
+    candidate_only: true
+
+adk_run_config:
+  max_llm_calls: null
+  response_modalities: null
+  save_input_blobs_as_artifacts: null
+  support_cfc: null
+  streaming_mode: null
+  get_session_num_recent_events: null
+  get_session_after_timestamp: null
+  custom_metadata: {}

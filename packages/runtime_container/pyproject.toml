@@ -1,13 +1,13 @@
 [project]
-name = "cognition-engine-runtime-container"
-version = "0.5.4"
-readme = "README.md"
-description = "Thin runtime-container facade package for Cognition Engine."
+name = "cognition-system-runtime-container"
+version = "0.7.0"
+readme = { text = "Cognition System v0.7.0 public runtime container package. See the version-specific public README in the release repository for usage and boundary notes.", content-type = "text/markdown" }
+description = "Thin runtime-container facade package for Cognition System."
 requires-python = ">=3.14"
 dependencies = [
-  "cognition-engine-runtime==0.5.4",
-  "cognition-engine-composition==0.5.4",
-  "cognition-engine-contract-core==0.5.4",
+  "cognition-system-runtime==0.7.0",
+  "cognition-system-composition==0.7.0",
+  "cognition-system-contract-core==0.7.0",
 ]
 
 [build-system]
@@ -18,6 +18,6 @@ build-backend = "hatchling.build"
 packages = ["src/runtime_container"]
 
 [tool.uv.sources]
-cognition-engine-runtime = { workspace = true }
-cognition-engine-composition = { workspace = true }
-cognition-engine-contract-core = { workspace = true }
+cognition-system-runtime = { workspace = true }
+cognition-system-composition = { workspace = true }
+cognition-system-contract-core = { workspace = true }

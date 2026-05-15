@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+import tomllib
 from pathlib import Path
 
 
@@ -14,24 +15,37 @@ UPSTREAM_SOURCE_ROOTS = [
 
 
 def test_runtime_container_declares_only_allowed_layer_dependencies() -> None:
-    pyproject = (RUNTIME_CONTAINER_ROOT / "pyproject.toml").read_text(encoding="utf-8")
+    pyproject = tomllib.loads((RUNTIME_CONTAINER_ROOT / "pyproject.toml").read_text(encoding="utf-8"))
+    package_version = pyproject["project"]["version"]
+    dependencies = pyproject["project"]["dependencies"]
 
-    assert "cognition-engine-runtime==0.5.0" in pyproject
-    assert "cognition-engine-composition==0.5.0" in pyproject
-    assert "cognition-engine-contract-core==0.5.0" in pyproject
-    assert "cognition-engine-adk-adapter" not in pyproject
-    assert "google-adk" not in pyproject
+    assert f"cognition-system-runtime=={package_version}" in dependencies
+    assert f"cognition-system-composition=={package_version}" in dependencies
+    assert f"cognition-system-contract-core=={package_version}" in dependencies
+    assert all(not dependency.startswith("cognition-system-adk-adapter") for dependency in dependencies)
+    assert all(not dependency.startswith("cognition-system-observability-hub") for dependency in dependencies)
+    assert all(not dependency.startswith("google-adk") for dependency in dependencies)
 
 
 def test_runtime_container_source_does_not_import_adk_layers() -> None:
     forbidden_imports = re.compile(
-        r"^\s*(?:from|import)\s+(?:adk_adapter|google\.adk)\b",
+        r"^\s*(?:from|import)\s+(?:adk_adapter|observability_hub|google\.adk)\b",
         re.MULTILINE,
     )
 
     for source_path in RUNTIME_CONTAINER_SOURCE_ROOT.rglob("*.py"):
         source = source_path.read_text(encoding="utf-8")
         assert forbidden_imports.search(source) is None, source_path
+
+
+def test_runtime_container_source_does_not_read_config_or_assemble_overlay() -> None:
+    forbidden_usage = re.compile(
+        r"(?:config_assembly|assemble_runtime_config_payload|Path\\([\"']config[\"']\\))"
+    )
+
+    for source_path in RUNTIME_CONTAINER_SOURCE_ROOT.rglob("*.py"):
+        source = source_path.read_text(encoding="utf-8")
+        assert forbidden_usage.search(source) is None, source_path
 
 
 def test_runtime_and_composition_do_not_reverse_depend_on_runtime_container() -> None:

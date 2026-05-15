@@ -48,10 +48,14 @@ class AdkEventMapper:
             "adk_event_id": event_id,
             "adk_invocation_id": getattr(event, "invocation_id", None),
             "author": getattr(event, "author", None),
+            "branch": getattr(event, "branch", None),
             "node_path": node_path,
             "error_code": error_code,
             "error_message": error_message,
         }
+        transfer_to_agent = getattr(actions, "transfer_to_agent", None)
+        if transfer_to_agent:
+            metadata["adk_transfer_to_agent"] = str(transfer_to_agent)
         if invocation_binding is not None:
             metadata["adk_invocation_binding"] = invocation_binding.to_metadata()
 
@@ -85,6 +89,7 @@ class AdkEventMapper:
             "adk_event_id": getattr(event, "id", None),
             "adk_invocation_id": getattr(event, "invocation_id", None),
             "author": getattr(event, "author", None),
+            "branch": getattr(event, "branch", None),
             "node_path": self._node_path(event),
         }
         if invocation_binding is not None:

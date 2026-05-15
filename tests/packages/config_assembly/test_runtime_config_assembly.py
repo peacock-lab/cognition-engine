@@ -34,6 +34,17 @@ def test_assemble_runtime_config_payload_from_project_config() -> None:
     assert payload.payload["runtime"]["timeout_seconds"] == 180
     assert payload.payload["workflow_execution"]["graph_mode"] is True
     assert payload.payload["artifact_policy"]["artifact_name_prefix"] == "ce-runtime-local"
+    assert payload.payload["tool_confirmation"]["default_require_confirmation"] is True
+    assert payload.payload["tool_confirmation"]["default_mode"] == "operator_required"
+    assert (
+        payload.payload["tool_confirmation"][
+            "controlled_live_external_tool_smoke_enabled"
+        ]
+        is False
+    )
+    assert payload.payload["tool_confirmation"]["low_risk_tool_allowlist"] == [
+        "deterministic_external_echo"
+    ]
 
 
 def test_assemble_runtime_config_payload_without_env_override(tmp_path: Path) -> None:

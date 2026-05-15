@@ -1,0 +1,28 @@
+[project]
+name = "cognition-system-product-gateway"
+version = "0.7.0"
+description = "Product gateway package for Cognition System product request and response contracts."
+readme = { text = "Cognition System v0.7.0 public package. See the version-specific public README in the release repository for usage and boundary notes.", content-type = "text/markdown" }
+requires-python = ">=3.14"
+dependencies = [
+  "cognition-system-runtime-container==0.7.0",
+  "pydantic>=2.13.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/product_gateway"]
+
+[tool.uv.sources]
+cognition-system-runtime-container = { workspace = true }
+
+[tool.product_gateway]
+status = "product_gateway_contract_candidate"
+package = "product_gateway"
+source_root = "src/product_gateway"
+runtime_execution_enabled = false
+config_source_owner = false
+workspace_member = true

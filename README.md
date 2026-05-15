@@ -1,89 +1,83 @@
-# 认知引擎
+# Cognition System
 
-认知引擎是一个面向 AI 协作研发场景的治理型运行控制面项目。
+Cognition System is a Python 3.14 multi-package baseline for governed AI task workflows, controlled CLI execution, configuration assembly, runtime orchestration, evidence observation, and public-facing gateway experiments.
 
-当前公开版本：`v0.5.4`
+Current public version: `v0.7.0`
 
-v0.5.4 是认知引擎面向 Trusted Publishing 上线的发布工程增强版本。本版本重点上线公仓最小 PyPI publish workflow、完成 PyPI Trusted Publisher 配置链路，并保留 Keychain project token fallback 作为兜底路径。
+The `v0.7.0` line is the new public PyPI baseline for the `cognition-system` distribution family.
 
-## 当前版本定位
-
-v0.5.4 聚焦于 Trusted Publishing 上线与发布工程可信闭环，重点包括：
-
-1. 将根包与 10 个子包版本同步到 `0.5.4`；
-2. 将根包依赖同步到 `cognition-engine-*==0.5.4`；
-3. 上线公仓最小 PyPI publish workflow；
-4. 完成 11 个 PyPI Trusted Publisher 配置链路；
-5. 保留 Keychain project token fallback 作为发布兜底路径；
-6. 固化公仓公开面边界检查；
-7. 提供发布安全网总入口，用于统一聚合发布前与发布后检查结果。
-
-## 当前包结构
-
-当前公开主线包含以下主要能力区域：
-
-- `contract_core`
-- `runtime_container`
-- `adk_adapter`
-- `observability_hub`
-
-同时包含以下支撑性结构：
-
-- schemas
-- behavior contracts
-- configuration contexts
-- configuration assembly
-- runtime primitives
-- composition
-
-## 安装方式
-
-从 PyPI 安装：
+## Install
 
 ```bash
-uv pip install --prerelease=allow cognition-engine==0.5.4
+python -m pip install --upgrade pip
+python -m pip install "cognition-system==0.7.0"
 ```
 
-说明：v0.5.4 当前依赖 `google-adk>=2.0.0b1`，安装时需要允许预发布依赖解析。
-
-或从源码安装：
+If you use uv:
 
 ```bash
-git clone https://github.com/peacock-lab/cognition-engine.git
-cd cognition-engine
-pip install .
+uv pip install "cognition-system==0.7.0"
 ```
 
-## 最小验证路径
-
-完成安装后，可执行 v0.5.4 主线包导入 smoke 验证：
+## Verify
 
 ```bash
-python -c "import contract_core, runtime_container, adk_adapter, observability_hub; print('cognition-engine 0.5.4 import ok')"
+python -c "import importlib.metadata as m; print(m.version('cognition-system'))"
+cognition --help
 ```
 
-如需在源码开发环境中运行测试，可执行：
+## Initialize Configuration
+
+Cognition System includes packaged default configuration resources. Create a user-owned configuration directory before running local workflows:
 
 ```bash
-pytest
+cognition config init --config-root ./config
 ```
 
-## 当前能力边界
+## CLI
 
-v0.5.4 主要增强 Trusted Publishing 上线与发布工程可信闭环能力，不承诺完整产品化运行时平台。
+The public console command remains:
 
-当前版本不承诺：
+```bash
+cognition
+```
 
-1. 完整智能体治理闭环；
-2. 完整控制台或可视化后台；
-3. 完整生产级多模型调度；
-4. 完整企业级配置中心；
-5. 完整 ADK 能力封装替代；
-6. 自动 PyPI 上传、自动 tag 或自动 GitHub Release。
+Useful entry points:
 
-## 文档入口
+```bash
+cognition --json
+cognition config init --config-root ./config
+cognition run --preflight-only --operator-approved --approval-ref approval://local --audit-ref audit://local --sanitized-evidence-ref evidence://local --governance-summary-output-ref artifact://local --json
+cognition chat --chat-session-id local-demo --operator-approved --approval-ref approval://local --audit-ref audit://local --sanitized-evidence-ref evidence://local --governance-summary-output-ref artifact://local
+```
 
-- 快速开始：`QUICKSTART.md`
-- 版本历史：`CHANGELOG.md`
-- 版本发布记录：GitHub Releases
-- 包发布记录：PyPI
+## Package Areas
+
+The `v0.7.0` baseline publishes these package areas:
+
+1. `cognition-system`
+2. `cognition-system-cli`
+3. `cognition-system-runtime-container`
+4. `cognition-system-runtime`
+5. `cognition-system-composition`
+6. `cognition-system-adk-adapter`
+7. `cognition-system-contract-core`
+8. `cognition-system-schemas`
+9. `cognition-system-behavior-contracts`
+10. `cognition-system-config-assembly`
+11. `cognition-system-config-contexts`
+12. `cognition-system-observability-hub`
+13. `cognition-system-cognition-agent`
+14. `cognition-system-product-gateway`
+
+## Current Scope
+
+This release establishes a corrected public package and CLI baseline. It includes controlled task workflow shells, configuration initialization, status and evidence summaries, read-only reference review paths, and candidate-only projection helpers for memory and skills.
+
+This release does not claim a production hosted service, a complete visual console, automatic tool execution, or unrestricted memory and skills runtime execution.
+
+## More
+
+- Quick start: `QUICKSTART.md`
+- Version history: `CHANGELOG.md`
+- Source repository: https://github.com/peacock-lab/cognition-engine

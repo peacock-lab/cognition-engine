@@ -1,14 +1,14 @@
 [project]
-name = "cognition-engine-contract-core"
-version = "0.5.4"
-readme = "README.md"
-description = "Thin contract-core facade package for Cognition Engine."
+name = "cognition-system-contract-core"
+version = "0.7.0"
+readme = { text = "Cognition System v0.7.0 public package. See the version-specific public README in the release repository for usage and boundary notes.", content-type = "text/markdown" }
+description = "Thin contract-core facade package for Cognition System."
 requires-python = ">=3.14"
 dependencies = [
-  "cognition-engine-behavior-contracts==0.5.4",
-  "cognition-engine-schemas==0.5.4",
-  "cognition-engine-config-contexts==0.5.4",
-  "cognition-engine-config-assembly==0.5.4",
+  "cognition-system-behavior-contracts==0.7.0",
+  "cognition-system-schemas==0.7.0",
+  "cognition-system-config-contexts==0.7.0",
+  "cognition-system-config-assembly==0.7.0",
 ]
 
 [build-system]
@@ -19,7 +19,7 @@ build-backend = "hatchling.build"
 packages = ["src/contract_core"]
 
 [tool.uv.sources]
-cognition-engine-behavior-contracts = { workspace = true }
-cognition-engine-schemas = { workspace = true }
-cognition-engine-config-contexts = { workspace = true }
-cognition-engine-config-assembly = { workspace = true }
+cognition-system-behavior-contracts = { workspace = true }
+cognition-system-schemas = { workspace = true }
+cognition-system-config-contexts = { workspace = true }
+cognition-system-config-assembly = { workspace = true }

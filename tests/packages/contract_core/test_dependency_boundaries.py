@@ -19,10 +19,11 @@ def test_contract_core_has_no_runtime_container_or_adapter_dependencies() -> Non
     pyproject = (CONTRACT_CORE_ROOT / "pyproject.toml").read_text(encoding="utf-8")
 
     forbidden_distribution_names = [
-        "cognition-engine-runtime",
-        "cognition-engine-composition",
-        "cognition-engine-adk-adapter",
+        "cognition-system-runtime",
+        "cognition-system-composition",
+        "cognition-system-adk-adapter",
         "google-adk",
+        "litellm",
     ]
 
     for distribution_name in forbidden_distribution_names:
@@ -31,7 +32,18 @@ def test_contract_core_has_no_runtime_container_or_adapter_dependencies() -> Non
 
 def test_contract_core_source_does_not_import_execution_layers() -> None:
     forbidden_imports = re.compile(
-        r"^\s*(?:from|import)\s+(?:runtime|composition|adk_adapter|google\.adk)\b",
+        r"^\s*(?:from|import)\s+(?:runtime|composition|adk_adapter|google\.adk|litellm)\b",
+        re.MULTILINE,
+    )
+
+    for source_path in CONTRACT_CORE_SOURCE_ROOT.rglob("*.py"):
+        source = source_path.read_text(encoding="utf-8")
+        assert forbidden_imports.search(source) is None, source_path
+
+
+def test_contract_core_source_does_not_import_config_assembly() -> None:
+    forbidden_imports = re.compile(
+        r"^\s*(?:from|import)\s+config_assembly\b",
         re.MULTILINE,
     )
 

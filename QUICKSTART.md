@@ -1,6 +1,6 @@
 # Quickstart
 
-[Back to README](README.md) | English | [简体中文](QUICKSTART.zh-CN.md)
+English | [简体中文](QUICKSTART.zh-CN.md) · [← Back](README.md)
 
 This guide shows the minimum local path for Cognition System `v0.7.0`.
 

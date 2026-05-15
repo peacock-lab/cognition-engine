@@ -1,6 +1,6 @@
 # 快速开始
 
-[返回首页](README.zh-CN.md) | [English](QUICKSTART.md) | 简体中文
+[English](QUICKSTART.md) | 简体中文 · [← 返回](README.zh-CN.md)
 
 本文档说明 Cognition System `v0.7.0` 的最小本地使用路径。
 

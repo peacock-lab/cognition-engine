@@ -1,6 +1,6 @@
 # Changelog
 
-[Back to README](README.md)
+[← Back](README.md)
 
 This file summarizes public release changes for Cognition System.
 

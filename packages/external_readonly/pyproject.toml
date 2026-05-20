@@ -2,7 +2,7 @@
 name = "cognition-system-external-readonly"
 version = "0.8.0"
 description = "Provider-neutral external-readonly reference tools for Cognition System."
-readme = { text = "Cognition System v0.8.0 external-readonly package. Provides governed, sanitized, provider-neutral read-only reference helpers.", content-type = "text/markdown" }
+readme = { text = "Cognition System v0.8.0 public external-readonly package. See the version-specific public README in the release repository for usage and boundary notes.", content-type = "text/markdown" }
 requires-python = ">=3.14"
 dependencies = [
     "cognition-system-schemas==0.8.0",

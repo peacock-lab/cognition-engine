@@ -59,6 +59,11 @@ class ProductGatewayEntryKind(str, Enum):
     CONTROLLED_LIVE = "controlled_live"
     AGENT_SHELL = "agent_shell"
     TOOL_SMOKE = "tool_smoke"
+    TASK_WORKFLOW_ROUTE = "task_workflow_route"
+    TASK_WORKFLOW_EXECUTION = "task_workflow_execution"
+    EXTERNAL_READONLY_FETCH = "external_readonly_fetch"
+    EXTERNAL_READONLY_REFS = "external_readonly_refs"
+    EXTERNAL_READONLY_ASK = "external_readonly_ask"
 
 
 class ProductGatewayExecutionMode(str, Enum):
@@ -248,3 +253,17 @@ def _is_raw_payload(path: str, value: Any) -> bool:
     if value is None or isinstance(value, (str, int, float, bool, list, tuple, dict)):
         return False
     return type(value).__module__.startswith(FORBIDDEN_PRODUCT_GATEWAY_MODULE_PREFIXES)
+
+
+__all__ = [
+    "ProductGatewayEntryKind",
+    "ProductGatewayExecutionMode",
+    "ProductGatewayInputRefs",
+    "ProductGatewayLiveOptions",
+    "ProductGatewayOperatorApprovalRef",
+    "ProductGatewayOutputRefs",
+    "ProductGatewayRef",
+    "ProductGatewayRequest",
+    "ProductGatewayResponse",
+    "ProductGatewayStatus",
+]

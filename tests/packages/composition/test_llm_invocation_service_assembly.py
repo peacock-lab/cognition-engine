@@ -3,9 +3,10 @@ from __future__ import annotations
 import inspect
 import re
 from pathlib import Path
-from typing import get_type_hints
+from typing import Any, get_type_hints
 
 from adk_adapter import (
+    AdkEvidenceSummaryAnswerOutputGovernanceProbe,
     AdkGovernedLlmInvocationOptions,
     AdkGovernedLlmInvocationService,
 )
@@ -19,6 +20,9 @@ from config_contexts.runtime import (
     RuntimeConfigContextBundle,
     RuntimeConfigView,
     RuntimeLiveLlmConfigView,
+    RuntimeLlmModelProfileConfigView,
+    RuntimeLlmOutputGovernanceProfileConfigView,
+    RuntimeLlmProviderProfileConfigView,
     WorkflowExecutionConfigView,
 )
 from composition import (
@@ -26,11 +30,14 @@ from composition import (
     LlmInvocationServiceAssemblyOptions,
     build_adk_governed_llm_invocation_service,
     build_controlled_live_adk_governed_llm_invocation_service,
+    build_controlled_live_adk_governed_llm_invocation_service_from_config_root,
     build_controlled_live_adk_governed_llm_invocation_service_from_runtime_config,
     build_controlled_live_llm_invocation_service_assembly,
+    build_controlled_live_llm_invocation_service_assembly_from_config_root,
     build_controlled_live_llm_invocation_service_assembly_from_runtime_config,
     build_llm_invocation_service_assembly,
 )
+import composition.llm_invocation_assembly as llm_invocation_assembly
 from schemas.llm_invocation import LlmGovernancePrecondition
 from schemas.model_routing import ModelRouteFacts
 
@@ -175,6 +182,145 @@ def test_composition_assembles_controlled_live_service_from_runtime_config() -> 
     assert assembly.metadata["does_not_invoke_service"] is True
 
 
+def test_composition_assembles_deepseek_profile_as_adk_output_governance(
+    monkeypatch: Any,
+) -> None:
+    captured: dict[str, Any] = {}
+
+    class FakeAdkRouteFacts:
+        def to_public_model_route_facts(self) -> ModelRouteFacts:
+            return _deepseek_route_facts()
+
+    def fake_build_deepseek_route(**kwargs: Any) -> tuple[object, FakeAdkRouteFacts]:
+        captured.update(kwargs)
+        return object(), FakeAdkRouteFacts()
+
+    monkeypatch.setattr(
+        llm_invocation_assembly,
+        "build_litellm_deepseek_model_route",
+        fake_build_deepseek_route,
+    )
+    live_llm = RuntimeLiveLlmConfigView(
+        provider_profiles={
+            "local_ollama": RuntimeLlmProviderProfileConfigView(),
+            "deepseek_gated": RuntimeLlmProviderProfileConfigView(
+                backend_provider="deepseek",
+                route_kind="adk_litellm_openai_compatible",
+                api_base="https://api.deepseek.com",
+                secret_ref="secret-ref://env/DEEPSEEK_API_KEY",
+                network_access="external_gated",
+                requires_network_gate=True,
+                requires_operator_approval=True,
+                requires_audit_ref=True,
+            ),
+        },
+        model_profiles={
+            "gemma4_pro_local": RuntimeLlmModelProfileConfigView(),
+            "deepseek_v4_flash_external": RuntimeLlmModelProfileConfigView(
+                provider_profile_ref="deepseek_gated",
+                model_name="deepseek/deepseek-v4-flash",
+                model_role="external_low_hardware_candidate",
+                timeout_seconds=180,
+                max_tokens=256,
+                resource_tier="external_managed",
+                metadata={"thinking_mode": "disabled"},
+            ),
+        },
+        output_governance_profiles={
+            "direct_controlled_live": RuntimeLlmOutputGovernanceProfileConfigView(),
+            "adk_no_output_schema_candidate": (
+                RuntimeLlmOutputGovernanceProfileConfigView(
+                    mode="adk_no_output_schema",
+                    adk_native=True,
+                    uses_after_model_callback=True,
+                    max_repair_attempts=1,
+                )
+            ),
+        },
+    )
+
+    assembly = build_controlled_live_llm_invocation_service_assembly_from_runtime_config(
+        config_context=_runtime_config_context(live_llm=live_llm),
+        provider_profile_ref="deepseek_gated",
+        model_profile_ref="deepseek_v4_flash_external",
+        output_governance_profile_ref="adk_no_output_schema_candidate",
+        network_gate_open=True,
+        operator_approved=True,
+        approval_ref="approval://deepseek/product",
+        audit_ref="audit://deepseek/product",
+        response_preview_limit=700,
+        metadata={"source": "composition-deepseek-test"},
+    )
+
+    assert isinstance(assembly.service, AdkEvidenceSummaryAnswerOutputGovernanceProbe)
+    assert captured["model_name"] == "deepseek/deepseek-v4-flash"
+    assert captured["secret_ref"] == "secret-ref://env/DEEPSEEK_API_KEY"
+    assert captured["network_gate_open"] is True
+    assert captured["operator_approved"] is True
+    assert captured["approval_ref"] == "approval://deepseek/product"
+    assert captured["audit_ref"] == "audit://deepseek/product"
+    assert captured["thinking_mode"] == "disabled"
+    assert assembly.metadata["service_implementation"].endswith(
+        "AdkEvidenceSummaryAnswerOutputGovernanceProbe"
+    )
+    assert assembly.metadata["profile_selection"]["backend_provider"] == "deepseek"
+    assert "DEEPSEEK_API_KEY" not in str(assembly.metadata)
+    assert "sk-" not in str(assembly.metadata)
+
+
+def test_composition_assembles_controlled_live_service_from_config_root(
+    monkeypatch: Any,
+) -> None:
+    captured: dict[str, Any] = {}
+    config_payload = object()
+    config_context = _runtime_config_context()
+
+    def fake_assemble_runtime_config_payload(**kwargs: Any) -> object:
+        captured["config_payload_kwargs"] = kwargs
+        return config_payload
+
+    def fake_build_runtime_config_contexts(value: object) -> RuntimeConfigContextBundle:
+        captured["config_payload"] = value
+        return config_context
+
+    def fake_build_from_runtime_config(**kwargs: Any) -> object:
+        captured["runtime_config_kwargs"] = kwargs
+        return "controlled-live-assembly"
+
+    monkeypatch.setattr(
+        llm_invocation_assembly,
+        "assemble_runtime_config_payload",
+        fake_assemble_runtime_config_payload,
+    )
+    monkeypatch.setattr(
+        llm_invocation_assembly,
+        "build_runtime_config_contexts",
+        fake_build_runtime_config_contexts,
+    )
+    monkeypatch.setattr(
+        llm_invocation_assembly,
+        "build_controlled_live_llm_invocation_service_assembly_from_runtime_config",
+        fake_build_from_runtime_config,
+    )
+
+    assembly = build_controlled_live_llm_invocation_service_assembly_from_config_root(
+        config_root="config",
+        environment="local",
+        timeout_seconds=23,
+        metadata={"source": "composition-config-root-test"},
+    )
+
+    assert assembly == "controlled-live-assembly"
+    assert captured["config_payload_kwargs"]["config_root"] == Path("config")
+    assert captured["config_payload_kwargs"]["environment"] == "local"
+    assert captured["config_payload"] is config_payload
+    assert captured["runtime_config_kwargs"]["config_context"] is config_context
+    assert captured["runtime_config_kwargs"]["timeout_seconds"] == 23
+    assert captured["runtime_config_kwargs"]["metadata"] == {
+        "source": "composition-config-root-test"
+    }
+
+
 def test_composition_exposes_controlled_live_service_through_contract() -> None:
     service = build_controlled_live_adk_governed_llm_invocation_service(
         metadata={"assembly_test": "controlled-live-contract"}
@@ -194,6 +340,14 @@ def test_composition_exposes_config_driven_controlled_live_service_through_contr
     )
 
     assert isinstance(service, AdkGovernedLlmInvocationService)
+    assert hints["return"] is GovernedLlmInvocationService
+
+
+def test_composition_exposes_config_root_controlled_live_service_through_contract() -> None:
+    hints = get_type_hints(
+        build_controlled_live_adk_governed_llm_invocation_service_from_config_root
+    )
+
     assert hints["return"] is GovernedLlmInvocationService
 
 
@@ -244,6 +398,20 @@ def _route_facts() -> ModelRouteFacts:
             "backend_provider": "ollama",
             "route_target": "ollama/gemma4-pro:latest",
             "route_kind": "adk_litellm",
+        },
+    )
+
+
+def _deepseek_route_facts() -> ModelRouteFacts:
+    return ModelRouteFacts(
+        model_name="deepseek/deepseek-v4-flash",
+        provider="litellm",
+        source="adk_adapter.models",
+        metadata={
+            "backend_provider": "deepseek",
+            "route_target": "deepseek/deepseek-v4-flash",
+            "route_kind": "adk_litellm_openai_compatible",
+            "thinking_mode": "disabled",
         },
     )
 

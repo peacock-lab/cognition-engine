@@ -10,9 +10,18 @@ CONFIG_CONTEXTS_SOURCE_ROOT = (
 )
 
 
-def test_config_contexts_source_does_not_import_adk_adapter_or_google_adk() -> None:
+def test_config_contexts_source_does_not_import_runtime_or_product_layers() -> None:
     forbidden_imports = re.compile(
-        r"^\s*(?:from|import)\s+(?:adk_adapter|google\.adk)\b",
+        r"^\s*(?:from|import)\s+(?:"
+        r"adk_adapter|"
+        r"cli|"
+        r"composition|"
+        r"google\.adk|"
+        r"observability_hub|"
+        r"product_gateway|"
+        r"product_runtime_assembly|"
+        r"runtime_container"
+        r")\b",
         re.MULTILINE,
     )
 

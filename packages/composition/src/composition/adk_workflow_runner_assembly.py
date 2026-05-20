@@ -6,7 +6,10 @@ from dataclasses import dataclass, field, replace
 from typing import Any
 
 from adk_adapter import (
+    AdkPluginBundle,
+    AdkPluginBundleOptions,
     AdkRunConfigOptions,
+    AdkRunnerServiceAdapter,
     AdkRunnerServiceBundle,
     AdkRunnerServiceBundleOptions,
     AdkWorkflowRunner,
@@ -43,6 +46,9 @@ class AdkWorkflowRunnerAssemblyOptions:
     service_bundle_options: AdkRunnerServiceBundleOptions = field(
         default_factory=AdkRunnerServiceBundleOptions
     )
+    plugin_bundle_options: AdkPluginBundleOptions = field(
+        default_factory=AdkPluginBundleOptions
+    )
     run_config_options: AdkRunConfigOptions | None = None
     metadata: dict[str, Any] = field(default_factory=dict)
 
@@ -56,6 +62,7 @@ class AdkWorkflowRunnerAssemblyOptions:
             "user_id": self.user_id,
             "workflow_name": self.workflow_name,
             "service_bundle_options": self.service_bundle_options.metadata(),
+            "plugin_bundle_options": self.plugin_bundle_options.metadata(),
             "run_config_options": (
                 self.run_config_options.to_metadata()
                 if self.run_config_options is not None
@@ -74,6 +81,8 @@ class AdkWorkflowRunnerAssembly:
     user_id: str = "cognition-engine-adk-user"
     service_bundle: AdkRunnerServiceBundle | None = None
     service_bundle_options: AdkRunnerServiceBundleOptions | None = None
+    plugin_bundle: AdkPluginBundle | None = None
+    plugin_bundle_options: AdkPluginBundleOptions | None = None
     run_config_options: AdkRunConfigOptions | None = None
     assembly_options: AdkWorkflowRunnerAssemblyOptions | None = None
 
@@ -86,15 +95,29 @@ class AdkWorkflowRunnerAssembly:
             user_id=options.user_id,
         )
 
+    def build_plugin_bundle(self) -> AdkPluginBundle:
+        """Return the provided or default empty ADK plugin bundle."""
+
+        options = self.options()
+        return self.plugin_bundle or options.plugin_bundle_options.build_plugin_bundle()
+
     def build_workflow_service(self) -> AdkWorkflowServiceAdapter:
         """Build the workflow service adapter over the ADK graph workflow."""
 
+        options = self.options()
+        runner_service = AdkRunnerServiceAdapter(
+            workflow=self.workflow,
+            app_name=options.app_name,
+            user_id=options.user_id,
+            service_bundle=self.build_service_bundle(),
+            run_config_options=options.run_config_options,
+            plugin_bundle=self.build_plugin_bundle(),
+        )
         return AdkWorkflowServiceAdapter(
             workflow=self.workflow,
-            app_name=self.options().app_name,
-            user_id=self.options().user_id,
-            service_bundle=self.build_service_bundle(),
-            run_config_options=self.options().run_config_options,
+            runner_service=runner_service,
+            app_name=options.app_name,
+            user_id=options.user_id,
         )
 
     def build_workflow_runner(self) -> AdkWorkflowRunner:
@@ -119,6 +142,7 @@ class AdkWorkflowRunnerAssembly:
             "app_name": options.app_name,
             "user_id": options.user_id,
             "service_bundle": service_bundle.metadata(),
+            "plugin_bundle": self.build_plugin_bundle().metadata(),
             "assembly_options": options.to_metadata(),
             "metadata": dict(options.metadata),
             "observability_candidate": "observability_hub.adk_workflow_runner_intake",
@@ -135,6 +159,8 @@ class AdkWorkflowRunnerAssembly:
             workflow_name=getattr(self.workflow, "name", None),
             service_bundle_options=self.service_bundle_options
             or AdkRunnerServiceBundleOptions(),
+            plugin_bundle_options=self.plugin_bundle_options
+            or AdkPluginBundleOptions(),
             run_config_options=self.run_config_options,
         )
 
@@ -264,6 +290,8 @@ def create_adk_workflow_runner(
     service_bundle: AdkRunnerServiceBundle | None = None,
     assembly_options: AdkWorkflowRunnerAssemblyOptions | None = None,
     service_bundle_options: AdkRunnerServiceBundleOptions | None = None,
+    plugin_bundle: AdkPluginBundle | None = None,
+    plugin_bundle_options: AdkPluginBundleOptions | None = None,
     run_config_options: AdkRunConfigOptions | None = None,
 ) -> AdkWorkflowRunner:
     """Create an AdkWorkflowRunner through the composition assembly path."""
@@ -275,6 +303,8 @@ def create_adk_workflow_runner(
         service_bundle=service_bundle,
         assembly_options=assembly_options,
         service_bundle_options=service_bundle_options,
+        plugin_bundle=plugin_bundle,
+        plugin_bundle_options=plugin_bundle_options,
         run_config_options=run_config_options,
     ).build_workflow_runner()
 
@@ -291,7 +321,6 @@ def build_adk_run_config_options_from_runtime_config(
         custom_metadata=dict(view.custom_metadata),
         response_modalities=view.response_modalities,
         avatar_config=view.avatar_config,
-        save_input_blobs_as_artifacts=view.save_input_blobs_as_artifacts,
         support_cfc=view.support_cfc,
         streaming_mode=view.streaming_mode,
         output_audio_transcription=view.output_audio_transcription,
@@ -322,6 +351,8 @@ def build_adk_workflow_runner_runtime(
     service_bundle: AdkRunnerServiceBundle | None = None,
     assembly_options: AdkWorkflowRunnerAssemblyOptions | None = None,
     service_bundle_options: AdkRunnerServiceBundleOptions | None = None,
+    plugin_bundle: AdkPluginBundle | None = None,
+    plugin_bundle_options: AdkPluginBundleOptions | None = None,
     run_config_options: AdkRunConfigOptions | None = None,
     governance_decision: Any | None = None,
 ) -> AdkWorkflowRunnerRuntimeAssembly:
@@ -344,13 +375,18 @@ def build_adk_workflow_runner_runtime(
         resolved_options = assembly_options
         if run_config_options is not None:
             resolved_options = replace(
-                assembly_options,
+                resolved_options,
                 run_config_options=run_config_options,
             )
-        elif assembly_options.run_config_options is None:
+        elif resolved_options.run_config_options is None:
             resolved_options = replace(
-                assembly_options,
+                resolved_options,
                 run_config_options=config_run_config_options,
+            )
+        if plugin_bundle_options is not None:
+            resolved_options = replace(
+                resolved_options,
+                plugin_bundle_options=plugin_bundle_options,
             )
     else:
         resolved_options = AdkWorkflowRunnerAssemblyOptions(
@@ -359,6 +395,7 @@ def build_adk_workflow_runner_runtime(
             workflow_name=getattr(workflow, "name", None),
             service_bundle_options=service_bundle_options
             or AdkRunnerServiceBundleOptions(),
+            plugin_bundle_options=plugin_bundle_options or AdkPluginBundleOptions(),
             run_config_options=run_config_options or config_run_config_options,
         )
     bundle = service_bundle or create_default_adk_workflow_runner_bundle(
@@ -371,6 +408,7 @@ def build_adk_workflow_runner_runtime(
         app_name=resolved_options.app_name,
         user_id=resolved_options.user_id,
         service_bundle=bundle,
+        plugin_bundle=plugin_bundle,
         assembly_options=resolved_options,
     )
     workflow_runner = assembly.build_workflow_runner()

@@ -67,6 +67,7 @@ REF_FIELDS = frozenset(
         "evidence_refs",
         "audit_refs",
         "agent_advice_refs",
+        "additional_refs",
         "tool_audit_refs",
     }
 )

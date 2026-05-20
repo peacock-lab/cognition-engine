@@ -45,6 +45,14 @@ def test_assemble_runtime_config_payload_from_project_config() -> None:
     assert payload.payload["tool_confirmation"]["low_risk_tool_allowlist"] == [
         "deterministic_external_echo"
     ]
+    assert (
+        payload.payload["evidence_summary_answer"]["allow_governed_summary_facts"]
+        is True
+    )
+    assert (
+        payload.payload["evidence_summary_answer"]["allow_sanitized_excerpt_preview"]
+        is False
+    )
 
 
 def test_assemble_runtime_config_payload_without_env_override(tmp_path: Path) -> None:

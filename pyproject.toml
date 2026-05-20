@@ -2,32 +2,37 @@
 requires = ["setuptools>=69", "wheel"]
 build-backend = "setuptools.build_meta"
 
-# Root package v0.7.0 release note:
+# Root package v0.8.0 release note:
 # - This pyproject represents the Cognition System aggregate distribution.
-# - The aggregate package depends on the v0.7.0 multi-package baseline under
+# - The aggregate package depends on the v0.8.0 multi-package baseline under
 #   packages/*.
-# - The 0.7.0 line is a new PyPI baseline under cognition-system distribution
+# - The 0.8.0 line is a new PyPI baseline under cognition-system distribution
 #   names.
 [project]
 name = "cognition-system"
-version = "0.7.0"
-description = "Aggregate metadata package for the Cognition System v0.7.0 baseline."
-readme = { text = "Cognition System v0.7.0 public aggregate package. See the version-specific public README in the release repository for usage and boundary notes.", content-type = "text/markdown" }
+version = "0.8.0"
+description = "Aggregate metadata package for the Cognition System v0.8.0 baseline."
+readme = { text = "Cognition System v0.8.0 public aggregate package. See the version-specific public README in the release repository for usage and boundary notes.", content-type = "text/markdown" }
 requires-python = ">=3.14"
 dependencies = [
-    "cognition-system-schemas==0.7.0",
-    "cognition-system-behavior-contracts==0.7.0",
-    "cognition-system-config-assembly==0.7.0",
-    "cognition-system-config-contexts==0.7.0",
-    "cognition-system-runtime==0.7.0",
-    "cognition-system-contract-core==0.7.0",
-    "cognition-system-adk-adapter==0.7.0",
-    "cognition-system-observability-hub==0.7.0",
-    "cognition-system-cognition-agent==0.7.0",
-    "cognition-system-composition==0.7.0",
-    "cognition-system-runtime-container==0.7.0",
-    "cognition-system-product-gateway==0.7.0",
-    "cognition-system-cli==0.7.0",
+    "cognition-system-schemas==0.8.0",
+    "cognition-system-behavior-contracts==0.8.0",
+    "cognition-system-config-assembly==0.8.0",
+    "cognition-system-config-contexts==0.8.0",
+    "cognition-system-runtime==0.8.0",
+    "cognition-system-contract-core==0.8.0",
+    "cognition-system-adk-adapter==0.8.0",
+    "cognition-system-observability-hub==0.8.0",
+    "cognition-system-cognition-agent==0.8.0",
+    "cognition-system-cognition-governance==0.8.0",
+    "cognition-system-composition==0.8.0",
+    "cognition-system-external-readonly==0.8.0",
+    "cognition-system-runtime-container==0.8.0",
+    "cognition-system-task-workflows==0.8.0",
+    "cognition-system-product-gateway==0.8.0",
+    "cognition-system-product-runtime-assembly==0.8.0",
+    "cognition-system-product-application-assembly==0.8.0",
+    "cognition-system-cli==0.8.0",
 ]
 
 classifiers = [
@@ -80,7 +85,7 @@ markers = [
 ]
 addopts = ["-v", "--tb=short", "--strict-markers"]
 
-# Workspace members under packages/* are the v0.7.0 multi-package baseline.
+# Workspace members under packages/* are the v0.8.0 multi-package baseline.
 [tool.uv.workspace]
 members = [
     "packages/*",
@@ -91,15 +96,20 @@ cognition-system-schemas = { workspace = true }
 cognition-system-behavior-contracts = { workspace = true }
 cognition-system-config-contexts = { workspace = true }
 cognition-system-cognition-agent = { workspace = true }
+cognition-system-cognition-governance = { workspace = true }
 cognition-system-config-assembly = { workspace = true }
 cognition-system-runtime = { workspace = true }
 cognition-system-composition = { workspace = true }
+cognition-system-external-readonly = { workspace = true }
 cognition-system-contract-core = { workspace = true }
 cognition-system-adk-adapter = { workspace = true }
 cognition-system-observability-hub = { workspace = true }
 cognition-system-runtime-container = { workspace = true }
+cognition-system-task-workflows = { workspace = true }
 cognition-system-cli = { workspace = true }
 cognition-system-product-gateway = { workspace = true }
+cognition-system-product-runtime-assembly = { workspace = true }
+cognition-system-product-application-assembly = { workspace = true }
 
 [dependency-groups]
 dev = [

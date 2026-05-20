@@ -15,6 +15,7 @@ from runtime_container.dev_entry.no_live_llm_invocation import (
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 RUNTIME_CONTAINER_ROOT = REPO_ROOT / "packages" / "runtime_container"
+CLI_PACKAGE_ROOT = REPO_ROOT / "packages" / "cli"
 DEV_ENTRY_ROOT = (
     RUNTIME_CONTAINER_ROOT / "src" / "runtime_container" / "dev_entry"
 )
@@ -87,6 +88,14 @@ def test_no_live_dev_entry_is_inside_publishable_runtime_container_package() -> 
     pyproject = tomllib.loads(
         (RUNTIME_CONTAINER_ROOT / "pyproject.toml").read_text(encoding="utf-8")
     )
+    product_runtime_pyproject = tomllib.loads(
+        (
+            REPO_ROOT
+            / "packages"
+            / "product_runtime_assembly"
+            / "pyproject.toml"
+        ).read_text(encoding="utf-8")
+    )
 
     assert pyproject["tool"]["hatch"]["build"]["targets"]["wheel"]["packages"] == [
         "src/runtime_container"
@@ -94,10 +103,10 @@ def test_no_live_dev_entry_is_inside_publishable_runtime_container_package() -> 
     assert (
         DEV_ENTRY_ROOT / "no_live_llm_invocation.py"
     ).is_file(), "dev entry must live under the publishable package root"
-    assert pyproject["project"]["scripts"] == {
-        "cognition": "runtime_container.entrypoints.cognition:main"
+    assert "scripts" not in pyproject["project"]
+    assert product_runtime_pyproject["project"]["scripts"] == {
+        "cognition": "product_runtime_assembly.entrypoints.cognition:main"
     }
-    assert "no_live_llm_invocation" not in pyproject["project"]["scripts"]
 
 
 def test_no_live_dev_entry_source_has_no_forbidden_dependencies_or_calls() -> None:

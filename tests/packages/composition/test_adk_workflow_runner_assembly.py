@@ -61,7 +61,6 @@ def test_composition_maps_runtime_config_context_to_adk_run_config_options() -> 
         adk_run_config=AdkRunConfigView(
             max_llm_calls=9,
             response_modalities=("TEXT",),
-            save_input_blobs_as_artifacts=True,
             support_cfc=False,
             streaming_mode="sse",
             speech_config={"language_code": "zh-CN"},
@@ -78,7 +77,6 @@ def test_composition_maps_runtime_config_context_to_adk_run_config_options() -> 
     assert options is not None
     assert options.max_llm_calls == 9
     assert options.response_modalities == ("TEXT",)
-    assert options.save_input_blobs_as_artifacts is True
     assert options.support_cfc is False
     assert options.streaming_mode == "sse"
     assert options.speech_config == {"language_code": "zh-CN"}
@@ -388,6 +386,11 @@ def test_composition_builds_adk2_workflow_runner_service_chain() -> None:
     assert assembly.metadata["assembly_options"]["service_bundle_options"]["source"] == (
         "in_memory"
     )
+    assert assembly.metadata["assembly_options"]["plugin_bundle_options"]["source"] == (
+        "empty"
+    )
+    assert assembly.metadata["plugin_bundle"]["plugin_count"] == 0
+    assert assembly.metadata["plugin_bundle"]["raw_plugin_object_included"] is False
     assert assembly.metadata["assembly_options"]["run_config_options"]["mapped_fields"] == [
         "max_llm_calls",
         "custom_metadata",
@@ -401,6 +404,20 @@ def test_composition_builds_adk2_workflow_runner_service_chain() -> None:
     )
     assert workflow_service_metadata["adapter"] == "adk_adapter.workflow_service"
     assert workflow_service_metadata["runner_service"]["run_config"]["max_llm_calls"] == 11
+    assert workflow_service_metadata["runner_service"]["app_assembly_mode"] == "adk_app"
+    assert (
+        workflow_service_metadata["runner_service"]["plugin_bundle_source"] == "empty"
+    )
+    assert workflow_service_metadata["runner_service"]["plugin_count"] == 0
+    assert workflow_service_metadata["runner_service"]["plugin_names"] == []
+    assert workflow_service_metadata["runner_service"]["plugin_types"] == []
+    assert (
+        workflow_service_metadata["runner_service"]["raw_app_object_included"] is False
+    )
+    assert (
+        workflow_service_metadata["runner_service"]["raw_plugin_object_included"]
+        is False
+    )
     assert run_config_metadata["max_llm_calls"] == 11
     assert run_config_metadata["custom_metadata_keys"] == ["source"]
     assert runtime_result.workflow_result.artifact_deltas[0].artifact_ref.artifact_id == (

@@ -51,6 +51,9 @@ def test_adk_agent_shell_assembly_builds_native_agent_service() -> None:
     assert metadata["observability_candidate"] == (
         "observability_hub.adk_agent_shell_intake"
     )
+    assert metadata["assembly_options"]["plugin_bundle_options"]["source"] == "empty"
+    assert metadata["plugin_bundle"]["plugin_count"] == 0
+    assert metadata["plugin_bundle"]["raw_plugin_object_included"] is False
     assert metadata["assembly_options"]["instruction_length"] == len(
         "Review governed task evidence."
     )

@@ -5,15 +5,23 @@ from pathlib import Path
 import pytest
 from pydantic import ValidationError
 
-from product_gateway import (
+from product_gateway.agent_shell import (
     AgentShellGatewayInput,
+    build_agent_shell_gateway_projection,
+    build_agent_shell_gateway_request,
+    run_agent_shell_gateway_request,
+)
+from product_gateway.contracts import (
     ProductGatewayEntryKind,
     ProductGatewayExecutionMode,
     ProductGatewayResponse,
     ProductGatewayStatus,
-    build_agent_shell_compatibility_projection,
-    build_agent_shell_gateway_request,
-    run_agent_shell_gateway_request,
+)
+from product_gateway.response_summary_projection import (
+    project_product_gateway_response_summary,
+)
+from schemas.product_gateway_response_summary import (
+    validate_product_gateway_response_summary,
 )
 
 
@@ -52,7 +60,7 @@ def test_agent_shell_gateway_request_uses_agent_shell_entry() -> None:
 
 
 def test_agent_shell_projection_has_only_sanitized_refs_and_facts() -> None:
-    projection = build_agent_shell_compatibility_projection(
+    projection = build_agent_shell_gateway_projection(
         {
             "request_id": "request-agent-shell-projection",
             "agent_shell_evidence_ref": "agent-shell-evidence://projection",
@@ -175,6 +183,21 @@ def test_agent_shell_gateway_maps_success_refs_and_metadata() -> None:
     )
     assert response.warnings == ["readonly"]
 
+    summary = _assert_projected_response_summary(response)
+    assert summary["entry_kind"] == "agent_shell"
+    assert summary["governance_summary_ref"] == "governance-summary://success"
+    assert [ref["ref"] for ref in summary["evidence_refs"]] == [
+        "agent-shell-evidence://success"
+    ]
+    assert [ref["ref"] for ref in summary["audit_refs"]] == [
+        "agent-shell-run://success",
+        "agent-shell-audit://success",
+    ]
+    assert [ref["ref"] for ref in summary["agent_advice_refs"]] == [
+        "agent-task-advice://success",
+        "agent-task-advice-candidate://success",
+    ]
+
 
 def test_agent_shell_gateway_maps_failed_status() -> None:
     response = run_agent_shell_gateway_request(
@@ -265,3 +288,36 @@ def test_agent_shell_adapter_has_no_runtime_or_agent_dependencies() -> None:
     assert "google.adk" not in source
     assert "adk_adapter" not in source
     assert "litellm" not in source
+
+
+def _assert_projected_response_summary(
+    response: ProductGatewayResponse,
+) -> dict[str, object]:
+    summary = project_product_gateway_response_summary(response)
+    validated = validate_product_gateway_response_summary(summary)
+
+    assert validated.model_dump(mode="python") == summary
+    assert summary["payload_type"] == "product_gateway_response_summary"
+    assert summary["payload_version"] == "product_gateway_response_summary_v1"
+    assert summary["status"] == response.status.value
+    assert summary["exit_code"] == response.exit_code
+    assert summary["product_gateway_response_ref"] is None
+    assert summary["readonly"] is True
+    assert summary["summary_only"] is True
+    assert summary["refs_only"] is True
+    assert summary["candidate_only"] is True
+    assert summary["execution_enabled"] is False
+    assert summary["runtime_permission_granted"] is False
+    assert summary["llm_call_enabled"] is False
+    assert summary["tool_execution_enabled"] is False
+    assert summary["action_execution_enabled"] is False
+    assert summary["gateway_enabled"] is False
+    assert summary["metadata"] == {
+        "source": "product_gateway.response_summary_projection",
+        "product_gateway_response_source": response.metadata["source"],
+    }
+    summary_text = repr(summary)
+    assert "raw_adk_object" not in summary_text
+    assert "AgentTaskAdviceCandidate" not in summary_text
+    assert "config_context" not in summary_text
+    return summary

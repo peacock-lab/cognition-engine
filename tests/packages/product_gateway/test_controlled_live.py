@@ -3,20 +3,31 @@ from __future__ import annotations
 import pytest
 from pydantic import ValidationError
 
-import product_gateway.controlled_live as controlled_live_module
-from product_gateway import (
-    ControlledLiveGatewayInput,
+from config_contexts.runtime import RuntimeConfigSelectionContext
+from contract_core.controlled_execution import (
+    ControlledExecutionRequestSchema,
+    ControlledExecutionRuntimeSummarySchema,
+)
+from product_gateway.contracts import (
     ProductGatewayEntryKind,
     ProductGatewayExecutionMode,
     ProductGatewayResponse,
     ProductGatewayStatus,
-    build_controlled_live_compatibility_projection,
+)
+from product_gateway.controlled_live import (
+    ControlledLiveGatewayInput,
+    RUNTIME_SERVICE_NOT_INJECTED_BLOCKING_REASON,
+    RUNTIME_SERVICE_NOT_INJECTED_REF,
+    build_controlled_live_config_selection,
+    build_controlled_live_controlled_execution_request,
     build_controlled_live_gateway_request,
     run_controlled_live_gateway_request,
 )
-from runtime_container.controlled_run_facade import (
-    ControlledRunFacadeInput,
-    ControlledRunFacadeResult,
+from product_gateway.response_summary_projection import (
+    project_product_gateway_response_summary,
+)
+from schemas.product_gateway_response_summary import (
+    validate_product_gateway_response_summary,
 )
 
 
@@ -56,8 +67,8 @@ def test_controlled_live_gateway_request_maps_preflight_only() -> None:
     assert request.execution_mode is ProductGatewayExecutionMode.PREFLIGHT_ONLY
 
 
-def test_controlled_live_projection_has_stable_facade_fields() -> None:
-    projection = build_controlled_live_compatibility_projection(
+def test_controlled_live_builds_controlled_execution_request_contract() -> None:
+    request = build_controlled_live_controlled_execution_request(
         {
             "request_id": "request-controlled-live-projection",
             "runtime_id": "runtime-controlled-live-projection",
@@ -76,17 +87,13 @@ def test_controlled_live_projection_has_stable_facade_fields() -> None:
             "live_llm_approval_ref": "approval://live-projection",
         }
     )
-    payload = projection.model_dump()
+    payload = request.to_runtime_mapping()
 
     assert payload == {
-        "request_id": "request-controlled-live-projection",
-        "entry_kind": "controlled_live",
-        "execution_mode": "controlled_live",
         "runtime_id": "runtime-controlled-live-projection",
+        "invocation_id": "request-controlled-live-projection",
         "workflow_id": "workflow-controlled-live",
         "workflow_name": "controlled-live-workflow",
-        "environment": "local",
-        "profile": "dev",
         "input_payload": {"input_summary": "已脱敏输入"},
         "operator_approved": True,
         "approval_ref": "approval://projection",
@@ -100,13 +107,21 @@ def test_controlled_live_projection_has_stable_facade_fields() -> None:
         "live_llm_approval_ref": "approval://live-projection",
         "metadata": {
             "source": "product_gateway.controlled_live",
-            "runtime_id": "runtime-controlled-live-projection",
-            "workflow_id": "workflow-controlled-live",
-            "workflow_name": "controlled-live-workflow",
-            "environment": "local",
-            "profile": "dev",
+            "product_request_id": "request-controlled-live-projection",
+            "entry_kind": "controlled_live",
+            "execution_mode": "controlled_live",
         },
     }
+    config_selection = build_controlled_live_config_selection(
+        {
+            "request_id": "request-controlled-live-projection",
+            "runtime_id": "runtime-controlled-live-projection",
+            "environment": "local",
+            "profile": "dev",
+        }
+    )
+    assert config_selection.environment == "local"
+    assert config_selection.profile == "dev"
     assert "config_root" not in repr(payload)
     assert "runtime_container" not in repr(payload)
 
@@ -143,24 +158,48 @@ def test_controlled_live_requires_live_approval_for_allowed_live() -> None:
         )
 
 
-def test_controlled_live_gateway_maps_blocked_facade_result(monkeypatch) -> None:
-    def fake_run(facade_input: ControlledRunFacadeInput) -> ControlledRunFacadeResult:
-        assert facade_input.runtime_id == "runtime-blocked"
-        return ControlledRunFacadeResult(
-            runtime_id=facade_input.runtime_id,
-            invocation_id=facade_input.invocation_id,
-            workflow_id=facade_input.workflow_id,
+def test_controlled_live_gateway_blocks_without_runtime_service() -> None:
+    response = run_controlled_live_gateway_request(
+        {
+            "request_id": "request-runtime-service-missing",
+            "runtime_id": "runtime-service-missing",
+            "request_live_llm": True,
+            "live_llm_approval_ref": "approval://requested-only",
+            "sanitized_evidence_ref": "evidence://missing-service",
+            "audit_ref": "audit://missing-service",
+        }
+    )
+
+    assert isinstance(response, ProductGatewayResponse)
+    assert response.entry_kind is ProductGatewayEntryKind.CONTROLLED_LIVE
+    assert response.status is ProductGatewayStatus.BLOCKED
+    assert response.exit_code == 2
+    assert response.blocking_reasons == [
+        RUNTIME_SERVICE_NOT_INJECTED_BLOCKING_REASON
+    ]
+    assert response.warnings == ["runtime_service_required_for_controlled_live"]
+    assert response.metadata["runtime_service"] == RUNTIME_SERVICE_NOT_INJECTED_REF
+    assert response.evidence_refs[0].ref == "evidence://missing-service"
+    assert response.audit_refs[0].ref == "audit://missing-service"
+
+
+def test_controlled_live_gateway_maps_blocked_runtime_summary() -> None:
+    def fake_run(
+        request: ControlledExecutionRequestSchema,
+        *,
+        config_selection: RuntimeConfigSelectionContext,
+    ) -> ControlledExecutionRuntimeSummarySchema:
+        assert request.runtime_id == "runtime-blocked"
+        assert config_selection.environment == "local"
+        return ControlledExecutionRuntimeSummarySchema(
+            runtime_id=request.runtime_id,
+            invocation_id=request.invocation_id,
+            workflow_id=request.workflow_id,
             execution_mode="controlled_live",
             status="blocked",
             blocking_reasons=("operator_approval_not_true",),
             warnings=("approval required",),
         )
-
-    monkeypatch.setattr(
-        controlled_live_module,
-        "run_controlled_run_facade",
-        fake_run,
-    )
 
     response = run_controlled_live_gateway_request(
         {
@@ -168,7 +207,9 @@ def test_controlled_live_gateway_maps_blocked_facade_result(monkeypatch) -> None
             "runtime_id": "runtime-blocked",
             "request_live_llm": True,
             "live_llm_approval_ref": "approval://requested-only",
-        }
+        },
+        runtime_service=fake_run,
+        runtime_service_ref="test.controlled_live.fake_blocked_runtime_service",
     )
 
     assert isinstance(response, ProductGatewayResponse)
@@ -177,16 +218,24 @@ def test_controlled_live_gateway_maps_blocked_facade_result(monkeypatch) -> None
     assert response.exit_code == 2
     assert response.blocking_reasons == ["operator_approval_not_true"]
     assert response.warnings == ["approval required"]
+    assert response.metadata["runtime_service"] == (
+        "test.controlled_live.fake_blocked_runtime_service"
+    )
 
 
-def test_controlled_live_gateway_maps_success_facade_result(monkeypatch) -> None:
-    def fake_run(facade_input: ControlledRunFacadeInput) -> ControlledRunFacadeResult:
-        assert facade_input.request_live_llm is True
-        assert facade_input.allow_live_llm is True
-        return ControlledRunFacadeResult(
-            runtime_id=facade_input.runtime_id,
-            invocation_id=facade_input.invocation_id,
-            workflow_id=facade_input.workflow_id,
+def test_controlled_live_gateway_maps_success_runtime_summary() -> None:
+    def fake_run(
+        request: ControlledExecutionRequestSchema,
+        *,
+        config_selection: RuntimeConfigSelectionContext,
+    ) -> ControlledExecutionRuntimeSummarySchema:
+        assert request.request_live_llm is True
+        assert request.allow_live_llm is True
+        assert config_selection.environment == "local"
+        return ControlledExecutionRuntimeSummarySchema(
+            runtime_id=request.runtime_id,
+            invocation_id=request.invocation_id,
+            workflow_id=request.workflow_id,
             execution_mode="controlled_live",
             status="success",
             controlled_run=True,
@@ -207,12 +256,6 @@ def test_controlled_live_gateway_maps_success_facade_result(monkeypatch) -> None
             tool_status="success",
         )
 
-    monkeypatch.setattr(
-        controlled_live_module,
-        "run_controlled_run_facade",
-        fake_run,
-    )
-
     response = run_controlled_live_gateway_request(
         {
             "request_id": "request-success",
@@ -227,7 +270,9 @@ def test_controlled_live_gateway_maps_success_facade_result(monkeypatch) -> None
             "allow_live_llm": True,
             "allow_ollama": True,
             "live_llm_approval_ref": "approval://live",
-        }
+        },
+        runtime_service=fake_run,
+        runtime_service_ref="test.controlled_live.fake_success_runtime_service",
     )
 
     assert response.status is ProductGatewayStatus.SUCCESS
@@ -241,6 +286,9 @@ def test_controlled_live_gateway_maps_success_facade_result(monkeypatch) -> None
     ]
     assert response.tool_audit_refs[0].purpose == "controlled_live"
     assert response.metadata["source"] == "product_gateway.controlled_live"
+    assert response.metadata["runtime_service"] == (
+        "test.controlled_live.fake_success_runtime_service"
+    )
     assert response.metadata["live_llm_allowed"] is True
     assert response.metadata["live_llm_call_performed"] is True
     assert response.metadata["ollama_allowed"] is True
@@ -250,24 +298,37 @@ def test_controlled_live_gateway_maps_success_facade_result(monkeypatch) -> None
     assert "raw_provider_response" not in repr(response.model_dump())
     assert "raw_tool_input" not in repr(response.model_dump())
 
+    summary = _assert_projected_response_summary(response)
+    assert summary["entry_kind"] == "controlled_live"
+    assert summary["governance_summary_ref"] == "governance://controlled-live-payload"
+    assert [ref["ref"] for ref in summary["evidence_refs"]] == [
+        "evidence://controlled-live"
+    ]
+    assert [ref["ref"] for ref in summary["audit_refs"]] == [
+        "audit://controlled-live"
+    ]
+    assert [ref["purpose"] for ref in summary["tool_audit_refs"]] == [
+        "controlled_live",
+        "controlled_live",
+    ]
 
-def test_controlled_live_gateway_maps_failed_facade_result(monkeypatch) -> None:
-    def fake_run(facade_input: ControlledRunFacadeInput) -> ControlledRunFacadeResult:
-        return ControlledRunFacadeResult(
-            runtime_id=facade_input.runtime_id,
-            invocation_id=facade_input.invocation_id,
-            workflow_id=facade_input.workflow_id,
+
+def test_controlled_live_gateway_maps_failed_runtime_summary() -> None:
+    def fake_run(
+        request: ControlledExecutionRequestSchema,
+        *,
+        config_selection: RuntimeConfigSelectionContext,
+    ) -> ControlledExecutionRuntimeSummarySchema:
+        assert config_selection.environment == "local"
+        return ControlledExecutionRuntimeSummarySchema(
+            runtime_id=request.runtime_id,
+            invocation_id=request.invocation_id,
+            workflow_id=request.workflow_id,
             execution_mode="controlled_live",
             status="provider_failed",
             warnings=("provider unavailable",),
             tool_failure_type="provider_unavailable",
         )
-
-    monkeypatch.setattr(
-        controlled_live_module,
-        "run_controlled_run_facade",
-        fake_run,
-    )
 
     response = run_controlled_live_gateway_request(
         {
@@ -275,7 +336,9 @@ def test_controlled_live_gateway_maps_failed_facade_result(monkeypatch) -> None:
             "runtime_id": "runtime-failed",
             "request_live_llm": True,
             "live_llm_approval_ref": "approval://failed",
-        }
+        },
+        runtime_service=fake_run,
+        runtime_service_ref="test.controlled_live.fake_failed_runtime_service",
     )
 
     assert response.status is ProductGatewayStatus.FAILED
@@ -283,3 +346,40 @@ def test_controlled_live_gateway_maps_failed_facade_result(monkeypatch) -> None:
     assert response.blocking_reasons == []
     assert response.warnings == ["provider unavailable"]
     assert response.metadata["tool_failure_type"] == "provider_unavailable"
+    assert response.metadata["runtime_service"] == (
+        "test.controlled_live.fake_failed_runtime_service"
+    )
+
+
+def _assert_projected_response_summary(
+    response: ProductGatewayResponse,
+) -> dict[str, object]:
+    summary = project_product_gateway_response_summary(response)
+    validated = validate_product_gateway_response_summary(summary)
+
+    assert validated.model_dump(mode="python") == summary
+    assert summary["payload_type"] == "product_gateway_response_summary"
+    assert summary["payload_version"] == "product_gateway_response_summary_v1"
+    assert summary["status"] == response.status.value
+    assert summary["exit_code"] == response.exit_code
+    assert summary["product_gateway_response_ref"] is None
+    assert summary["readonly"] is True
+    assert summary["summary_only"] is True
+    assert summary["refs_only"] is True
+    assert summary["candidate_only"] is True
+    assert summary["execution_enabled"] is False
+    assert summary["runtime_permission_granted"] is False
+    assert summary["llm_call_enabled"] is False
+    assert summary["tool_execution_enabled"] is False
+    assert summary["action_execution_enabled"] is False
+    assert summary["gateway_enabled"] is False
+    assert summary["metadata"] == {
+        "source": "product_gateway.response_summary_projection",
+        "product_gateway_response_source": response.metadata["source"],
+    }
+    summary_text = repr(summary)
+    assert "raw_prompt" not in summary_text
+    assert "raw_provider_response" not in summary_text
+    assert "raw_tool_input" not in summary_text
+    assert "config_context" not in summary_text
+    return summary

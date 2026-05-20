@@ -22,6 +22,14 @@ def test_runtime_container_declares_only_allowed_layer_dependencies() -> None:
     assert f"cognition-system-runtime=={package_version}" in dependencies
     assert f"cognition-system-composition=={package_version}" in dependencies
     assert f"cognition-system-contract-core=={package_version}" in dependencies
+    assert all(
+        not dependency.startswith("cognition-system-external-readonly")
+        for dependency in dependencies
+    )
+    assert all(
+        not dependency.startswith("cognition-system-cli")
+        for dependency in dependencies
+    )
     assert all(not dependency.startswith("cognition-system-adk-adapter") for dependency in dependencies)
     assert all(not dependency.startswith("cognition-system-observability-hub") for dependency in dependencies)
     assert all(not dependency.startswith("google-adk") for dependency in dependencies)
@@ -36,6 +44,45 @@ def test_runtime_container_source_does_not_import_adk_layers() -> None:
     for source_path in RUNTIME_CONTAINER_SOURCE_ROOT.rglob("*.py"):
         source = source_path.read_text(encoding="utf-8")
         assert forbidden_imports.search(source) is None, source_path
+
+
+def test_runtime_container_source_does_not_import_external_readonly() -> None:
+    forbidden_imports = re.compile(
+        r"^\s*(?:from|import)\s+external_readonly\b",
+        re.MULTILINE,
+    )
+
+    for source_path in RUNTIME_CONTAINER_SOURCE_ROOT.rglob("*.py"):
+        source = source_path.read_text(encoding="utf-8")
+        assert forbidden_imports.search(source) is None, source_path
+
+
+def test_runtime_container_source_does_not_import_task_workflows() -> None:
+    forbidden_imports = re.compile(
+        r"^\s*(?:from|import)\s+cognition_task_workflows\b",
+        re.MULTILINE,
+    )
+
+    for source_path in RUNTIME_CONTAINER_SOURCE_ROOT.rglob("*.py"):
+        source = source_path.read_text(encoding="utf-8")
+        assert forbidden_imports.search(source) is None, source_path
+
+
+def test_runtime_container_source_does_not_import_cli() -> None:
+    forbidden_imports = re.compile(
+        r"^\s*(?:from|import)\s+cognition_cli\b",
+        re.MULTILINE,
+    )
+
+    for source_path in RUNTIME_CONTAINER_SOURCE_ROOT.rglob("*.py"):
+        source = source_path.read_text(encoding="utf-8")
+        assert forbidden_imports.search(source) is None, source_path
+
+
+def test_runtime_container_old_cli_entrypoint_shim_is_removed() -> None:
+    old_entrypoint = RUNTIME_CONTAINER_SOURCE_ROOT / "entrypoints" / "cognition.py"
+
+    assert not old_entrypoint.exists()
 
 
 def test_runtime_container_source_does_not_read_config_or_assemble_overlay() -> None:

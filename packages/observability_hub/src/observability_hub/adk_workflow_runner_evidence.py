@@ -611,6 +611,18 @@ def _build_run_config_summary(
                 runner_run_config.get("live_media_fields", []),
             )
         ),
+        "legacy_input_fields": list(
+            run_config_options.get(
+                "legacy_input_fields",
+                runner_run_config.get("legacy_input_fields", []),
+            )
+        ),
+        "translated_fields": list(
+            run_config_options.get(
+                "translated_fields",
+                runner_run_config.get("translated_fields", []),
+            )
+        ),
         "declared_fields": list(run_config_options.get("declared_fields", [])),
         "mapped_fields": list(run_config_options.get("mapped_fields", [])),
         "unmapped_fields": list(run_config_options.get("unmapped_fields", [])),
@@ -640,9 +652,12 @@ def _build_run_config_summary(
             )
         ),
         "live_audio_save_requested": bool(
-            workflow_run_config.get(
+            run_config_options.get(
                 "live_audio_save_requested",
-                runner_run_config.get("live_audio_save_requested", False),
+                workflow_run_config.get(
+                    "live_audio_save_requested",
+                    runner_run_config.get("live_audio_save_requested", False),
+                ),
             )
         ),
     }
@@ -662,6 +677,8 @@ def _build_run_config_governance_view(
         field_policies=_field_policy_mapping(run_config.get("field_policies")),
         deprecated_fields=_string_list(run_config.get("deprecated_fields")),
         live_media_fields=_string_list(run_config.get("live_media_fields")),
+        legacy_input_fields=_string_list(run_config.get("legacy_input_fields")),
+        translated_fields=_string_list(run_config.get("translated_fields")),
         declared_fields=_string_list(run_config.get("declared_fields")),
         mapped_fields=_string_list(run_config.get("mapped_fields")),
         unmapped_fields=_string_list(run_config.get("unmapped_fields")),

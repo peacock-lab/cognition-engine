@@ -3,7 +3,8 @@ from __future__ import annotations
 import pytest
 from pydantic import ValidationError
 
-from product_gateway import (
+import product_gateway.contracts as contracts_module
+from product_gateway.contracts import (
     ProductGatewayEntryKind,
     ProductGatewayExecutionMode,
     ProductGatewayInputRefs,
@@ -15,6 +16,36 @@ from product_gateway import (
     ProductGatewayResponse,
     ProductGatewayStatus,
 )
+from schemas.product_gateway_response_summary import (
+    PRODUCT_GATEWAY_RESPONSE_SUMMARY_ENTRY_KINDS,
+)
+
+
+def test_product_gateway_contracts_public_surface_is_explicit() -> None:
+    assert tuple(contracts_module.__all__) == (
+        "ProductGatewayEntryKind",
+        "ProductGatewayExecutionMode",
+        "ProductGatewayInputRefs",
+        "ProductGatewayLiveOptions",
+        "ProductGatewayOperatorApprovalRef",
+        "ProductGatewayOutputRefs",
+        "ProductGatewayRef",
+        "ProductGatewayRequest",
+        "ProductGatewayResponse",
+        "ProductGatewayStatus",
+    )
+    assert "_raise_if_raw_payload_found" not in contracts_module.__all__
+    assert "_walk" not in contracts_module.__all__
+    assert "_is_raw_payload" not in contracts_module.__all__
+    assert "ProductGatewayContractBase" not in contracts_module.__all__
+    assert "FORBIDDEN_PRODUCT_GATEWAY_KEYS" not in contracts_module.__all__
+    assert "FORBIDDEN_PRODUCT_GATEWAY_MODULE_PREFIXES" not in contracts_module.__all__
+
+
+def test_product_gateway_response_summary_entry_kinds_cover_product_entries() -> None:
+    assert PRODUCT_GATEWAY_RESPONSE_SUMMARY_ENTRY_KINDS == frozenset(
+        item.value for item in ProductGatewayEntryKind
+    )
 
 
 def test_product_gateway_request_accepts_sanitized_product_input() -> None:

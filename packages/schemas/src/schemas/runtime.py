@@ -435,6 +435,8 @@ class RunConfigGovernanceView(RuntimeBaseModel):
     field_policies: dict[str, dict[str, str]] = Field(default_factory=dict)
     deprecated_fields: list[str] = Field(default_factory=list)
     live_media_fields: list[str] = Field(default_factory=list)
+    legacy_input_fields: list[str] = Field(default_factory=list)
+    translated_fields: list[str] = Field(default_factory=list)
     declared_fields: list[str] = Field(default_factory=list)
     mapped_fields: list[str] = Field(default_factory=list)
     unmapped_fields: list[str] = Field(default_factory=list)

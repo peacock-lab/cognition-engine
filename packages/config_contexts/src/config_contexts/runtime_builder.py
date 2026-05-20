@@ -10,6 +10,7 @@ from config_contexts.runtime import (
     AdapterSelectionConfigView,
     AdkRunConfigView,
     ArtifactPolicyConfigView,
+    EvidenceSummaryAnswerPolicyConfigView,
     EventPolicyConfigView,
     NodeExecutionConfigView,
     ResumePolicyConfigView,
@@ -132,6 +133,9 @@ def build_runtime_config_contexts(
         ),
         run_workspace=RunWorkspacePolicyConfigView(
             **_optional_section(payload, "run_workspace")
+        ),
+        evidence_summary_answer=EvidenceSummaryAnswerPolicyConfigView(
+            **_optional_section(payload, "evidence_summary_answer")
         ),
         governance=GovernanceConfigContext(**_optional_section(payload, "governance")),
     )

@@ -93,7 +93,6 @@ class AdkRunConfigViewCandidate(GovernanceCandidateConfigBaseModel):
 
     max_llm_calls: int | None = Field(default=None, gt=0)
     response_modalities: tuple[str, ...] | None = None
-    save_input_blobs_as_artifacts: bool | None = None
     support_cfc: bool | None = None
     streaming_mode: Literal["none", "sse", "bidi"] | None = None
     get_session_num_recent_events: int | None = Field(default=None, ge=0)

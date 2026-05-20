@@ -74,6 +74,31 @@ def test_llm_invocation_result_can_represent_sanitized_success() -> None:
     assert result.sanitized_response_preview == "你好"
 
 
+def test_llm_invocation_result_can_represent_output_schema_validation_failure() -> None:
+    result = LlmInvocationResult(
+        request_id="llm-request-1",
+        route_facts=_route_facts(),
+        governance_precondition=_governance_precondition(allowed=True),
+        call_attempted=True,
+        call_allowed=True,
+        runtime_call_performed=True,
+        success=False,
+        failure_type=LlmInvocationFailureType.OUTPUT_SCHEMA_VALIDATION_FAILURE,
+        error_message_sanitized="output_schema_validation_failure",
+        metadata={
+            "exception_classification": (
+                "adk_output_schema_validation_exception"
+            )
+        },
+    )
+
+    assert (
+        result.failure_type
+        == LlmInvocationFailureType.OUTPUT_SCHEMA_VALIDATION_FAILURE
+    )
+    assert result.runtime_call_performed is True
+
+
 @pytest.mark.parametrize(
     "metadata",
     [

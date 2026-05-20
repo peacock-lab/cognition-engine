@@ -160,7 +160,7 @@ def build_runtime_input(
         ),
         input_payload=dict(build_input.input_payload),
         metadata={
-            "entry_source": "runtime_container.entrypoints.cognition",
+            "entry_source": "runtime_container.controlled_adk_run_request_builder",
             "config_root": str(build_input.config_root),
             "environment": build_input.environment,
             "profile": build_input.profile,

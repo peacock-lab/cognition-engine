@@ -14,6 +14,7 @@ from runtime_container.live_smoke.agent_shell_controlled_live import (
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 RUNTIME_CONTAINER_ROOT = REPO_ROOT / "packages" / "runtime_container"
+CLI_PACKAGE_ROOT = REPO_ROOT / "packages" / "cli"
 SMOKE_SOURCE = (
     RUNTIME_CONTAINER_ROOT
     / "src"
@@ -131,13 +132,22 @@ def test_agent_shell_controlled_live_smoke_module_keeps_runtime_boundary() -> No
     pyproject = tomllib.loads(
         (RUNTIME_CONTAINER_ROOT / "pyproject.toml").read_text(encoding="utf-8")
     )
+    product_runtime_pyproject = tomllib.loads(
+        (
+            REPO_ROOT
+            / "packages"
+            / "product_runtime_assembly"
+            / "pyproject.toml"
+        ).read_text(encoding="utf-8")
+    )
 
     assert re.search(r"^\s*(?:from|import)\s+adk_adapter\b", source, re.M) is None
     assert re.search(r"^\s*(?:from|import)\s+google\.adk\b", source, re.M) is None
     assert re.search(r"^\s*(?:from|import)\s+litellm\b", source, re.M) is None
     assert "raw_provider_payload_included" in source
-    assert pyproject["project"]["scripts"] == {
-        "cognition": "runtime_container.entrypoints.cognition:main"
+    assert "scripts" not in pyproject["project"]
+    assert product_runtime_pyproject["project"]["scripts"] == {
+        "cognition": "product_runtime_assembly.entrypoints.cognition:main"
     }
 
 

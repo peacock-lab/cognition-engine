@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from adk_adapter.artifact_service import AdkArtifactServiceAdapter
+from adk_adapter.plugin_bundle import AdkPluginBundle, AdkPluginBundleOptions
 from adk_adapter.run_config import AdkRunConfigMapper, AdkRunConfigOptions
 from adk_adapter.session_service import AdkSessionServiceAdapter
 
@@ -160,6 +161,8 @@ class AdkRunnerServiceAdapter:
         session_service: AdkSessionServiceAdapter | Any | None = None,
         run_config: Any | None = None,
         run_config_options: AdkRunConfigOptions | None = None,
+        plugin_bundle: AdkPluginBundle | None = None,
+        plugin_bundle_options: AdkPluginBundleOptions | None = None,
     ) -> None:
         self.workflow = workflow
         self.app_name = app_name
@@ -171,6 +174,9 @@ class AdkRunnerServiceAdapter:
             user_id=user_id,
         )
         self.run_config = run_config or AdkRunConfigMapper().build(run_config_options)
+        self.plugin_bundle = plugin_bundle or self._build_plugin_bundle(
+            plugin_bundle_options
+        )
 
     def create_runner(self) -> Any:
         """Create a real ADK Runner over the configured Workflow/BaseNode."""
@@ -178,10 +184,20 @@ class AdkRunnerServiceAdapter:
         from google.adk.runners import Runner
 
         return Runner(
-            node=self.workflow,
-            app_name=self.app_name,
+            app=self.create_app(),
             artifact_service=self.service_bundle.adk_artifact_service,
             session_service=self.service_bundle.adk_session_service,
+        )
+
+    def create_app(self) -> Any:
+        """Create the ADK App wrapper used as the Runner assembly root."""
+
+        from google.adk.apps.app import App
+
+        return App(
+            name=self.app_name,
+            root_agent=self.workflow,
+            plugins=self.plugin_bundle.adk_plugins,
         )
 
     async def create_session(
@@ -228,8 +244,12 @@ class AdkRunnerServiceAdapter:
         return {
             "adapter": "adk_adapter.runner_service",
             "adk_runner_type": "Runner",
+            "app_assembly_mode": "adk_app",
             "workflow_type": type(self.workflow).__name__,
             "app_name": self.app_name,
+            "app_root_type": type(self.workflow).__name__,
+            **self.plugin_bundle.metadata(),
+            "raw_app_object_included": False,
             "user_id": self.user_id,
             "service_bundle": self.service_bundle.metadata(),
             "run_config": AdkRunConfigMapper().metadata(self.run_config),
@@ -253,3 +273,9 @@ class AdkRunnerServiceAdapter:
             app_name=app_name,
             user_id=user_id,
         )
+
+    def _build_plugin_bundle(
+        self,
+        plugin_bundle_options: AdkPluginBundleOptions | None,
+    ) -> AdkPluginBundle:
+        return (plugin_bundle_options or AdkPluginBundleOptions()).build_plugin_bundle()

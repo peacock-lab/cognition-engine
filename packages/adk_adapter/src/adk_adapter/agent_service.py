@@ -11,6 +11,7 @@ from google.adk.models.base_llm import BaseLlm
 
 from adk_adapter.event_mapper import AdkEventMapper
 from adk_adapter.invocation_mapper import AdkInvocationBinding, AdkInvocationMapper
+from adk_adapter.plugin_bundle import AdkPluginBundle, AdkPluginBundleOptions
 from adk_adapter.run_config import AdkRunConfigMapper, AdkRunConfigOptions
 from adk_adapter.runner_service import AdkRunnerServiceBundle
 from schemas.runtime import InvocationRef, RuntimeErrorRecord, RuntimeEvent
@@ -135,6 +136,8 @@ class AdkAgentServiceAdapter:
         run_config_options: AdkRunConfigOptions | None = None,
         event_mapper: AdkEventMapper | None = None,
         invocation_mapper: AdkInvocationMapper | None = None,
+        plugin_bundle: AdkPluginBundle | None = None,
+        plugin_bundle_options: AdkPluginBundleOptions | None = None,
     ) -> None:
         self.agent = agent
         self.app_name = app_name
@@ -146,6 +149,9 @@ class AdkAgentServiceAdapter:
         self.run_config = run_config or AdkRunConfigMapper().build(run_config_options)
         self._event_mapper = event_mapper or AdkEventMapper()
         self._invocation_mapper = invocation_mapper or AdkInvocationMapper()
+        self.plugin_bundle = plugin_bundle or (
+            plugin_bundle_options or AdkPluginBundleOptions()
+        ).build_plugin_bundle()
 
     def create_runner(self) -> Any:
         """Create a real ADK Runner over the configured native Agent."""
@@ -153,10 +159,20 @@ class AdkAgentServiceAdapter:
         from google.adk.runners import Runner
 
         return Runner(
-            agent=self.agent,
-            app_name=self.app_name,
+            app=self.create_app(),
             artifact_service=self.service_bundle.adk_artifact_service,
             session_service=self.service_bundle.adk_session_service,
+        )
+
+    def create_app(self) -> Any:
+        """Create the ADK App wrapper used as the Runner assembly root."""
+
+        from google.adk.apps.app import App
+
+        return App(
+            name=self.app_name,
+            root_agent=self.agent,
+            plugins=self.plugin_bundle.adk_plugins,
         )
 
     async def create_session(
@@ -283,12 +299,16 @@ class AdkAgentServiceAdapter:
         return {
             "adapter": "adk_adapter.agent_service",
             "adk_runner_type": "Runner",
+            "app_assembly_mode": "adk_app",
             "runner_entry": "agent",
             "agent_type": type(self.agent).__name__,
             "agent_name": getattr(self.agent, "name", None),
             "agent_model": _safe_text(getattr(self.agent, "model", None)),
             "agent_mode": getattr(self.agent, "mode", None),
             "app_name": self.app_name,
+            "app_root_type": type(self.agent).__name__,
+            **self.plugin_bundle.metadata(),
+            "raw_app_object_included": False,
             "user_id": self.user_id,
             "service_bundle": self.service_bundle.metadata(),
             "run_config": AdkRunConfigMapper().metadata(self.run_config),

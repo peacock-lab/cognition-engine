@@ -8,7 +8,8 @@ from runtime.product_workflow import (
     MINIMAL_PRODUCT_WORKFLOW_KIND,
     MinimalProductWorkflowRunner,
 )
-from runtime_container import runtime as runtime_facade
+from composition.runtime import RuntimeCompositionOptions, build_standard_runtime_runner
+from runtime.orchestrator import StandardRuntimeRunner
 
 FULL_PRODUCT_OUTPUT_KEYS = {
     "product_brief",
@@ -27,8 +28,8 @@ def _build_minimal_product_evidence() -> tuple[
     contract_runtime.RuntimeResult,
     EvidenceBundle,
 ]:
-    runtime_runner = runtime_facade.build_standard_runtime_runner(
-        options=runtime_facade.RuntimeCompositionOptions(
+    runtime_runner = build_standard_runtime_runner(
+        options=RuntimeCompositionOptions(
             config_root=Path("config"),
             environment="local",
         ),
@@ -73,7 +74,7 @@ def _has_forbidden_key(value: Any, forbidden_keys: set[str]) -> bool:
 def test_minimal_product_workflow_connects_runtime_result_to_evidence_bundle() -> None:
     runtime_runner, runtime_result, evidence_bundle = _build_minimal_product_evidence()
 
-    assert isinstance(runtime_runner, runtime_facade.StandardRuntimeRunner)
+    assert isinstance(runtime_runner, StandardRuntimeRunner)
     assert runtime_result.status == contract_runtime.RuntimeStatus.SUCCESS
     assert runtime_result.workflow_result is not None
     assert runtime_result.workflow_result.status == contract_runtime.RuntimeStatus.SUCCESS
@@ -107,7 +108,7 @@ def test_minimal_product_workflow_connects_runtime_result_to_evidence_bundle() -
 def test_minimal_product_workflow_keeps_full_output_boundary_out_of_runner() -> None:
     runtime_runner, runtime_result, evidence_bundle = _build_minimal_product_evidence()
 
-    assert isinstance(runtime_runner, runtime_facade.StandardRuntimeRunner)
+    assert isinstance(runtime_runner, StandardRuntimeRunner)
     assert runtime_result.workflow_result is not None
     workflow_result = runtime_result.workflow_result
     boundary_surfaces = [

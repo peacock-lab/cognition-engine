@@ -26,6 +26,21 @@ def test_init_default_config_root_writes_sanitized_baseline(tmp_path: Path) -> N
     assert bundle.runtime.runtime_name == "default-runtime"
     assert bundle.tool_exposure.default_profile == "readonly_reference"
     assert bundle.run_workspace.enabled_by_default is False
+    assert bundle.live_llm.default_provider_profile_ref == "local_ollama"
+    assert bundle.live_llm.default_model_profile_ref == "gemma4_pro_local"
+    assert (
+        bundle.live_llm.default_output_governance_profile_ref
+        == "direct_controlled_live"
+    )
+    assert bundle.live_llm.provider_profiles["deepseek_gated"].enabled_by_default is False
+    assert (
+        bundle.live_llm.model_profiles["deepseek_v4_flash_external"].model_name
+        == "deepseek/deepseek-v4-flash"
+    )
+    assert (
+        bundle.live_llm.model_aliases["deepseek"].output_governance_profile_ref
+        == "adk_no_output_schema_candidate"
+    )
 
 
 def test_init_default_config_root_does_not_overwrite_by_default(

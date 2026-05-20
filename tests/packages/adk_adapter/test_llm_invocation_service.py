@@ -223,7 +223,7 @@ def test_adk_governed_llm_invocation_live_enabled_includes_reference_review_cont
             allowed=True,
             prompt_preview_sanitized="资料审查，输出主要结论",
             metadata={
-                "interaction_mode": "cli_reference_review_workflow",
+                "interaction_mode": "twf_reference_review_workflow",
                 "reference_review_context": {
                     "current_user_input": "请审查这些资料",
                     "reference_labels": ["359-result.md"],
@@ -251,6 +251,108 @@ def test_adk_governed_llm_invocation_live_enabled_includes_reference_review_cont
     assert "风险边界" in message
     assert "不得建议打开、接入、集成、启用或开始实施" in message
     assert "严禁把未打开、关闭、暂不接入类边界改写成打开" in message
+
+
+def test_adk_governed_llm_invocation_live_enabled_includes_evidence_summary_answer_context() -> None:
+    fake_client = _FakeLiteLlmClient(
+        "该资料支持后续审查，可引用 evidence://external-readonly/cli-fetch/answer.json。"
+    )
+    service = AdkGovernedLlmInvocationService(
+        options=AdkGovernedLlmInvocationOptions(
+            live_enabled=True,
+            live_client=fake_client,
+            ollama_api_base="http://127.0.0.1:11434",
+        )
+    )
+
+    result = service.invoke(
+        _request(
+            allowed=True,
+            prompt_preview_sanitized="这条资料是否可用",
+            metadata={
+                "interaction_mode": "evidence_summary_answer_generation",
+                "evidence_summary_answer_context": {
+                    "user_question": "这条资料是否可用",
+                    "summary_facts": [
+                        "The reference is suitable for follow-up review.",
+                        "ProductGatewayResponse hidden marker must stay out.",
+                    ],
+                    "evidence_refs": [
+                        {
+                            "ref": (
+                                "evidence://external-readonly/cli-fetch/"
+                                "answer.json"
+                            ),
+                            "kind": "external_readonly_evidence",
+                            "purpose": "answer_context",
+                            "sanitized_excerpt_preview": (
+                                "hidden excerpt must stay out"
+                            ),
+                        }
+                    ],
+                    "digest_refs": [
+                        "governed-evidence-digest://cli-fetch/answer",
+                        "raw_payload://hidden",
+                    ],
+                    "additional_refs": [
+                        {
+                            "ref": "governed-evidence-digest://cli-fetch/answer",
+                            "kind": "governed_evidence_digest",
+                            "purpose": "answer_context",
+                            "observability_candidate_body": (
+                                "hidden observation body"
+                            ),
+                        }
+                    ],
+                    "answer_constraints": [
+                        "Use only governed summary facts and listed refs.",
+                        "product_response_summary hidden marker must stay out.",
+                    ],
+                    "answer_policy_ref": (
+                        "policy://product-application-assembly/"
+                        "evidence-summary-answer/generation/result-v1"
+                    ),
+                    "citation_policy_ref": (
+                        "policy://product-application-assembly/"
+                        "evidence-summary-answer/citation-v1"
+                    ),
+                    "external_readonly_answer_context": "hidden legacy context",
+                    "product_response_summary": {"raw_payload": "hidden raw payload"},
+                    "config_context_value": "hidden config value",
+                },
+            },
+        )
+    )
+
+    message = fake_client.calls[0]["messages"][0]["content"]
+
+    assert result.failure_type is None
+    assert "中文证据摘要回答助手" in message
+    assert "用户问题：" in message
+    assert "这条资料是否可用" in message
+    assert "The reference is suitable for follow-up review." in message
+    assert "evidence://external-readonly/cli-fetch/answer.json" in message
+    assert "governed-evidence-digest://cli-fetch/answer" in message
+    assert "Use only governed summary facts and listed refs." in message
+    assert "不主动触发 external-readonly fetch/search" in message
+    assert "自然语言完整回答" in message
+    assert "JSON / YAML object wrapper" in message
+    assert "thought、reasoning、analysis、chain_of_thought、scratchpad" in message
+    assert "第一行直接回答问题" in message
+    assert "不得以 {、[、```、thought、analysis、reasoning、scratchpad 开头" in message
+    assert "信息不足" in message
+    assert "ProductGatewayResponse" not in message
+    assert "external_readonly_answer_context" not in message
+    assert "product_response_summary" not in message
+    assert "hidden legacy context" not in message
+    assert "hidden raw payload" not in message
+    assert "raw_payload" not in message
+    assert "hidden excerpt must stay out" not in message
+    assert "sanitized_excerpt_preview" not in message
+    assert "hidden observation body" not in message
+    assert "observability_candidate_body" not in message
+    assert "hidden config value" not in message
+    assert "config_context_value" not in message
 
 
 def test_adk_governed_llm_invocation_live_enabled_adds_direct_plan_instruction() -> None:
@@ -942,6 +1044,11 @@ def test_adk_governed_llm_invocation_source_does_not_call_model_or_runner() -> N
     assert forbidden_calls.search(source) is None
     assert forbidden_imports.search(source) is None
     assert "from google.adk.models.lite_llm import LiteLLMClient" in source
+    assert "product_application_assembly" not in source
+    assert "product_runtime_assembly" not in source
+    assert "runtime_container" not in source
+    assert "from composition" not in source
+    assert "product_gateway" not in source
 
 
 def _request(

@@ -11,7 +11,7 @@ from contract_core.llm_invocation import (
     LlmInvocationResult,
 )
 from contract_core.model_routing import ModelRouteFacts
-from runtime_container import llm_invocation_facade
+import runtime_container.llm_invocation_facade as llm_invocation_facade
 from runtime_container.llm_invocation_facade import (
     RuntimeContainerLlmInvocationFacade,
     build_runtime_container_llm_invocation_request,

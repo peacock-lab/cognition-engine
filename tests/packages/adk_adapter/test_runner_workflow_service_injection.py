@@ -58,10 +58,23 @@ def test_runner_and_workflow_services_inject_artifact_session_services() -> None
     )
 
     adk_runner = workflow_service.create_runner()
+    runner_metadata = runner_service.metadata()
 
     assert adk_runner.agent is workflow
+    assert adk_runner.app.name == "test_adk_adapter"
+    assert adk_runner.app.root_agent is workflow
+    assert adk_runner.app.plugins == []
     assert adk_runner.artifact_service is service_bundle.adk_artifact_service
     assert adk_runner.session_service is service_bundle.adk_session_service
+    assert runner_metadata["app_assembly_mode"] == "adk_app"
+    assert runner_metadata["app_root_type"] == "Workflow"
+    assert runner_metadata["plugin_bundle_type"] == "AdkPluginBundle"
+    assert runner_metadata["plugin_bundle_source"] == "empty"
+    assert runner_metadata["plugin_count"] == 0
+    assert runner_metadata["plugin_names"] == []
+    assert runner_metadata["plugin_types"] == []
+    assert runner_metadata["raw_app_object_included"] is False
+    assert runner_metadata["raw_plugin_object_included"] is False
 
     result = AdkWorkflowRunner(
         workflow=workflow,

@@ -1,26 +1,11 @@
-"""Thin facade package for Cognition Engine runtime-container entries."""
+"""Public runtime-container service modules for Cognition Engine."""
 
 from importlib import import_module
 from types import ModuleType
 
 __all__ = [
-    "cli_agent_workflow_admission",
-    "cli_agent_workflow_registry_observation",
-    "cli_reference_review_workflow",
-    "cli_task_control",
-    "cli_reference_reader",
-    "cli_run_workspace",
-    "cli_skill_capability_projection",
-    "cli_skill_registry_admission",
-    "cli_task_workflow_registry",
-    "cli_tool_loading_validation",
-    "cli_tool_exposure_profile",
-    "cli_toolset_admission",
-    "controlled_adk_run_entry",
-    "controlled_run_facade",
-    "governance_summary_pipeline",
-    "llm_invocation_facade",
-    "runtime",
+    "controlled_execution_service",
+    "llm_invocation_provider_service",
 ]
 
 _EXPORTED_SUBMODULES = frozenset(__all__)

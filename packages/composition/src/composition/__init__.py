@@ -47,13 +47,19 @@ from composition.controlled_adk_run_provider import (
     build_controlled_adk_run_runtime_assembly,
     build_controlled_adk_run_runtime_assembly_provider,
 )
+from composition.external_readonly_evidence_readonly_assembly import (
+    ExternalReadonlyEvidenceReadonlyProductBundle,
+    build_external_readonly_evidence_readonly_product_bundle,
+)
 from composition.llm_invocation_assembly import (
     LlmInvocationServiceAssembly,
     LlmInvocationServiceAssemblyOptions,
     build_adk_governed_llm_invocation_service,
     build_controlled_live_adk_governed_llm_invocation_service,
+    build_controlled_live_adk_governed_llm_invocation_service_from_config_root,
     build_controlled_live_adk_governed_llm_invocation_service_from_runtime_config,
     build_controlled_live_llm_invocation_service_assembly,
+    build_controlled_live_llm_invocation_service_assembly_from_config_root,
     build_controlled_live_llm_invocation_service_assembly_from_runtime_config,
     build_llm_invocation_service_assembly,
 )
@@ -78,6 +84,7 @@ __all__ = [
     "AdkWorkflowRunnerGovernanceSummaryProviderAssembly",
     "AdkWorkflowRunnerRuntimeAssembly",
     "AdkWorkflowRunnerServiceFactsProviderAssembly",
+    "ExternalReadonlyEvidenceReadonlyProductBundle",
     "GOVERNANCE_DECISION_METADATA_BLOCK_FIELD",
     "GOVERNANCE_DECISION_METADATA_PRECONDITION_FIELD",
     "GOVERNANCE_DECISION_SHAPE_FIELDS",
@@ -92,11 +99,14 @@ __all__ = [
     "build_adk_workflow_runner_runtime",
     "build_adk_workflow_runner_service_facts_provider",
     "build_controlled_live_adk_governed_llm_invocation_service",
+    "build_controlled_live_adk_governed_llm_invocation_service_from_config_root",
     "build_controlled_live_adk_governed_llm_invocation_service_from_runtime_config",
     "build_controlled_live_llm_invocation_service_assembly",
+    "build_controlled_live_llm_invocation_service_assembly_from_config_root",
     "build_controlled_live_llm_invocation_service_assembly_from_runtime_config",
     "build_controlled_adk_run_runtime_assembly",
     "build_controlled_adk_run_runtime_assembly_provider",
+    "build_external_readonly_evidence_readonly_product_bundle",
     "build_llm_invocation_service_assembly",
     "create_adk_workflow_runner",
     "create_default_adk_workflow_runner_bundle",

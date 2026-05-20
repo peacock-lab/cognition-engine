@@ -4,7 +4,8 @@ from pathlib import Path
 from typing import Any
 
 from adk_adapter import AdkWorkflowRunner
-from runtime_container import runtime as runtime_facade
+from composition.runtime import RuntimeCompositionOptions, build_standard_runtime_runner
+from runtime.orchestrator import StandardRuntimeRunner
 from schemas.runtime import InvocationRef, RuntimeInput, RuntimeStatus, WorkflowRef
 
 
@@ -33,8 +34,8 @@ def test_runtime_container_facade_runs_real_adk_workflow_through_adk_adapter() -
         user_id="runtime-container-test-user",
     )
 
-    runtime_runner = runtime_facade.build_standard_runtime_runner(
-        options=runtime_facade.RuntimeCompositionOptions(
+    runtime_runner = build_standard_runtime_runner(
+        options=RuntimeCompositionOptions(
             config_root=Path("config"),
             environment="local",
         ),
@@ -54,7 +55,7 @@ def test_runtime_container_facade_runs_real_adk_workflow_through_adk_adapter() -
         )
     )
 
-    assert isinstance(runtime_runner, runtime_facade.StandardRuntimeRunner)
+    assert isinstance(runtime_runner, StandardRuntimeRunner)
     assert runtime_result.status == RuntimeStatus.SUCCESS
     assert runtime_result.runtime_id == "runtime-adk-001"
     assert runtime_result.workflow_result is not None

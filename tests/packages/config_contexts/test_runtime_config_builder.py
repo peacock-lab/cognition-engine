@@ -34,6 +34,57 @@ def test_build_runtime_config_contexts_from_project_payload() -> None:
     assert bundle.live_llm.temperature == 0
     assert bundle.live_llm.max_tokens == 64
     assert bundle.live_llm.enabled_by_default is False
+    assert bundle.live_llm.default_provider_profile_ref == "local_ollama"
+    assert bundle.live_llm.provider_profiles["local_ollama"].provider == "litellm"
+    assert (
+        bundle.live_llm.provider_profiles["local_ollama"].backend_provider
+        == "ollama"
+    )
+    assert (
+        bundle.live_llm.provider_profiles["deepseek_gated"].backend_provider
+        == "deepseek"
+    )
+    assert (
+        bundle.live_llm.provider_profiles["deepseek_gated"].enabled_by_default
+        is False
+    )
+    assert bundle.live_llm.default_model_profile_ref == "gemma4_pro_local"
+    assert (
+        bundle.live_llm.model_profiles["gemma4_pro_local"].model_name
+        == "ollama/gemma4-pro:latest"
+    )
+    assert (
+        bundle.live_llm.model_profiles["deepseek_v4_flash_external"].model_name
+        == "deepseek/deepseek-v4-flash"
+    )
+    assert (
+        bundle.live_llm.model_profiles[
+            "deepseek_v4_flash_external"
+        ].metadata["thinking_mode"]
+        == "disabled"
+    )
+    assert (
+        bundle.live_llm.default_output_governance_profile_ref
+        == "direct_controlled_live"
+    )
+    assert (
+        bundle.live_llm.output_governance_profiles[
+            "direct_controlled_live"
+        ].uses_answer_quality_guard
+        is True
+    )
+    assert (
+        bundle.live_llm.model_aliases["gemma4"].model_profile_ref
+        == "gemma4_pro_local"
+    )
+    assert (
+        bundle.live_llm.model_aliases["deepseek"].provider_profile_ref
+        == "deepseek_gated"
+    )
+    assert (
+        bundle.live_llm.model_aliases["deepseek"].output_governance_profile_ref
+        == "adk_no_output_schema_candidate"
+    )
     assert bundle.live_llm.metadata["source"] == "config/env/local.yaml"
     assert bundle.tool_confirmation.default_require_confirmation is True
     assert bundle.tool_confirmation.default_mode == "operator_required"
@@ -62,6 +113,21 @@ def test_build_runtime_config_contexts_from_project_payload() -> None:
         "cleanup_policy": "manual",
         "max_write_bytes": 65536,
     }
+    assert bundle.evidence_summary_answer.profile == "smoke_only"
+    assert bundle.evidence_summary_answer.enabled_by_default is False
+    assert bundle.evidence_summary_answer.exposure_enabled is True
+    assert bundle.evidence_summary_answer.allow_model_context is True
+    assert bundle.evidence_summary_answer.allow_governed_summary_facts is True
+    assert bundle.evidence_summary_answer.allow_answer_generation_success is False
+    assert bundle.evidence_summary_answer.requires_live_llm_gate is True
+    assert bundle.evidence_summary_answer.answer_generation_service_ref is None
+    assert bundle.evidence_summary_answer.llm_provider_factory_ref is None
+    assert bundle.evidence_summary_answer.citation_required is True
+    assert bundle.evidence_summary_answer.allow_citation_exception is False
+    assert (
+        bundle.evidence_summary_answer.metadata["source"]
+        == "config/base/runtime.yaml"
+    )
     assert bundle.productization_gate.gate_id == (
         "gate-ce-156-no-live-productization"
     )
@@ -147,6 +213,54 @@ def test_build_runtime_config_contexts_rejects_non_mapping_live_llm() -> None:
         build_runtime_config_contexts(payload)
 
 
+def test_build_runtime_config_contexts_rejects_invalid_live_llm_profile_ref() -> None:
+    payload = RuntimeConfigPayload(
+        source_root="config",
+        environment="test",
+        base_file="config/base/runtime.yaml",
+        payload={
+            "runtime": {"runtime_name": "test-runtime"},
+            "workflow_execution": {"workflow_name": "test-workflow"},
+            "node_execution": {},
+            "resume_policy": {},
+            "event_policy": {},
+            "artifact_policy": {},
+            "adapter_selection": {},
+            "live_llm": {"default_provider_profile_ref": "missing"},
+        },
+    )
+
+    with pytest.raises(ValidationError):
+        build_runtime_config_contexts(payload)
+
+
+def test_build_runtime_config_contexts_rejects_sensitive_live_llm_profile_metadata() -> None:
+    payload = RuntimeConfigPayload(
+        source_root="config",
+        environment="test",
+        base_file="config/base/runtime.yaml",
+        payload={
+            "runtime": {"runtime_name": "test-runtime"},
+            "workflow_execution": {"workflow_name": "test-workflow"},
+            "node_execution": {},
+            "resume_policy": {},
+            "event_policy": {},
+            "artifact_policy": {},
+            "adapter_selection": {},
+            "live_llm": {
+                "provider_profiles": {
+                    "local_ollama": {
+                        "metadata": {"api_key": "sk-test"}
+                    }
+                }
+            },
+        },
+    )
+
+    with pytest.raises(ValidationError):
+        build_runtime_config_contexts(payload)
+
+
 def test_build_runtime_config_contexts_rejects_non_mapping_tool_confirmation() -> None:
     payload = RuntimeConfigPayload(
         source_root="config",
@@ -203,6 +317,27 @@ def test_build_runtime_config_contexts_rejects_non_mapping_run_workspace() -> No
             "artifact_policy": {},
             "adapter_selection": {},
             "run_workspace": [],
+        },
+    )
+
+    with pytest.raises(RuntimeConfigContextBuildError):
+        build_runtime_config_contexts(payload)
+
+
+def test_build_runtime_config_contexts_rejects_non_mapping_evidence_summary_answer() -> None:
+    payload = RuntimeConfigPayload(
+        source_root="config",
+        environment="test",
+        base_file="config/base/runtime.yaml",
+        payload={
+            "runtime": {"runtime_name": "test-runtime"},
+            "workflow_execution": {"workflow_name": "test-workflow"},
+            "node_execution": {},
+            "resume_policy": {},
+            "event_policy": {},
+            "artifact_policy": {},
+            "adapter_selection": {},
+            "evidence_summary_answer": [],
         },
     )
 
@@ -312,6 +447,51 @@ def test_build_runtime_config_contexts_rejects_unsafe_workspace_root() -> None:
         build_runtime_config_contexts(payload)
 
 
+def test_build_runtime_config_contexts_rejects_unsafe_evidence_summary_answer_policy() -> None:
+    payload = RuntimeConfigPayload(
+        source_root="config",
+        environment="test",
+        base_file="config/base/runtime.yaml",
+        payload={
+            "runtime": {"runtime_name": "test-runtime"},
+            "workflow_execution": {"workflow_name": "test-workflow"},
+            "node_execution": {},
+            "resume_policy": {},
+            "event_policy": {},
+            "artifact_policy": {},
+            "adapter_selection": {},
+            "evidence_summary_answer": {"allow_raw_boundary": True},
+        },
+    )
+
+    with pytest.raises(ValidationError):
+        build_runtime_config_contexts(payload)
+
+
+def test_build_runtime_config_contexts_rejects_smoke_only_answer_generation_success() -> None:
+    payload = RuntimeConfigPayload(
+        source_root="config",
+        environment="test",
+        base_file="config/base/runtime.yaml",
+        payload={
+            "runtime": {"runtime_name": "test-runtime"},
+            "workflow_execution": {"workflow_name": "test-workflow"},
+            "node_execution": {},
+            "resume_policy": {},
+            "event_policy": {},
+            "artifact_policy": {},
+            "adapter_selection": {},
+            "evidence_summary_answer": {
+                "profile": "smoke_only",
+                "allow_answer_generation_success": True,
+            },
+        },
+    )
+
+    with pytest.raises(ValidationError):
+        build_runtime_config_contexts(payload)
+
+
 def test_build_runtime_config_contexts_accepts_legacy_channel_config() -> None:
     payload = RuntimeConfigPayload(
         source_root="config",
@@ -364,3 +544,5 @@ def test_build_runtime_config_contexts_accepts_legacy_channel_config() -> None:
     assert bundle.session_policy.session_service_source == "in_memory"
     assert bundle.live_llm.model_name == "ollama/gemma4-pro:latest"
     assert bundle.tool_confirmation.default_require_confirmation is True
+    assert bundle.evidence_summary_answer.profile == "smoke_only"
+    assert bundle.evidence_summary_answer.allow_governed_summary_facts is True

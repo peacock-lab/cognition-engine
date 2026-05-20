@@ -13,7 +13,6 @@ def test_adk_run_config_view_candidate_expresses_mapped_fields() -> None:
     view = AdkRunConfigViewCandidate(
         max_llm_calls=12,
         response_modalities=("TEXT",),
-        save_input_blobs_as_artifacts=True,
         support_cfc=False,
         streaming_mode="sse",
         get_session_num_recent_events=5,
@@ -24,6 +23,11 @@ def test_adk_run_config_view_candidate_expresses_mapped_fields() -> None:
     assert view.execution_enabled is False
     assert view.requires_operator_confirmation is True
     assert view.max_llm_calls == 12
+
+
+def test_adk_run_config_view_candidate_rejects_retired_save_input_blobs_field() -> None:
+    with pytest.raises(ValidationError):
+        AdkRunConfigViewCandidate(save_input_blobs_as_artifacts=True)
 
 
 def test_service_bundle_view_candidate_does_not_allow_service_instances() -> None:

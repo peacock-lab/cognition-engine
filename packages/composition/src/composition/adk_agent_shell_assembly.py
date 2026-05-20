@@ -11,6 +11,8 @@ from adk_adapter import (
     AdkAgentRunResult,
     AdkAgentServiceAdapter,
     AdkAgentShellOptions,
+    AdkPluginBundle,
+    AdkPluginBundleOptions,
     AdkRunConfigOptions,
     AdkRunnerServiceBundle,
     AdkRunnerServiceBundleOptions,
@@ -41,6 +43,9 @@ class AdkAgentShellAssemblyOptions:
     service_bundle_options: AdkRunnerServiceBundleOptions = field(
         default_factory=AdkRunnerServiceBundleOptions
     )
+    plugin_bundle_options: AdkPluginBundleOptions = field(
+        default_factory=AdkPluginBundleOptions
+    )
     run_config_options: AdkRunConfigOptions | None = None
     metadata: dict[str, Any] = field(default_factory=dict)
 
@@ -70,6 +75,7 @@ class AdkAgentShellAssemblyOptions:
             "mode": self.mode,
             "instruction_length": len(self.instruction),
             "service_bundle_options": self.service_bundle_options.metadata(),
+            "plugin_bundle_options": self.plugin_bundle_options.metadata(),
             "run_config_options": (
                 self.run_config_options.to_metadata()
                 if self.run_config_options is not None
@@ -85,6 +91,7 @@ class AdkAgentShellAssembly:
 
     agent: Any | None = None
     service_bundle: AdkRunnerServiceBundle | None = None
+    plugin_bundle: AdkPluginBundle | None = None
     assembly_options: AdkAgentShellAssemblyOptions = field(
         default_factory=AdkAgentShellAssemblyOptions
     )
@@ -106,6 +113,13 @@ class AdkAgentShellAssembly:
             self.assembly_options.to_agent_shell_options()
         )
 
+    def build_plugin_bundle(self) -> AdkPluginBundle:
+        """Return the provided or default empty ADK plugin bundle."""
+
+        return self.plugin_bundle or (
+            self.assembly_options.plugin_bundle_options.build_plugin_bundle()
+        )
+
     def build_agent_service(self) -> AdkAgentServiceAdapter:
         """Build the Agent service adapter over the ADK native Agent."""
 
@@ -115,6 +129,7 @@ class AdkAgentShellAssembly:
             user_id=self.assembly_options.user_id,
             service_bundle=self.build_service_bundle(),
             run_config_options=self.assembly_options.run_config_options,
+            plugin_bundle=self.build_plugin_bundle(),
         )
 
     def metadata(self) -> dict[str, Any]:
@@ -129,6 +144,7 @@ class AdkAgentShellAssembly:
             "app_name": self.assembly_options.app_name,
             "user_id": self.assembly_options.user_id,
             "service_bundle": service_bundle.metadata(),
+            "plugin_bundle": self.build_plugin_bundle().metadata(),
             "assembly_options": self.assembly_options.to_metadata(),
             "metadata": dict(self.assembly_options.metadata),
             "observability_candidate": "observability_hub.adk_agent_shell_intake",
@@ -141,6 +157,7 @@ def build_adk_agent_shell_assembly_from_runtime_config(
     assembly_options: AdkAgentShellAssemblyOptions | None = None,
     agent: Any | None = None,
     service_bundle: AdkRunnerServiceBundle | None = None,
+    plugin_bundle: AdkPluginBundle | None = None,
 ) -> AdkAgentShellAssembly:
     """Build an ADK Agent shell assembly using runtime config RunConfig mapping."""
 
@@ -157,6 +174,7 @@ def build_adk_agent_shell_assembly_from_runtime_config(
     return AdkAgentShellAssembly(
         agent=agent,
         service_bundle=service_bundle,
+        plugin_bundle=plugin_bundle,
         assembly_options=resolved_options,
     )
 

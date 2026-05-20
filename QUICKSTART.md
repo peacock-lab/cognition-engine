@@ -1,30 +1,38 @@
-# Quickstart
+# Quick Start
 
-English | [简体中文](QUICKSTART.zh-CN.md) · [← Back](README.md)
+[简体中文](QUICKSTART.zh-CN.md) | English · [Back](README.md)
 
-This guide shows the minimum local path for Cognition System `v0.7.0`.
+当前公开版本 `v0.8.0`
+
+This guide covers the public local install and CLI smoke path for the Cognition System `v0.8.0` release candidate.
 
 ## 1. Install
 
 ```bash
 python -m pip install --upgrade pip
-python -m pip install "cognition-system==0.7.0"
+python -m pip install "cognition-system==0.8.0"
 ```
 
 Or with uv:
 
 ```bash
-uv pip install "cognition-system==0.7.0"
+uv pip install "cognition-system==0.8.0"
 ```
 
-## 2. Verify the Package
+## 2. Verify
 
 ```bash
 python -c "import importlib.metadata as m; print(m.version('cognition-system'))"
+python -c "import importlib.metadata as m; print('cognition-system', m.version('cognition-system'), 'import ok')"
 cognition --help
+cognition external-readonly ask --help
 ```
 
-Expected result: the installed version is `0.7.0`, and the `cognition` command prints its help text.
+Expected smoke text:
+
+```text
+cognition-system 0.8.0 import ok
+```
 
 ## 3. Initialize Configuration
 
@@ -32,42 +40,42 @@ Expected result: the installed version is `0.7.0`, and the `cognition` command p
 cognition config init --config-root ./config
 ```
 
-This creates a local configuration directory from packaged defaults.
+The installed default configuration baseline comes from the packaged `config_assembly/default_config/` resources. The repository-level `config/` directory is not published as a package.
 
-## 4. Run a Preflight Check
+## 4. Guided External-Readonly Ask
 
-```bash
-cognition run \
-  --preflight-only \
-  --operator-approved \
-  --approval-ref approval://local \
-  --audit-ref audit://local \
-  --sanitized-evidence-ref evidence://local \
-  --governance-summary-output-ref artifact://local \
-  --json
-```
-
-## 5. Try a Local Chat Shell
+For an interactive trial:
 
 ```bash
-cognition chat \
-  --chat-session-id local-demo \
-  --operator-approved \
-  --approval-ref approval://local \
-  --audit-ref audit://local \
-  --sanitized-evidence-ref evidence://local \
-  --governance-summary-output-ref artifact://local
+cognition external-readonly ask --guided
 ```
 
-Inside the chat shell, use:
+The guide asks for source type, question, model alias, explicit approvals, and credential handling. It does not silently open network access, live model calls, audit gates, or stored credentials.
 
-```text
-/status
-/status --json
-/help
-/exit
+Model aliases:
+
+1. `deepseek`: online DeepSeek V4 Flash path for low-hardware users.
+2. `gemma4`: local Ollama / Gemma4 path for local-model users.
+
+## 5. Automation
+
+Automation and JSON-output paths should pass explicit arguments. Guided mode with JSON output should fail closed:
+
+```bash
+cognition external-readonly ask --guided --json
 ```
 
-## Notes
+## 6. Safety Boundaries
 
-`v0.7.0` is a new public baseline under `cognition-system` package names. Earlier experimental package names are not compatibility targets for this line.
+The public CLI should not expose raw HTML, raw provider response, response headers, tracebacks, provider keys, or unrestricted model names. Network access, live model calls, runtime fetch, operator approval, and audit refs remain explicit choices.
+
+## 7. Useful Commands
+
+```bash
+cognition --json
+cognition config init --config-root ./config
+cognition external-readonly ask --help
+cognition external-readonly ask --guided
+```
+
+Runtime outputs belong in a local ignored `outputs/` directory and are not part of the public release surface.

@@ -6,7 +6,7 @@ from dataclasses import dataclass, field
 from typing import Any
 
 
-ADK_RUN_CONFIG_VERSION = "2.0.0b1"
+ADK_RUN_CONFIG_VERSION = "2.0.0"
 ADK_RUN_CONFIG_FIELD_NAMES = (
     "speech_config",
     "response_modalities",
@@ -32,13 +32,11 @@ ADK_RUN_CONFIG_MAPPER_SUPPORTED_FIELDS = (
     "max_llm_calls",
     "custom_metadata",
     "response_modalities",
-    "save_input_blobs_as_artifacts",
     "support_cfc",
     "streaming_mode",
     "get_session_config",
     "enable_affective_dialog",
     "save_live_blob",
-    "save_live_audio",
 )
 ADK_RUN_CONFIG_FIELD_POLICIES = {
     "speech_config": {
@@ -54,8 +52,11 @@ ADK_RUN_CONFIG_FIELD_POLICIES = {
         "reason": "requires google.genai AvatarConfig construction and media policy review",
     },
     "save_input_blobs_as_artifacts": {
-        "status": "mapped_deprecated",
-        "reason": "ADK marks this as deprecated; retained for compatibility facts",
+        "status": "retired_deprecated",
+        "reason": (
+            "ADK marks this as deprecated; retired from active RunConfig mapping "
+            "in favor of explicit SaveFilesAsArtifactsPlugin enable intent"
+        ),
     },
     "support_cfc": {
         "status": "mapped",
@@ -102,8 +103,8 @@ ADK_RUN_CONFIG_FIELD_POLICIES = {
         "reason": "tool execution is outside the first lifecycle-core batch",
     },
     "save_live_audio": {
-        "status": "mapped_deprecated_guarded",
-        "reason": "ADK marks this as deprecated; retained only for compatibility facts",
+        "status": "legacy_input_translated",
+        "reason": "ADK marks this as deprecated; translated to save_live_blob",
     },
     "max_llm_calls": {
         "status": "mapped",
@@ -122,15 +123,19 @@ ADK_RUN_CONFIG_DEPRECATED_FIELDS = (
     "save_input_blobs_as_artifacts",
     "save_live_audio",
 )
+ADK_RUN_CONFIG_RETIRED_FIELDS = ("save_input_blobs_as_artifacts",)
 ADK_RUN_CONFIG_LIVE_MEDIA_FIELDS = (
     "realtime_input_config",
     "save_live_blob",
     "save_live_audio",
 )
+ADK_RUN_CONFIG_LEGACY_INPUT_FIELDS = ("save_live_audio",)
 ADK_RUN_CONFIG_DEFERRED_FIELDS = tuple(
     field
     for field in ADK_RUN_CONFIG_FIELD_NAMES
     if field not in ADK_RUN_CONFIG_MAPPER_SUPPORTED_FIELDS
+    and field not in ADK_RUN_CONFIG_LEGACY_INPUT_FIELDS
+    and field not in ADK_RUN_CONFIG_RETIRED_FIELDS
 )
 
 
@@ -143,7 +148,6 @@ class AdkRunConfigOptions:
     custom_metadata: dict[str, Any] = field(default_factory=dict)
     response_modalities: tuple[str, ...] | None = None
     avatar_config: dict[str, Any] | None = None
-    save_input_blobs_as_artifacts: bool | None = None
     support_cfc: bool | None = None
     streaming_mode: str | None = None
     output_audio_transcription: dict[str, Any] | None = None
@@ -169,14 +173,17 @@ class AdkRunConfigOptions:
             "mapper_supported_fields": list(ADK_RUN_CONFIG_MAPPER_SUPPORTED_FIELDS),
             "field_policies": dict(ADK_RUN_CONFIG_FIELD_POLICIES),
             "deprecated_fields": list(ADK_RUN_CONFIG_DEPRECATED_FIELDS),
+            "retired_fields": list(ADK_RUN_CONFIG_RETIRED_FIELDS),
             "live_media_fields": list(ADK_RUN_CONFIG_LIVE_MEDIA_FIELDS),
+            "legacy_input_fields": self.legacy_input_fields(),
+            "translated_fields": self.translated_fields(),
             "declared_fields": self.declared_fields(),
             "mapped_fields": self.mapped_fields(),
             "unmapped_fields": list(ADK_RUN_CONFIG_DEFERRED_FIELDS),
             "deferred_fields": self.deferred_fields(),
             "custom_metadata_keys": sorted(self.custom_metadata),
             "streaming_mode": self.streaming_mode,
-            "live_blob_save_requested": self.save_live_blob is True,
+            "live_blob_save_requested": self.effective_save_live_blob() is True,
             "live_audio_save_requested": self.save_live_audio is True,
             "does_not_enable_live_call": True,
         }
@@ -185,6 +192,7 @@ class AdkRunConfigOptions:
         """List ADK RunConfig fields explicitly expressed by these options."""
 
         fields = self.mapped_fields()
+        fields.extend(self.legacy_input_fields())
         for field_name in ADK_RUN_CONFIG_DEFERRED_FIELDS:
             if getattr(self, field_name) is not None:
                 fields.append(field_name)
@@ -200,24 +208,52 @@ class AdkRunConfigOptions:
             fields.append("custom_metadata")
         if self.response_modalities is not None:
             fields.append("response_modalities")
-        if self.save_input_blobs_as_artifacts is not None:
-            fields.append("save_input_blobs_as_artifacts")
         if self.support_cfc is not None:
             fields.append("support_cfc")
         if self.streaming_mode is not None:
             fields.append("streaming_mode")
         if self.enable_affective_dialog is not None:
             fields.append("enable_affective_dialog")
-        if self.save_live_blob is not None:
+        if self.effective_save_live_blob() is not None:
             fields.append("save_live_blob")
-        if self.save_live_audio is not None:
-            fields.append("save_live_audio")
         if (
             self.get_session_num_recent_events is not None
             or self.get_session_after_timestamp is not None
         ):
             fields.append("get_session_config")
         return fields
+
+    def legacy_input_fields(self) -> list[str]:
+        """List legacy inputs accepted for compatibility but not actively mapped."""
+
+        fields: list[str] = []
+        if self.save_live_audio is not None:
+            fields.append("save_live_audio")
+        return fields
+
+    def translated_fields(self) -> list[str]:
+        """List legacy-to-current field translations applied by this options object."""
+
+        if self.save_live_audio is None:
+            return []
+        self.effective_save_live_blob()
+        return ["save_live_audio->save_live_blob"]
+
+    def effective_save_live_blob(self) -> bool | None:
+        """Return save_live_blob after applying legacy save_live_audio translation."""
+
+        if (
+            self.save_live_blob is not None
+            and self.save_live_audio is not None
+            and self.save_live_blob != self.save_live_audio
+        ):
+            raise ValueError(
+                "save_live_audio is a deprecated legacy input and conflicts with "
+                "save_live_blob."
+            )
+        if self.save_live_blob is not None:
+            return self.save_live_blob
+        return self.save_live_audio
 
     def deferred_fields(self) -> list[str]:
         """List expressed ADK RunConfig fields registered but not mapped yet."""
@@ -247,18 +283,15 @@ class AdkRunConfigMapper:
             kwargs["custom_metadata"] = dict(options.custom_metadata)
         if options.response_modalities is not None:
             kwargs["response_modalities"] = list(options.response_modalities)
-        if options.save_input_blobs_as_artifacts is not None:
-            kwargs["save_input_blobs_as_artifacts"] = options.save_input_blobs_as_artifacts
         if options.support_cfc is not None:
             kwargs["support_cfc"] = options.support_cfc
         if options.streaming_mode is not None:
             kwargs["streaming_mode"] = self._streaming_mode(options.streaming_mode)
         if options.enable_affective_dialog is not None:
             kwargs["enable_affective_dialog"] = options.enable_affective_dialog
-        if options.save_live_blob is not None:
-            kwargs["save_live_blob"] = options.save_live_blob
-        if options.save_live_audio is not None:
-            kwargs["save_live_audio"] = options.save_live_audio
+        save_live_blob = options.effective_save_live_blob()
+        if save_live_blob is not None:
+            kwargs["save_live_blob"] = save_live_blob
         if (
             options.get_session_num_recent_events is not None
             or options.get_session_after_timestamp is not None
@@ -289,7 +322,10 @@ class AdkRunConfigMapper:
             "mapper_supported_fields": list(ADK_RUN_CONFIG_MAPPER_SUPPORTED_FIELDS),
             "field_policies": dict(ADK_RUN_CONFIG_FIELD_POLICIES),
             "deprecated_fields": list(ADK_RUN_CONFIG_DEPRECATED_FIELDS),
+            "retired_fields": list(ADK_RUN_CONFIG_RETIRED_FIELDS),
             "live_media_fields": list(ADK_RUN_CONFIG_LIVE_MEDIA_FIELDS),
+            "legacy_input_fields": [],
+            "translated_fields": [],
             "unmapped_fields": list(ADK_RUN_CONFIG_DEFERRED_FIELDS),
             "adk_run_config_type": type(run_config).__name__,
             "adk_run_config_module": type(run_config).__module__,
@@ -297,11 +333,6 @@ class AdkRunConfigMapper:
             "max_llm_calls": getattr(run_config, "max_llm_calls", None),
             "custom_metadata_keys": sorted(custom_metadata),
             "response_modalities": getattr(run_config, "response_modalities", None),
-            "save_input_blobs_as_artifacts": getattr(
-                run_config,
-                "save_input_blobs_as_artifacts",
-                None,
-            ),
             "support_cfc": getattr(run_config, "support_cfc", None),
             "streaming_mode": self._plain_streaming_mode(
                 getattr(run_config, "streaming_mode", None)
@@ -312,11 +343,9 @@ class AdkRunConfigMapper:
                 None,
             ),
             "save_live_blob": getattr(run_config, "save_live_blob", None),
-            "save_live_audio": getattr(run_config, "save_live_audio", None),
             "live_blob_save_requested": getattr(run_config, "save_live_blob", None)
             is True,
-            "live_audio_save_requested": getattr(run_config, "save_live_audio", None)
-            is True,
+            "live_audio_save_requested": False,
             "does_not_enable_live_call": True,
             "get_session_config": self._plain_get_session_config(get_session_config),
         }

@@ -1,11 +1,15 @@
 [project]
 name = "cognition-system-product-gateway"
-version = "0.7.0"
+version = "0.8.0"
 description = "Product gateway package for Cognition System product request and response contracts."
-readme = { text = "Cognition System v0.7.0 public package. See the version-specific public README in the release repository for usage and boundary notes.", content-type = "text/markdown" }
+readme = { text = "Cognition System v0.8.0 public package. See the version-specific public README in the release repository for usage and boundary notes.", content-type = "text/markdown" }
 requires-python = ">=3.14"
 dependencies = [
-  "cognition-system-runtime-container==0.7.0",
+  "cognition-system-contract-core==0.8.0",
+  "cognition-system-config-contexts==0.8.0",
+  "cognition-system-external-readonly==0.8.0",
+  "cognition-system-schemas==0.8.0",
+  "cognition-system-task-workflows==0.8.0",
   "pydantic>=2.13.0",
 ]
 
@@ -17,12 +21,20 @@ build-backend = "hatchling.build"
 packages = ["src/product_gateway"]
 
 [tool.uv.sources]
-cognition-system-runtime-container = { workspace = true }
+cognition-system-contract-core = { workspace = true }
+cognition-system-config-contexts = { workspace = true }
+cognition-system-external-readonly = { workspace = true }
+cognition-system-schemas = { workspace = true }
+cognition-system-task-workflows = { workspace = true }
 
 [tool.product_gateway]
-status = "product_gateway_contract_candidate"
+status = "product_entry_gateway"
+product_contract_status = "candidate"
 package = "product_gateway"
 source_root = "src/product_gateway"
-runtime_execution_enabled = false
+runtime_internal_execution_enabled = false
+runtime_service_entry_enabled = true
+task_workflow_execution_entry_enabled = true
 config_source_owner = false
+task_workflow_body_owner = false
 workspace_member = true

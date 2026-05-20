@@ -16,6 +16,11 @@ ProductGatewayResponseSummaryEntryKind = Literal[
     "controlled_live",
     "agent_shell",
     "tool_smoke",
+    "task_workflow_route",
+    "task_workflow_execution",
+    "external_readonly_fetch",
+    "external_readonly_refs",
+    "external_readonly_ask",
 ]
 ProductGatewayResponseSummaryStatus = Literal[
     "success",
@@ -30,6 +35,11 @@ PRODUCT_GATEWAY_RESPONSE_SUMMARY_ENTRY_KINDS = frozenset(
         "controlled_live",
         "agent_shell",
         "tool_smoke",
+        "task_workflow_route",
+        "task_workflow_execution",
+        "external_readonly_fetch",
+        "external_readonly_refs",
+        "external_readonly_ask",
     }
 )
 PRODUCT_GATEWAY_RESPONSE_SUMMARY_STATUSES = frozenset(
@@ -138,6 +148,9 @@ class ProductGatewayResponseSummarySchema(ProductGatewayResponseSummaryBaseModel
         default_factory=list
     )
     tool_audit_refs: list[ProductGatewayResponseSummaryRefSchema] = Field(
+        default_factory=list
+    )
+    additional_refs: list[ProductGatewayResponseSummaryRefSchema] = Field(
         default_factory=list
     )
     blocking_reasons: list[str] = Field(default_factory=list)

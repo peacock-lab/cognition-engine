@@ -1,32 +1,54 @@
-"""Public cognition CLI entrypoint.
-
-The public ``cognition`` console script is owned by this package. Runtime
-execution remains delegated to runtime_container.
-"""
+"""Console script entrypoint for the Cognition System CLI."""
 
 from __future__ import annotations
 
-import sys
 from collections.abc import Sequence
+from typing import Any
+import warnings
 
-EXIT_RUNTIME_ENTRYPOINT_UNAVAILABLE = 4
+
+warnings.filterwarnings(
+    "ignore",
+    message=r"authlib\.jose module is deprecated.*",
+    category=Warning,
+)
+warnings.filterwarnings(
+    "ignore",
+    category=Warning,
+    module=r"authlib\._joserfc_helpers",
+)
+warnings.filterwarnings(
+    "ignore",
+    message=r"\[EXPERIMENTAL\] feature FeatureName\..* is enabled\.",
+    category=Warning,
+)
+warnings.filterwarnings(
+    "ignore",
+    category=Warning,
+    module=r"google\.adk\.features\._feature_decorator",
+)
+try:
+    from authlib.deprecate import AuthlibDeprecationWarning
+except ImportError:
+    pass
+else:
+    warnings.simplefilter("ignore", AuthlibDeprecationWarning)
+
+
+def run_cli(argv: Sequence[str] | None = None, **kwargs: Any) -> int:
+    """Run the CLI application after entrypoint-level warning discipline."""
+
+    from cognition_cli.application import run_cli as _run_cli
+
+    return _run_cli(argv, **kwargs)
 
 
 def main(argv: Sequence[str] | None = None) -> int:
-    """Delegate runtime execution to runtime_container."""
+    """Run the Cognition System CLI."""
 
-    try:
-        from runtime_container.entrypoints.cognition import main as runtime_main
-    except ModuleNotFoundError as exc:
-        if exc.name == "runtime_container":
-            print(
-                "cognition_cli requires runtime_container.",
-                file=sys.stderr,
-            )
-            return EXIT_RUNTIME_ENTRYPOINT_UNAVAILABLE
-        raise
+    from cognition_cli.application import main as _main
 
-    return int(runtime_main(argv))
+    return _main(argv)
 
 
 if __name__ == "__main__":

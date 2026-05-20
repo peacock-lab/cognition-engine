@@ -1,0 +1,16 @@
+[project]
+name = "cognition-system-cognition-governance"
+version = "0.8.0"
+description = "Cognition governance internal models for cognition-system."
+readme = { text = "Cognition System v0.8.0 public package. See the version-specific public README in the release repository for usage and boundary notes.", content-type = "text/markdown" }
+requires-python = ">=3.14"
+dependencies = [
+    "cognition-system-schemas==0.8.0",
+    "pydantic>=2.0",
+]
+
+[tool.uv.sources]
+cognition-system-schemas = { workspace = true }
+
+[tool.setuptools.packages.find]
+where = ["src"]

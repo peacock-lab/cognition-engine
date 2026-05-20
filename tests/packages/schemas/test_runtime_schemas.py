@@ -151,7 +151,7 @@ def test_run_config_service_bundle_summary_remains_candidate_and_no_live() -> No
         status="success",
         run_config=RunConfigGovernanceView(
             run_config_source="assembly_options + workflow_result.metadata",
-            adk_run_config_version="2.0.0b1",
+            adk_run_config_version="2.0.0",
             official_fields=["max_llm_calls", "tool_thread_pool_config"],
             mapper_supported_fields=["max_llm_calls"],
             field_policies={
@@ -162,6 +162,8 @@ def test_run_config_service_bundle_summary_remains_candidate_and_no_live() -> No
             },
             deprecated_fields=["save_live_audio"],
             live_media_fields=["save_live_blob", "save_live_audio"],
+            legacy_input_fields=["save_live_audio"],
+            translated_fields=["save_live_audio->save_live_blob"],
             declared_fields=["max_llm_calls", "tool_thread_pool_config"],
             mapped_fields=["max_llm_calls", "custom_metadata"],
             unmapped_fields=["tool_thread_pool_config"],
@@ -195,7 +197,9 @@ def test_run_config_service_bundle_summary_remains_candidate_and_no_live() -> No
     assert summary.run_config.live_call_enabled is False
     assert summary.run_config.no_live_mode is True
     assert summary.run_config.call_attempted is False
-    assert summary.run_config.adk_run_config_version == "2.0.0b1"
+    assert summary.run_config.adk_run_config_version == "2.0.0"
+    assert summary.run_config.legacy_input_fields == ["save_live_audio"]
+    assert summary.run_config.translated_fields == ["save_live_audio->save_live_blob"]
     assert summary.run_config.deferred_fields == ["tool_thread_pool_config"]
     assert summary.run_config.field_policies["tool_thread_pool_config"]["status"] == (
         "deferred_tool_execution"

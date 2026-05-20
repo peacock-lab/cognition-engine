@@ -1,4 +1,4 @@
-"""Run the candidate Cognition System CLI package."""
+"""Run the Cognition System CLI package."""
 
 from __future__ import annotations
 

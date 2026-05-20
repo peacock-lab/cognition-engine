@@ -61,6 +61,129 @@ live_llm:
   temperature: 0
   max_tokens: 64
   enabled_by_default: false
+  default_provider_profile_ref: local_ollama
+  provider_profiles:
+    local_ollama:
+      provider: litellm
+      backend_provider: ollama
+      route_kind: adk_litellm
+      api_base: http://127.0.0.1:11434
+      network_access: local_only
+      requires_network_gate: false
+      requires_operator_approval: false
+      requires_audit_ref: false
+      enabled_by_default: false
+      metadata:
+        source: config_assembly/default_config/templates/runtime.template.yaml
+        default_equivalent: true
+    deepseek_gated:
+      provider: litellm
+      backend_provider: deepseek
+      route_kind: adk_litellm_openai_compatible
+      api_base: https://api.deepseek.com
+      api_base_env_var: DEEPSEEK_API_BASE
+      secret_ref: secret-ref://env/DEEPSEEK_API_KEY
+      network_access: external_gated
+      requires_network_gate: true
+      requires_operator_approval: true
+      requires_audit_ref: true
+      enabled_by_default: false
+      metadata:
+        source: config_assembly/default_config/templates/runtime.template.yaml
+        candidate_only: true
+        product_optional_provider: true
+  default_model_profile_ref: gemma4_pro_local
+  model_profiles:
+    gemma4_pro_local:
+      provider_profile_ref: local_ollama
+      model_name: ollama/gemma4-pro:latest
+      model_role: local_debug_baseline
+      timeout_seconds: 45
+      temperature: 0
+      max_tokens: 64
+      resource_tier: local_debug
+      enabled_by_default: false
+      metadata:
+        source: config_assembly/default_config/templates/runtime.template.yaml
+        default_equivalent: true
+    deepseek_v4_flash_external:
+      provider_profile_ref: deepseek_gated
+      model_name: deepseek/deepseek-v4-flash
+      model_role: external_low_hardware_candidate
+      timeout_seconds: 180
+      temperature: 0
+      max_tokens: 256
+      resource_tier: external_managed
+      enabled_by_default: false
+      metadata:
+        source: config_assembly/default_config/templates/runtime.template.yaml
+        candidate_only: true
+        model_family: deepseek_v4
+        model_release: v4
+        thinking_mode: disabled
+    deepseek_v4_pro_external:
+      provider_profile_ref: deepseek_gated
+      model_name: deepseek/deepseek-v4-pro
+      model_role: external_high_quality_candidate
+      timeout_seconds: 180
+      temperature: 0
+      max_tokens: 256
+      resource_tier: external_managed
+      enabled_by_default: false
+      metadata:
+        source: config_assembly/default_config/templates/runtime.template.yaml
+        candidate_only: true
+        model_family: deepseek_v4
+        model_release: v4
+        thinking_mode: disabled
+  default_output_governance_profile_ref: direct_controlled_live
+  output_governance_profiles:
+    direct_controlled_live:
+      mode: direct_controlled_live
+      adk_native: false
+      uses_output_schema: false
+      uses_output_key: false
+      uses_after_model_callback: false
+      uses_answer_quality_guard: true
+      max_repair_attempts: 0
+      enabled_by_default: false
+      metadata:
+        source: config_assembly/default_config/templates/runtime.template.yaml
+        default_equivalent: true
+    adk_no_output_schema_candidate:
+      mode: adk_no_output_schema
+      adk_native: true
+      uses_output_schema: false
+      uses_output_key: false
+      uses_after_model_callback: true
+      uses_answer_quality_guard: true
+      max_repair_attempts: 1
+      enabled_by_default: false
+      metadata:
+        source: config_assembly/default_config/templates/runtime.template.yaml
+        candidate_only: true
+  model_aliases:
+    gemma4:
+      provider_profile_ref: local_ollama
+      model_profile_ref: gemma4_pro_local
+      output_governance_profile_ref: direct_controlled_live
+      model_name: ollama/gemma4-pro:latest
+      enabled_by_default: false
+      metadata:
+        source: config_assembly/default_config/templates/runtime.template.yaml
+        user_facing: true
+        default_equivalent: true
+    deepseek:
+      provider_profile_ref: deepseek_gated
+      model_profile_ref: deepseek_v4_flash_external
+      output_governance_profile_ref: adk_no_output_schema_candidate
+      model_name: deepseek/deepseek-v4-flash
+      enabled_by_default: false
+      metadata:
+        source: config_assembly/default_config/templates/runtime.template.yaml
+        user_facing: true
+        product_optional_provider: true
+        thinking_mode: disabled
 
 tool_confirmation:
   default_require_confirmation: true
@@ -96,6 +219,8 @@ tool_exposure:
             allowed_roots:
               - tasks
               - docs
+            allowed_files:
+              - pyproject.toml
             allowed_suffixes:
               - .md
               - .txt
@@ -120,10 +245,30 @@ run_workspace:
     source: config/templates/runtime.template.yaml
     candidate_only: true
 
+evidence_summary_answer:
+  enabled_by_default: false
+  profile: smoke_only
+  exposure_enabled: true
+  allow_model_context: true
+  allow_governed_summary_facts: true
+  allow_raw_boundary: false
+  allow_sanitized_excerpt_preview: false
+  allow_observability_candidate_body: false
+  citation_required: true
+  allow_citation_exception: false
+  insufficient_evidence_required: true
+  max_summary_facts: 24
+  max_summary_fact_chars: 500
+  max_total_summary_fact_chars: 4000
+  model_context_budget: 4000
+  answer_preview_limit: 1000
+  metadata:
+    source: config/templates/runtime.template.yaml
+    candidate_only: true
+
 adk_run_config:
   max_llm_calls: null
   response_modalities: null
-  save_input_blobs_as_artifacts: null
   support_cfc: null
   streaming_mode: null
   get_session_num_recent_events: null

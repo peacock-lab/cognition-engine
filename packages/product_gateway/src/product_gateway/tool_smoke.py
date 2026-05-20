@@ -125,7 +125,7 @@ class ToolSmokeGatewayInput(BaseModel):
         return self
 
 
-class ToolSmokeCompatibilityProjection(BaseModel):
+class ToolSmokeGatewayProjection(BaseModel):
     """Product-normalized tool-smoke projection without execution objects."""
 
     model_config = ConfigDict(extra="forbid")
@@ -172,15 +172,15 @@ def build_tool_smoke_gateway_request(
     )
 
 
-def build_tool_smoke_compatibility_projection(
+def build_tool_smoke_gateway_projection(
     gateway_input: ToolSmokeGatewayInput | Mapping[str, Any],
-) -> ToolSmokeCompatibilityProjection:
+) -> ToolSmokeGatewayProjection:
     """Build a tool-smoke projection without upstream payloads or objects."""
 
     normalized_input = _coerce_gateway_input(gateway_input)
     gateway_request = build_tool_smoke_gateway_request(normalized_input)
 
-    return ToolSmokeCompatibilityProjection(
+    return ToolSmokeGatewayProjection(
         request_id=gateway_request.request_id,
         entry_kind=gateway_request.entry_kind.value,
         execution_mode=gateway_request.execution_mode.value,
@@ -221,7 +221,7 @@ def run_tool_smoke_gateway_request(
     """Normalize tool-smoke refs and facts into ProductGatewayResponse."""
 
     gateway_request = build_tool_smoke_gateway_request(gateway_input)
-    projection = build_tool_smoke_compatibility_projection(gateway_input)
+    projection = build_tool_smoke_gateway_projection(gateway_input)
     return _product_gateway_response_from_projection(
         gateway_request=gateway_request,
         projection=projection,
@@ -268,7 +268,7 @@ def _request_metadata(gateway_input: ToolSmokeGatewayInput) -> dict[str, Any]:
 def _product_gateway_response_from_projection(
     *,
     gateway_request: ProductGatewayRequest,
-    projection: ToolSmokeCompatibilityProjection,
+    projection: ToolSmokeGatewayProjection,
 ) -> ProductGatewayResponse:
     status = _response_status(projection)
     tool_audit_refs = [
@@ -307,7 +307,7 @@ def _product_gateway_response_from_projection(
 
 
 def _response_status(
-    projection: ToolSmokeCompatibilityProjection,
+    projection: ToolSmokeGatewayProjection,
 ) -> ProductGatewayStatus:
     failure_type = _status_text(projection.tool_failure_type)
     tool_status = _status_text(projection.tool_status)
@@ -336,7 +336,7 @@ def _exit_code_for_status(status: ProductGatewayStatus) -> int:
 
 
 def _response_metadata(
-    projection: ToolSmokeCompatibilityProjection,
+    projection: ToolSmokeGatewayProjection,
 ) -> dict[str, Any]:
     metadata = dict(projection.metadata)
     metadata.update(_status_metadata(projection))
@@ -350,7 +350,7 @@ def _response_metadata(
 
 
 def _status_metadata(
-    value: ToolSmokeGatewayInput | ToolSmokeCompatibilityProjection,
+    value: ToolSmokeGatewayInput | ToolSmokeGatewayProjection,
 ) -> dict[str, Any]:
     return {
         "tool_status": value.tool_status,
@@ -392,7 +392,7 @@ def _refs_from_input(
 
 
 def _refs_from_projection(
-    projection: ToolSmokeCompatibilityProjection,
+    projection: ToolSmokeGatewayProjection,
     keys: tuple[str, ...],
     *,
     kind: str,
@@ -421,7 +421,7 @@ def _is_blocking_failure(failure_type: str | None) -> bool:
 
 
 def _is_confirmation_blocked(
-    value: ToolSmokeGatewayInput | ToolSmokeCompatibilityProjection,
+    value: ToolSmokeGatewayInput | ToolSmokeGatewayProjection,
 ) -> bool:
     return (
         not value.tool_runtime_call_performed
@@ -490,9 +490,9 @@ def _walk(value: Any, path: str = "$") -> list[tuple[str, Any]]:
 __all__ = [
     "TOOL_SMOKE_PURPOSE",
     "TOOL_SMOKE_RESPONSE_SOURCE",
-    "ToolSmokeCompatibilityProjection",
+    "ToolSmokeGatewayProjection",
     "ToolSmokeGatewayInput",
-    "build_tool_smoke_compatibility_projection",
+    "build_tool_smoke_gateway_projection",
     "build_tool_smoke_gateway_request",
     "run_tool_smoke_gateway_request",
 ]

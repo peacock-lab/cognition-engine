@@ -59,13 +59,25 @@ def test_agent_service_injects_runner_services_without_live_model_call() -> None
     metadata = adapter.metadata()
 
     assert runner.agent is agent
+    assert runner.app.name == "test_adk_agent_shell"
+    assert runner.app.root_agent is agent
+    assert runner.app.plugins == []
     assert runner.artifact_service is service_bundle.adk_artifact_service
     assert runner.session_service is service_bundle.adk_session_service
     assert metadata["adapter"] == "adk_adapter.agent_service"
+    assert metadata["app_assembly_mode"] == "adk_app"
     assert metadata["runner_entry"] == "agent"
     assert metadata["agent_type"] == "LlmAgent"
     assert metadata["agent_name"] == "task_quality_shell"
     assert metadata["agent_model"] == "gemini-2.0-flash"
+    assert metadata["app_root_type"] == "LlmAgent"
+    assert metadata["plugin_bundle_type"] == "AdkPluginBundle"
+    assert metadata["plugin_bundle_source"] == "empty"
+    assert metadata["plugin_count"] == 0
+    assert metadata["plugin_names"] == []
+    assert metadata["plugin_types"] == []
+    assert metadata["raw_app_object_included"] is False
+    assert metadata["raw_plugin_object_included"] is False
     assert metadata["service_bundle"]["adapter"] == "adk_adapter.runner_service_bundle"
 
 

@@ -1,0 +1,29 @@
+[project]
+name = "cognition-system-external-readonly"
+version = "0.8.0"
+description = "Provider-neutral external-readonly reference tools for Cognition System."
+readme = { text = "Cognition System v0.8.0 external-readonly package. Provides governed, sanitized, provider-neutral read-only reference helpers.", content-type = "text/markdown" }
+requires-python = ">=3.14"
+dependencies = [
+    "cognition-system-schemas==0.8.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/external_readonly"]
+
+[tool.uv.sources]
+cognition-system-schemas = { workspace = true }
+
+[tool.external_readonly]
+status = "independent_external_readonly_candidate"
+package = "external_readonly"
+source_root = "src/external_readonly"
+provider_neutral = true
+network_default_closed = true
+uploads_content = false
+runtime_container_facade_compatible = true
+third_party_adapter_slot_reserved = true

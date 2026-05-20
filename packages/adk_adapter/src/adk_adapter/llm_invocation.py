@@ -28,7 +28,7 @@ CLI_CHAT_PROMPT_PREFIX = (
     "严禁输出 JSON、YAML、键值对、代码块、系统状态、环境信息或协议说明；"
     "不要出现 system_context、response_strategy、protocol_support 等内部字段。\n\n"
 )
-CLI_REFERENCE_REVIEW_PROMPT_PREFIX = (
+TWF_REFERENCE_REVIEW_PROMPT_PREFIX = (
     "你是认知系统的中文资料审查助手。请只依据下方受控参考资料进行审查，"
     "直接输出普通中文自然语言，不要输出 JSON、YAML、代码块、系统状态或协议说明。"
     "必须使用固定审查骨架：主要结论、判断依据、发现的问题、风险边界、建议动作。"
@@ -40,6 +40,15 @@ CLI_REFERENCE_REVIEW_PROMPT_PREFIX = (
     "关闭、暂不接入、禁止或阻止，必须把它们视为风险边界，"
     "不得建议打开、接入、集成、启用或开始实施这些 runtime。"
     "如果资料 excerpt 已提供，不要要求用户再次上传或粘贴文档。\n\n"
+)
+EVIDENCE_SUMMARY_ANSWER_PROMPT_PREFIX = (
+    "你是认知系统的中文证据摘要回答助手。请只依据下方已治理的 "
+    "governed summary facts 与 listed refs 回答用户问题。"
+    "不得主动触发 external-readonly fetch/search，不得声称已经读取网页、"
+    "原始载荷、脱敏摘录正文或预览、完整产品响应对象、配置上下文或观测候选正文。"
+    "如果 summary facts 或 refs 不足以回答，必须直接说明信息不足。"
+    "必须输出普通中文自然语言，并尽量引用可见 evidence ref；"
+    "严禁输出 JSON、YAML、代码块、系统状态或协议说明。\n\n"
 )
 DEFAULT_RESPONSE_PREVIEW_LIMIT = 120
 CLI_CHAT_JSON_FALLBACK_MESSAGE = (
@@ -459,20 +468,167 @@ def _provider_messages(
                 ),
             }
         ]
-    if request.metadata.get("interaction_mode") == "cli_reference_review_workflow":
+    if request.metadata.get("interaction_mode") == "twf_reference_review_workflow":
         return [
             {
                 "role": "user",
                 "content": (
-                    f"{CLI_REFERENCE_REVIEW_PROMPT_PREFIX}"
-                    f"{_cli_reference_review_prompt_text(request, prompt)}"
+                    f"{TWF_REFERENCE_REVIEW_PROMPT_PREFIX}"
+                    f"{_twf_reference_review_prompt_text(request, prompt)}"
+                ),
+            }
+        ]
+    if request.metadata.get("interaction_mode") == "evidence_summary_answer_generation":
+        return [
+            {
+                "role": "user",
+                "content": (
+                    f"{EVIDENCE_SUMMARY_ANSWER_PROMPT_PREFIX}"
+                    f"{_evidence_summary_answer_generation_prompt_text(request, prompt)}"
                 ),
             }
         ]
     return [{"role": "user", "content": prompt}]
 
 
-def _cli_reference_review_prompt_text(
+def _evidence_summary_answer_generation_prompt_text(
+    request: LlmInvocationRequest,
+    prompt: str,
+) -> str:
+    context = request.metadata.get("evidence_summary_answer_context")
+    if not isinstance(context, Mapping):
+        return prompt
+
+    question = _evidence_summary_prompt_fragment(context.get("user_question"))
+    summary_facts = _evidence_summary_prompt_string_list(
+        context.get("summary_facts")
+    )
+    evidence_refs = _evidence_summary_prompt_refs(context.get("evidence_refs"))
+    digest_refs = _evidence_summary_prompt_ref_list(context.get("digest_refs"))
+    additional_refs = _evidence_summary_prompt_refs(context.get("additional_refs"))
+    answer_constraints = _evidence_summary_prompt_string_list(
+        context.get("answer_constraints")
+    )
+    answer_policy_ref = _evidence_summary_prompt_fragment(
+        context.get("answer_policy_ref")
+    )
+    citation_policy_ref = _evidence_summary_prompt_fragment(
+        context.get("citation_policy_ref")
+    )
+
+    lines = [
+        "用户问题：",
+        question or prompt,
+        "governed summary facts：",
+    ]
+    lines.extend(_numbered_prompt_lines(summary_facts, "无可用 governed summary fact"))
+    lines.append("evidence_refs：")
+    lines.extend(evidence_refs or ["- 无可见 evidence ref"])
+    lines.append("digest_refs：")
+    lines.extend(digest_refs or ["- 无可见 digest ref"])
+    lines.append("additional_refs：")
+    lines.extend(additional_refs or ["- 无可见 additional ref"])
+    if answer_policy_ref or citation_policy_ref:
+        lines.append("policy refs：")
+        if answer_policy_ref:
+            lines.append(f"- answer_policy_ref: {answer_policy_ref}")
+        if citation_policy_ref:
+            lines.append(f"- citation_policy_ref: {citation_policy_ref}")
+    lines.append("answer_constraints：")
+    lines.extend(
+        _numbered_prompt_lines(
+            answer_constraints,
+            "Use only governed summary facts and listed refs.",
+        )
+    )
+    lines.append("执行要求：")
+    lines.append("1. 只使用 governed summary facts 与 listed refs；")
+    lines.append("2. 不主动触发 external-readonly fetch/search；")
+    lines.append("3. 不要编造未展示的来源内容；")
+    lines.append("4. 能回答时给出简洁答案并引用 evidence ref；")
+    lines.append("5. 不能回答时说明信息不足和缺失的证据类型；")
+    lines.append("6. 输出面向用户的自然语言完整回答；")
+    lines.append("7. 不输出 JSON / YAML object wrapper；")
+    lines.append(
+        "8. 不输出 thought、reasoning、analysis、chain_of_thought、scratchpad "
+        "等可见推理字段。"
+    )
+    lines.append("9. 第一行直接回答问题，不要添加标题、标签、键名或协议包装；")
+    lines.append(
+        "10. 不得以 {、[、```、thought、analysis、reasoning、scratchpad 开头。"
+    )
+    return "\n".join(lines)
+
+
+def _evidence_summary_prompt_refs(value: Any) -> list[str]:
+    refs: list[str] = []
+    items = value if isinstance(value, list | tuple) else ()
+    for index, item in enumerate(items, start=1):
+        if not isinstance(item, Mapping):
+            continue
+        ref = _evidence_summary_prompt_fragment(item.get("ref"))
+        kind = _evidence_summary_prompt_fragment(item.get("kind")) or "unknown"
+        purpose = _evidence_summary_prompt_fragment(item.get("purpose"))
+        if not ref:
+            continue
+        suffix = f"，purpose: {purpose}" if purpose else ""
+        refs.append(f"- {index}. {kind}: {ref}{suffix}")
+    return refs
+
+
+def _evidence_summary_prompt_ref_list(value: Any) -> list[str]:
+    if not isinstance(value, list | tuple):
+        return []
+    refs: list[str] = []
+    for index, item in enumerate(value, start=1):
+        ref = _evidence_summary_prompt_fragment(item)
+        if ref:
+            refs.append(f"- {index}. {ref}")
+    return refs
+
+
+def _evidence_summary_prompt_string_list(value: Any) -> list[str]:
+    if not isinstance(value, list | tuple):
+        return []
+    return [
+        normalized
+        for item in value
+        if (normalized := _evidence_summary_prompt_fragment(item))
+    ]
+
+
+def _numbered_prompt_lines(items: list[str], empty_text: str) -> list[str]:
+    if not items:
+        return [f"- {empty_text}"]
+    return [f"- {index}. {item}" for index, item in enumerate(items, start=1)]
+
+
+def _evidence_summary_prompt_fragment(value: Any) -> str:
+    normalized = _normalize_provider_prompt_fragment(value)
+    if not normalized:
+        return ""
+    if _evidence_summary_prompt_forbidden(normalized):
+        return ""
+    return normalized
+
+
+def _evidence_summary_prompt_forbidden(value: str) -> bool:
+    forbidden_markers = (
+        "ProductGatewayResponse",
+        "config-secret",
+        "config_context_value",
+        "external_readonly_answer_context",
+        "model_context_items",
+        "observability_candidate_body",
+        "product_response_summary",
+        "raw_payload",
+        "raw_response",
+        "sanitized_excerpt",
+    )
+    return any(marker in value for marker in forbidden_markers)
+
+
+def _twf_reference_review_prompt_text(
     request: LlmInvocationRequest,
     prompt: str,
 ) -> str:

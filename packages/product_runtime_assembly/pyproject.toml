@@ -1,0 +1,34 @@
+[project]
+name = "cognition-system-product-runtime-assembly"
+version = "0.8.0"
+description = "Product runtime assembly package for Cognition System."
+readme = { text = "Cognition System v0.8.0 public product runtime assembly package. See the version-specific public README in the release repository for usage and boundary notes.", content-type = "text/markdown" }
+requires-python = ">=3.14"
+dependencies = [
+  "cognition-system-behavior-contracts==0.8.0",
+  "cognition-system-cli==0.8.0",
+  "cognition-system-config-contexts==0.8.0",
+  "cognition-system-contract-core==0.8.0",
+  "cognition-system-product-gateway==0.8.0",
+  "cognition-system-runtime-container==0.8.0",
+  "cognition-system-schemas==0.8.0",
+]
+
+[project.scripts]
+cognition = "product_runtime_assembly.entrypoints.cognition:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/product_runtime_assembly"]
+
+[tool.uv.sources]
+cognition-system-behavior-contracts = { workspace = true }
+cognition-system-cli = { workspace = true }
+cognition-system-config-contexts = { workspace = true }
+cognition-system-contract-core = { workspace = true }
+cognition-system-product-gateway = { workspace = true }
+cognition-system-runtime-container = { workspace = true }
+cognition-system-schemas = { workspace = true }

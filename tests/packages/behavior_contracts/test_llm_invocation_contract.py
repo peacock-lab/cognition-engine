@@ -3,7 +3,15 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
-from behavior_contracts.llm_invocation import GovernedLlmInvocationService
+from behavior_contracts.llm_invocation import (
+    GovernedLlmInvocationService,
+    GovernedLlmInvocationServiceFactory,
+    GovernedLlmInvocationServiceResolution,
+)
+from config_contexts.runtime import (
+    RuntimeConfigSelectionContext,
+    RuntimeLiveLlmInvocationOptionsContext,
+)
 from schemas.llm_invocation import (
     LlmGovernancePrecondition,
     LlmInvocationFailureType,
@@ -34,6 +42,26 @@ class BlockingInvocationService:
         )
 
 
+class StaticInvocationServiceFactory:
+    def __init__(self, service: GovernedLlmInvocationService) -> None:
+        self.service = service
+
+    def resolve(
+        self,
+        *,
+        config_context=None,
+        config_selection: RuntimeConfigSelectionContext,
+        live_llm_options: RuntimeLiveLlmInvocationOptionsContext,
+    ) -> GovernedLlmInvocationServiceResolution:
+        return GovernedLlmInvocationServiceResolution(
+            service=self.service,
+            metadata={
+                "environment": config_selection.environment,
+                "timeout_seconds": live_llm_options.timeout_seconds,
+            },
+        )
+
+
 def test_governed_llm_invocation_protocol_accepts_structural_service() -> None:
     service: GovernedLlmInvocationService = BlockingInvocationService()
     result = service.invoke(
@@ -50,6 +78,41 @@ def test_governed_llm_invocation_protocol_accepts_structural_service() -> None:
 
     assert result.failure_type == LlmInvocationFailureType.GOVERNANCE_BLOCKED
     assert result.runtime_call_performed is False
+
+
+def test_governed_llm_invocation_factory_accepts_structural_factory() -> None:
+    service = BlockingInvocationService()
+    factory: GovernedLlmInvocationServiceFactory = StaticInvocationServiceFactory(
+        service
+    )
+
+    resolution = factory.resolve(
+        config_selection=RuntimeConfigSelectionContext(environment="local"),
+        live_llm_options=RuntimeLiveLlmInvocationOptionsContext(
+            timeout_seconds=11
+        ),
+    )
+
+    assert resolution.service is service
+    assert resolution.blocking_reasons == ()
+    assert resolution.warnings == ()
+    assert resolution.metadata == {
+        "environment": "local",
+        "timeout_seconds": 11,
+    }
+
+
+def test_governed_llm_invocation_resolution_can_block_without_service() -> None:
+    resolution = GovernedLlmInvocationServiceResolution(
+        blocking_reasons=("twf_live_llm_provider_not_injected",),
+        warnings=("twf_live_llm_provider_required",),
+    )
+
+    assert resolution.service is None
+    assert resolution.blocking_reasons == (
+        "twf_live_llm_provider_not_injected",
+    )
+    assert resolution.warnings == ("twf_live_llm_provider_required",)
 
 
 def test_llm_invocation_behavior_contract_does_not_call_model_libraries() -> None:

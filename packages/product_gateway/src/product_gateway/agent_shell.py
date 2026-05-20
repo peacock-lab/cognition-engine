@@ -92,7 +92,7 @@ class AgentShellGatewayInput(BaseModel):
         return self
 
 
-class AgentShellCompatibilityProjection(BaseModel):
+class AgentShellGatewayProjection(BaseModel):
     """Product-normalized agent-shell projection without execution objects."""
 
     model_config = ConfigDict(extra="forbid")
@@ -138,15 +138,15 @@ def build_agent_shell_gateway_request(
     )
 
 
-def build_agent_shell_compatibility_projection(
+def build_agent_shell_gateway_projection(
     gateway_input: AgentShellGatewayInput | Mapping[str, Any],
-) -> AgentShellCompatibilityProjection:
+) -> AgentShellGatewayProjection:
     """Build an agent-shell projection without upstream payloads or objects."""
 
     normalized_input = _coerce_gateway_input(gateway_input)
     gateway_request = build_agent_shell_gateway_request(normalized_input)
 
-    return AgentShellCompatibilityProjection(
+    return AgentShellGatewayProjection(
         request_id=gateway_request.request_id,
         entry_kind=gateway_request.entry_kind.value,
         execution_mode=gateway_request.execution_mode.value,
@@ -182,7 +182,7 @@ def run_agent_shell_gateway_request(
     """Normalize agent-shell refs and facts into ProductGatewayResponse."""
 
     gateway_request = build_agent_shell_gateway_request(gateway_input)
-    projection = build_agent_shell_compatibility_projection(gateway_input)
+    projection = build_agent_shell_gateway_projection(gateway_input)
     return _product_gateway_response_from_projection(
         gateway_request=gateway_request,
         projection=projection,
@@ -239,7 +239,7 @@ def _request_metadata(gateway_input: AgentShellGatewayInput) -> dict[str, Any]:
 def _product_gateway_response_from_projection(
     *,
     gateway_request: ProductGatewayRequest,
-    projection: AgentShellCompatibilityProjection,
+    projection: AgentShellGatewayProjection,
 ) -> ProductGatewayResponse:
     status = _response_status(projection)
     evidence_refs = _refs_from_projection(
@@ -294,7 +294,7 @@ def _product_gateway_response_from_projection(
 
 
 def _response_status(
-    projection: AgentShellCompatibilityProjection,
+    projection: AgentShellGatewayProjection,
 ) -> ProductGatewayStatus:
     advice_status = _status_text(projection.agent_task_advice_status)
     shell_status = _status_text(projection.agent_shell_status)
@@ -317,7 +317,7 @@ def _exit_code_for_status(status: ProductGatewayStatus) -> int:
 
 
 def _response_metadata(
-    projection: AgentShellCompatibilityProjection,
+    projection: AgentShellGatewayProjection,
 ) -> dict[str, Any]:
     metadata = dict(projection.metadata)
     metadata.update(_status_metadata(projection))
@@ -326,7 +326,7 @@ def _response_metadata(
 
 
 def _status_metadata(
-    value: AgentShellGatewayInput | AgentShellCompatibilityProjection,
+    value: AgentShellGatewayInput | AgentShellGatewayProjection,
 ) -> dict[str, Any]:
     return {
         "agent_shell_status": value.agent_shell_status,
@@ -361,7 +361,7 @@ def _refs_from_input(
 
 
 def _refs_from_projection(
-    projection: AgentShellCompatibilityProjection,
+    projection: AgentShellGatewayProjection,
     keys: tuple[str, ...],
     *,
     kind: str,
@@ -440,9 +440,9 @@ def _walk(value: Any, path: str = "$") -> list[tuple[str, Any]]:
 __all__ = [
     "AGENT_SHELL_PURPOSE",
     "AGENT_SHELL_RESPONSE_SOURCE",
-    "AgentShellCompatibilityProjection",
+    "AgentShellGatewayProjection",
     "AgentShellGatewayInput",
-    "build_agent_shell_compatibility_projection",
+    "build_agent_shell_gateway_projection",
     "build_agent_shell_gateway_request",
     "run_agent_shell_gateway_request",
 ]

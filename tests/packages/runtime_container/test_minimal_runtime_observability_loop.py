@@ -13,7 +13,8 @@ from observability_hub import (
     RunRecord,
     build_evidence_bundle,
 )
-from runtime_container import runtime as runtime_facade
+from composition.runtime import RuntimeCompositionOptions, build_standard_runtime_runner
+from runtime.orchestrator import StandardRuntimeRunner
 
 
 def test_minimal_runtime_observability_loop_builds_evidence_bundle_from_runtime_result() -> None:
@@ -39,8 +40,8 @@ def test_minimal_runtime_observability_loop_builds_evidence_bundle_from_runtime_
         name="minimal_runtime_observability_loop_workflow",
         edges=[(START, MinimalNode(name="minimal_runtime_observability_node"))],
     )
-    runtime_runner = runtime_facade.build_standard_runtime_runner(
-        options=runtime_facade.RuntimeCompositionOptions(
+    runtime_runner = build_standard_runtime_runner(
+        options=RuntimeCompositionOptions(
             config_root=Path("config"),
             environment="local",
         ),
@@ -65,7 +66,7 @@ def test_minimal_runtime_observability_loop_builds_evidence_bundle_from_runtime_
     )
     evidence_bundle = build_evidence_bundle(runtime_result)
 
-    assert isinstance(runtime_runner, runtime_facade.StandardRuntimeRunner)
+    assert isinstance(runtime_runner, StandardRuntimeRunner)
     assert isinstance(runtime_result, contract_runtime.RuntimeResult)
     assert runtime_result.status == contract_runtime.RuntimeStatus.SUCCESS
     assert runtime_result.workflow_result is not None

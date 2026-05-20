@@ -50,6 +50,7 @@ class LlmInvocationFailureType(str, Enum):
     UNSUPPORTED_API_FAILURE = "unsupported_api_failure"
     ENVIRONMENT_FAILURE = "environment_failure"
     MODEL_MISSING = "model_missing"
+    OUTPUT_SCHEMA_VALIDATION_FAILURE = "output_schema_validation_failure"
     UNKNOWN_FAILURE = "unknown_failure"
 
 

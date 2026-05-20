@@ -1,13 +1,13 @@
 [project]
 name = "cognition-system-runtime"
-version = "0.7.0"
-readme = { text = "Cognition System v0.7.0 public runtime package. See the version-specific public README in the release repository for usage and boundary notes.", content-type = "text/markdown" }
+version = "0.8.0"
+readme = { text = "Cognition System v0.8.0 public runtime package. See the version-specific public README in the release repository for usage and boundary notes.", content-type = "text/markdown" }
 description = "Runtime orchestration package for Cognition System."
 requires-python = ">=3.14"
 dependencies = [
-  "cognition-system-behavior-contracts==0.7.0",
-  "cognition-system-schemas==0.7.0",
-  "cognition-system-config-contexts==0.7.0",
+  "cognition-system-behavior-contracts==0.8.0",
+  "cognition-system-schemas==0.8.0",
+  "cognition-system-config-contexts==0.8.0",
 ]
 
 [build-system]

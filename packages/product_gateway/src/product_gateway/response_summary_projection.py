@@ -53,6 +53,9 @@ def project_product_gateway_response_summary(
         "tool_execution_enabled": False,
         "action_execution_enabled": False,
         "gateway_enabled": False,
+        **_follow_up_summary(response.metadata),
+        **_answer_trace_summary(response.metadata),
+        **_answer_artifact_summary(response.metadata),
     }
     return validate_product_gateway_response_summary(summary).model_dump(mode="python")
 
@@ -104,6 +107,61 @@ def _summary_metadata(response_metadata: Mapping[str, Any]) -> dict[str, Any]:
     if response_source is not None:
         metadata["product_gateway_response_source"] = str(response_source)
     return metadata
+
+
+def _follow_up_summary(response_metadata: Mapping[str, Any]) -> dict[str, Any]:
+    return {
+        "follow_up": response_metadata.get("follow_up") is True,
+        "follow_up_turn_index": _positive_int_or_none(
+            response_metadata.get("follow_up_turn_index")
+        ),
+        "follow_up_seed_ref": _string_or_none(
+            response_metadata.get("follow_up_seed_ref")
+        ),
+        "temporary_follow_up": response_metadata.get("temporary_follow_up") is not False,
+        "durable_session": False,
+        "memory_enabled": False,
+    }
+
+
+def _answer_trace_summary(response_metadata: Mapping[str, Any]) -> dict[str, Any]:
+    summary = response_metadata.get("answer_trace_summary")
+    return {
+        "answer_trace_ref": _string_or_none(
+            response_metadata.get("answer_trace_ref")
+        ),
+        "answer_trace_status": _string_or_none(
+            response_metadata.get("answer_trace_status")
+        ),
+        "answer_trace_summary": dict(summary) if isinstance(summary, Mapping) else {},
+    }
+
+
+def _answer_artifact_summary(response_metadata: Mapping[str, Any]) -> dict[str, Any]:
+    summary = response_metadata.get("answer_artifact_summary")
+    return {
+        "answer_artifact_ref": _string_or_none(
+            response_metadata.get("answer_artifact_ref")
+        ),
+        "answer_artifact_status": _string_or_none(
+            response_metadata.get("answer_artifact_status")
+        ),
+        "answer_artifact_summary": (
+            dict(summary) if isinstance(summary, Mapping) else {}
+        ),
+    }
+
+
+def _positive_int_or_none(value: Any) -> int | None:
+    if isinstance(value, int) and value >= 1:
+        return value
+    return None
+
+
+def _string_or_none(value: Any) -> str | None:
+    if isinstance(value, str) and value:
+        return value
+    return None
 
 
 def _value(value: Any) -> Any:

@@ -2,11 +2,29 @@
 
 English | [简体中文](README.zh-CN.md)
 
-Cognition System is a Python 3.14 multi-package release candidate for governed external-readonly question answering, controlled CLI workflows, configuration assembly, runtime orchestration, evidence observation, and product gateway experiments.
+Current version: `v0.8.0`
 
-当前公开版本：`v0.8.0`
+Cognition System is a cognitive capability system for governed AI collaboration. It combines language models, tool ecosystems, runtime capabilities, and governance rules to help users understand sources, handle tasks, and deliver traceable results within explicit approval and reviewable boundaries.
 
-The `v0.8.0` line publishes the `cognition-system` aggregate package plus 18 `cognition-system-*` subpackages. This candidate is prepared for local public-repository validation; it is not a completed PyPI release.
+The currently verifiable product capability is external-readonly question answering: with your approval, the system reads a URL or evidence path and answers based on that material.
+
+## What It Can Do Today
+
+Ask a question about a URL or governed evidence input:
+
+```bash
+cognition external-readonly ask --guided
+```
+
+Guided mode asks for:
+
+1. The material to read.
+2. Your question.
+3. A local or online model path.
+4. Approval to read the external source for this run.
+5. Approval to call a model for this run.
+
+The answer shows its evidence context where possible. If the material is too short or insufficient, the system says so instead of inventing unsupported content.
 
 ## Install
 
@@ -15,95 +33,54 @@ python -m pip install --upgrade pip
 python -m pip install "cognition-system==0.8.0"
 ```
 
-If you use uv:
+Or with uv:
 
 ```bash
 uv pip install "cognition-system==0.8.0"
 ```
 
-## Verify
+Python `3.14` is required.
 
-```bash
-python -c "import importlib.metadata as m; print(m.version('cognition-system'))"
-python -c "import importlib.metadata as m; print('cognition-system', m.version('cognition-system'), 'import ok')"
-cognition --help
-```
-
-Expected smoke text:
-
-```text
-cognition-system 0.8.0 import ok
-```
-
-## CLI
-
-The public console command is:
-
-```bash
-cognition
-```
-
-The primary product trial entry point is:
+## Quick Trial
 
 ```bash
 cognition external-readonly ask --guided
 ```
 
-Guided mode asks for an external-readonly source, a question, a model alias, explicit network and model-call approvals, and credential handling when an external provider is selected.
+Example:
 
-Supported model aliases:
-
-1. `deepseek`: online DeepSeek V4 Flash path for low-hardware users.
-2. `gemma4`: local Ollama / Gemma4 path for local-model users.
-
-Automation, CI, and JSON-output workflows should pass explicit options instead of `--guided`. The guarded behavior is intentional: `cognition external-readonly ask --guided --json` should fail closed.
-
-## Configuration
-
-The repository-level `config/` directory is not published as a package and is not copied into the public release surface. Installed default configuration resources are packaged by `cognition-system-config-assembly` under `config_assembly/default_config/`.
-
-Create a user-owned configuration directory when needed:
-
-```bash
-cognition config init --config-root ./config
+```text
+请输入 URL 或 evidence path: https://example.com
+请输入问题: 这份资料主要说明了什么？
+请选择模型：1) deepseek  2) gemma4
+请输入 1、2、deepseek 或 gemma4: 2
+允许本次外部只读抓取该 URL？ 输入 yes/no: y
+允许本次受控大模型回答？ 输入 yes/no: y
 ```
 
-## Package Areas
+Model choices:
 
-The `v0.8.0` candidate includes 19 distributions:
-
-1. `cognition-system`
-2. `cognition-system-schemas`
-3. `cognition-system-behavior-contracts`
-4. `cognition-system-config-assembly`
-5. `cognition-system-config-contexts`
-6. `cognition-system-runtime`
-7. `cognition-system-contract-core`
-8. `cognition-system-adk-adapter`
-9. `cognition-system-observability-hub`
-10. `cognition-system-cognition-agent`
-11. `cognition-system-cognition-governance`
-12. `cognition-system-composition`
-13. `cognition-system-external-readonly`
-14. `cognition-system-runtime-container`
-15. `cognition-system-task-workflows`
-16. `cognition-system-product-gateway`
-17. `cognition-system-product-runtime-assembly`
-18. `cognition-system-product-application-assembly`
-19. `cognition-system-cli`
+1. `gemma4`: local Ollama / Gemma4.
+2. `deepseek`: online DeepSeek V4 Flash.
 
 ## Safety Boundaries
 
-The CLI keeps these boundaries:
+By default, the system does not:
 
-1. No silent network access.
-2. No silent live model call.
-3. No silent provider-key read or save.
-4. No raw HTML, raw provider response, response headers, traceback, or provider key in product output.
-5. No arbitrary model name; only configured aliases are accepted.
-6. No PyPI upload, Git tag, GitHub Release, or remote push is part of this candidate validation.
+1. Access the network silently.
+2. Call a model silently.
+3. Read or save provider keys silently.
+4. Expose raw web pages, raw model responses, tracebacks, or provider keys in answers.
+5. Present current follow-up context as long-term memory.
 
-Runtime outputs belong in a local ignored `outputs/` directory and are not part of the public release surface.
+## Useful Commands
+
+```bash
+cognition --help
+cognition external-readonly ask --help
+cognition external-readonly ask --guided
+cognition config init --config-root ./config
+```
 
 ## Documentation
 

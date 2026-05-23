@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+from types import SimpleNamespace
 from typing import Any
 
+import adk_adapter.evidence_summary_answer_output_governance as output_governance_module
 from adk_adapter import (
     ADK_EVIDENCE_SUMMARY_ANSWER_OUTPUT_GOVERNANCE_MODE_NO_OUTPUT_SCHEMA,
     ADK_EVIDENCE_SUMMARY_ANSWER_OUTPUT_GOVERNANCE_MODE_OUTPUT_SCHEMA,
@@ -242,6 +244,39 @@ def test_no_output_schema_probe_success_returns_sanitized_result() -> None:
     assert model.calls == 1
 
 
+def test_no_output_schema_probe_accepts_answer_scoped_transformation() -> None:
+    model = _QueuedNoLiveLlm(
+        model="adk-no-live/evidence-summary-answer",
+        responses=(
+            (
+                "This summary says Example Domain is for documentation examples "
+                "and should not be used in operations."
+            ),
+        ),
+    )
+    probe = AdkEvidenceSummaryAnswerOutputGovernanceProbe(
+        options=AdkEvidenceSummaryAnswerOutputGovernanceOptions(
+            model=model,
+            output_governance_mode=(
+                ADK_EVIDENCE_SUMMARY_ANSWER_OUTPUT_GOVERNANCE_MODE_NO_OUTPUT_SCHEMA
+            ),
+            response_preview_limit=300,
+        )
+    )
+
+    invocation_result = probe.invoke(
+        _request(metadata=_answer_scoped_transformation_metadata())
+    )
+
+    assert invocation_result.success is True
+    assert invocation_result.metadata["answer_quality_passed"] is True
+    assert "This summary says Example Domain" in invocation_result.metadata[
+        "sanitized_response_display"
+    ]
+    assert _metadata_has_no_raw_payload_markers(invocation_result.metadata)
+    assert model.calls == 1
+
+
 def test_no_output_schema_probe_rejects_jsonish_answer_in_result_mapper() -> None:
     model = _QueuedNoLiveLlm(
         model="adk-no-live/evidence-summary-answer",
@@ -280,6 +315,30 @@ def test_no_output_schema_probe_rejects_jsonish_answer_in_result_mapper() -> Non
     assert answer_result.status == "failed"
     assert answer_result.blocking_reasons == ["llm_answer_quality_contract_violation"]
     assert model.calls == 1
+
+
+def test_no_output_schema_output_mapper_ignores_yielded_user_message() -> None:
+    run_result = SimpleNamespace(
+        runtime_events=[
+            _runtime_event(
+                author="evidence_summary_answer_output_governance_probe",
+                role="model",
+                text="这个网页主要说明 Example Domain 用于文档示例。",
+            ),
+            _runtime_event(
+                author="user",
+                role="user",
+                text="Answer the governed evidence question. User question: ...",
+            ),
+        ]
+    )
+
+    output_text = output_governance_module._attempt_output_text(
+        run_result,
+        draft=None,
+    )
+
+    assert output_text == "这个网页主要说明 Example Domain 用于文档示例。"
 
 
 def test_output_governance_probe_sanitizes_provider_exception() -> None:
@@ -417,6 +476,29 @@ def _request_metadata() -> dict[str, object]:
     }
 
 
+def _answer_scoped_transformation_metadata() -> dict[str, object]:
+    return {
+        "interaction_mode": "evidence_summary_answer_generation",
+        "answer_scoped_transformation": True,
+        "temporary_only": True,
+        "durable_session": False,
+        "memory_enabled": False,
+        "evidence_summary_answer_context": {
+            "user_question": "将该摘要翻译成英文",
+            "summary_facts": [
+                "这个页面说明 Example Domain 用于文档示例，不应在实际运营中使用。"
+            ],
+            "evidence_refs": [
+                {
+                    "ref": "answer-snapshot://chat/turn-003",
+                    "kind": "chat_last_answer_snapshot",
+                    "purpose": "answer_scoped_transformation",
+                }
+            ],
+        },
+    }
+
+
 def _route_facts() -> ModelRouteFacts:
     return ModelRouteFacts(
         model_name="ollama/gemma4-pro:latest",
@@ -426,6 +508,18 @@ def _route_facts() -> ModelRouteFacts:
             "backend_provider": "ollama",
             "route_target": "ollama/gemma4-pro:latest",
             "route_kind": "adk_litellm",
+        },
+    )
+
+
+def _runtime_event(*, author: str, role: str, text: str) -> SimpleNamespace:
+    return SimpleNamespace(
+        metadata={"author": author},
+        payload={
+            "content": {
+                "role": role,
+                "parts": [{"text": text}],
+            }
         },
     )
 

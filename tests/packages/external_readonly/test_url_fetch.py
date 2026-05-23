@@ -165,7 +165,7 @@ def test_url_fetch_source_keeps_external_readonly_boundary_and_no_live_dependenc
     assert "build_opener(_NoRedirectHandler)" in source
     assert "method=\"POST\"" not in source
     assert "runtime_container" not in source
-    assert "cognition_task_workflows" not in source
+    assert "cognition_operation_flows" not in source
     assert "product_gateway" not in source
     assert "cognition_cli" not in source
     assert "google.adk" not in source

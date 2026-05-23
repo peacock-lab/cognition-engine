@@ -12,6 +12,7 @@ from cognition_cli.constants import (
 )
 from cognition_cli.services.runtime import (
     EntryRunner,
+    ExternalReadonlyAskLlmInvocationServiceFactory,
     RequestBuilder,
     RunGatewayExecutor,
     TwfLlmInvocationServiceFactory,
@@ -39,6 +40,9 @@ from cognition_cli.chat.references import (
 from cognition_cli.chat.task_dispatch import (
     _dispatch_chat_input_turn,
 )
+from cognition_cli.chat.external_readonly_bridge import (
+    ChatExternalReadonlyBridgeState,
+)
 
 
 def _chat_command(
@@ -50,6 +54,9 @@ def _chat_command(
     run_gateway_executor: RunGatewayExecutor | None = None,
     twf_llm_invocation_service_factory: (
         TwfLlmInvocationServiceFactory | None
+    ) = None,
+    external_readonly_ask_llm_invocation_service_factory: (
+        ExternalReadonlyAskLlmInvocationServiceFactory | None
     ) = None,
 ) -> int:
     usage_error = _chat_usage_error(args)
@@ -65,6 +72,7 @@ def _chat_command(
     latest_plan_display_text: str | None = None
     latest_plan_snapshot = None
     pending_reference_path_add = None
+    external_readonly_bridge_state: ChatExternalReadonlyBridgeState | None = None
     turn_index = 0
     try:
         while args.max_turns is None or turn_index < args.max_turns:
@@ -88,6 +96,7 @@ def _chat_command(
             if line == "/reference clear":
                 clear_reference_paths(args)
                 pending_reference_path_add = None
+                external_readonly_bridge_state = None
                 print("已清空当前会话的受控资料文件和外部只读证据。")
                 continue
             if _chat_status_command(line):
@@ -138,10 +147,17 @@ def _chat_command(
                 latest_plan_display_text=latest_plan_display_text,
                 latest_plan_snapshot=latest_plan_snapshot,
                 pending_reference_path_add=pending_reference_path_add,
+                external_readonly_bridge_state=external_readonly_bridge_state,
+                external_readonly_ask_llm_invocation_service_factory=(
+                    external_readonly_ask_llm_invocation_service_factory
+                ),
             )
             latest_plan_display_text = turn_result.latest_plan_display_text
             latest_plan_snapshot = turn_result.latest_plan_snapshot
             pending_reference_path_add = turn_result.pending_reference_path_add
+            external_readonly_bridge_state = (
+                turn_result.external_readonly_bridge_state
+            )
             if turn_result.exit_code is not None:
                 return turn_result.exit_code
     except KeyboardInterrupt:

@@ -292,13 +292,24 @@ def build_parser() -> argparse.ArgumentParser:
     )
     external_readonly_ask_parser.add_argument("--question")
     external_readonly_ask_parser.add_argument(
+        "--follow-up-question",
+        dest="follow_up_questions",
+        action="append",
+        default=[],
+        help=(
+            "Ask a same-process follow-up over the same governed evidence; "
+            "repeat for multiple follow-up turns."
+        ),
+    )
+    external_readonly_ask_parser.add_argument(
         "--guided",
         "--interactive",
         dest="guided",
         action="store_true",
         help=(
             "Prompt for missing first-use inputs and explicit governance "
-            "confirmations in an interactive terminal."
+            "confirmations in an interactive terminal; after a successful "
+            "answer, offer temporary follow-up over the same governed evidence."
         ),
     )
     external_readonly_ask_parser.add_argument(

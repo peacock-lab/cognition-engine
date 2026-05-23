@@ -113,7 +113,7 @@ FORBIDDEN_PRODUCT_GATEWAY_CLI_OBJECT_MODULE_PREFIXES = (
     "adk_adapter",
     "runtime_container",
     "composition",
-    "cognition_task_workflows",
+    "cognition_operation_flows",
     "litellm",
 )
 

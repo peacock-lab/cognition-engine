@@ -2,9 +2,7 @@
 
 [简体中文](QUICKSTART.zh-CN.md) | English · [Back](README.md)
 
-当前公开版本 `v0.8.0`
-
-This guide covers the public local install and CLI smoke path for the Cognition System `v0.8.0` release candidate.
+Current version: `v0.8.0`
 
 ## 1. Install
 
@@ -19,63 +17,46 @@ Or with uv:
 uv pip install "cognition-system==0.8.0"
 ```
 
+Python `3.14` is required.
+
 ## 2. Verify
 
 ```bash
-python -c "import importlib.metadata as m; print(m.version('cognition-system'))"
-python -c "import importlib.metadata as m; print('cognition-system', m.version('cognition-system'), 'import ok')"
 cognition --help
 cognition external-readonly ask --help
 ```
 
-Expected smoke text:
+## 3. Try Source QA
+
+```bash
+cognition external-readonly ask --guided
+```
+
+Example inputs:
 
 ```text
-cognition-system 0.8.0 import ok
+请输入 URL 或 evidence path: https://example.com
+请输入问题: 这份资料主要说明了什么？
+请选择模型：1) deepseek  2) gemma4
+请输入 1、2、deepseek 或 gemma4: 2
+允许本次外部只读抓取该 URL？ 输入 yes/no: y
+允许本次受控大模型回答？ 输入 yes/no: y
 ```
 
-## 3. Initialize Configuration
+## 4. Follow Up
+
+After a successful answer, continue around the same source:
+
+```text
+它适合用于什么场景？
+```
+
+If the source is insufficient, the system explains the limitation.
+
+## 5. Configuration
+
+Create a user configuration directory when needed:
 
 ```bash
 cognition config init --config-root ./config
 ```
-
-The installed default configuration baseline comes from the packaged `config_assembly/default_config/` resources. The repository-level `config/` directory is not published as a package.
-
-## 4. Guided External-Readonly Ask
-
-For an interactive trial:
-
-```bash
-cognition external-readonly ask --guided
-```
-
-The guide asks for source type, question, model alias, explicit approvals, and credential handling. It does not silently open network access, live model calls, audit gates, or stored credentials.
-
-Model aliases:
-
-1. `deepseek`: online DeepSeek V4 Flash path for low-hardware users.
-2. `gemma4`: local Ollama / Gemma4 path for local-model users.
-
-## 5. Automation
-
-Automation and JSON-output paths should pass explicit arguments. Guided mode with JSON output should fail closed:
-
-```bash
-cognition external-readonly ask --guided --json
-```
-
-## 6. Safety Boundaries
-
-The public CLI should not expose raw HTML, raw provider response, response headers, tracebacks, provider keys, or unrestricted model names. Network access, live model calls, runtime fetch, operator approval, and audit refs remain explicit choices.
-
-## 7. Useful Commands
-
-```bash
-cognition --json
-cognition config init --config-root ./config
-cognition external-readonly ask --help
-cognition external-readonly ask --guided
-```
-
-Runtime outputs belong in a local ignored `outputs/` directory and are not part of the public release surface.

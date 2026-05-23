@@ -57,9 +57,9 @@ def test_runtime_container_source_does_not_import_external_readonly() -> None:
         assert forbidden_imports.search(source) is None, source_path
 
 
-def test_runtime_container_source_does_not_import_task_workflows() -> None:
+def test_runtime_container_source_does_not_import_operation_flows() -> None:
     forbidden_imports = re.compile(
-        r"^\s*(?:from|import)\s+cognition_task_workflows\b",
+        r"^\s*(?:from|import)\s+cognition_operation_flows\b",
         re.MULTILINE,
     )
 

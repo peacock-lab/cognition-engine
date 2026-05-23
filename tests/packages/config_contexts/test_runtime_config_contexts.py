@@ -189,6 +189,7 @@ def test_runtime_live_llm_config_view_accepts_controlled_live_options() -> None:
         view.model_profiles["gemma4_pro_local"].model_name
         == "ollama/gemma4-pro:latest"
     )
+    assert view.model_profiles["gemma4_pro_local"].max_tokens == 256
     assert view.default_output_governance_profile_ref == "direct_controlled_live"
     assert (
         view.output_governance_profiles["direct_controlled_live"].mode
@@ -197,6 +198,16 @@ def test_runtime_live_llm_config_view_accepts_controlled_live_options() -> None:
     assert (
         view.model_aliases["gemma4"].model_profile_ref
         == "gemma4_pro_local"
+    )
+    assert (
+        view.model_aliases["gemma4"].output_governance_profile_ref
+        == "adk_output_schema_gemma4_baseline"
+    )
+    assert (
+        view.output_governance_profiles[
+            "adk_output_schema_gemma4_baseline"
+        ].uses_output_schema
+        is True
     )
     assert (
         view.model_aliases["deepseek"].output_governance_profile_ref
@@ -274,6 +285,20 @@ def test_runtime_live_llm_config_view_accepts_profile_contracts() -> None:
                     uses_after_model_callback=True,
                     max_repair_attempts=1,
                     metadata={"candidate_only": True},
+                )
+            ),
+            "adk_output_schema_gemma4_baseline": (
+                RuntimeLlmOutputGovernanceProfileConfigView(
+                    mode="adk_output_schema",
+                    adk_native=True,
+                    uses_output_schema=True,
+                    uses_output_key=True,
+                    uses_after_model_callback=True,
+                    max_repair_attempts=1,
+                    metadata={
+                        "profile_gated": True,
+                        "local_gemma4_baseline": True,
+                    },
                 )
             ),
             "adk_output_schema_candidate": (

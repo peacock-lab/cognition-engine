@@ -30,7 +30,8 @@ REFERENCE_CONFIRMATION_WARNING = (
 )
 EXTERNAL_READONLY_EVIDENCE_CONFIRMATION_WARNING = (
     "这会把该 evidence-output 加入本轮外部只读证据摘要；"
-    "reference-review 只读取已归档 JSON，不会联网、不会上传、不会展示 raw response。"
+    "reference-review 只读取已归档 JSON，不会联网、不会上传、不会展示 raw response；"
+    "受控问答与追问将通过 external-readonly ask 治理链路执行。"
 )
 
 _REFERENCE_FILE_PATH_RE = re.compile(

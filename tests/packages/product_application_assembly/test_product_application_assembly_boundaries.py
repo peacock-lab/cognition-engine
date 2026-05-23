@@ -23,27 +23,45 @@ PYPROJECT_PATH = (
 def test_product_application_assembly_public_surface_is_narrow() -> None:
     assert product_application_assembly.__all__ == (
         "ExternalReadonlyRefsProductApplicationAssemblyResult",
+        "EVIDENCE_SUMMARY_ANSWER_FOLLOW_UP_INTERACTION_MODE",
         "EVIDENCE_SUMMARY_ANSWER_GENERATION_INTERACTION_MODE",
         "PRODUCT_APPLICATION_ASSEMBLY_PACKAGE",
         "PRODUCT_APPLICATION_ASSEMBLY_STATUS",
         "PRODUCT_APPLICATION_EVIDENCE_SUMMARY_ANSWER_CONTEXT_ANSWER_POLICY_REF",
         "PRODUCT_APPLICATION_EVIDENCE_SUMMARY_ANSWER_CONTEXT_CITATION_POLICY_REF",
         "PRODUCT_APPLICATION_EVIDENCE_SUMMARY_ANSWER_CONTEXT_SOURCE",
+        "PRODUCT_APPLICATION_EVIDENCE_SUMMARY_ANSWER_ARTIFACT_POLICY_REF",
+        "PRODUCT_APPLICATION_EVIDENCE_SUMMARY_ANSWER_ARTIFACT_SOURCE",
+        "PRODUCT_APPLICATION_EVIDENCE_SUMMARY_ANSWER_ANSWERABILITY_PREFLIGHT_POLICY_REF",
+        "PRODUCT_APPLICATION_EVIDENCE_SUMMARY_ANSWER_FOLLOW_UP_POLICY_REF",
+        "PRODUCT_APPLICATION_EVIDENCE_SUMMARY_ANSWER_FOLLOW_UP_SOURCE",
         "PRODUCT_APPLICATION_EVIDENCE_SUMMARY_ANSWER_GENERATED_RESULT_POLICY_REF",
         "PRODUCT_APPLICATION_EVIDENCE_SUMMARY_ANSWER_GENERATION_SOURCE",
         "PRODUCT_APPLICATION_EVIDENCE_SUMMARY_ANSWER_LLM_REQUEST_POLICY_REF",
         "PRODUCT_APPLICATION_EVIDENCE_SUMMARY_ANSWER_RESULT_POLICY_REF",
         "PRODUCT_APPLICATION_EVIDENCE_SUMMARY_ANSWER_RESULT_SOURCE",
+        "PRODUCT_APPLICATION_EVIDENCE_SUMMARY_ANSWER_TRACE_POLICY_REF",
+        "PRODUCT_APPLICATION_EVIDENCE_SUMMARY_ANSWER_TRACE_SOURCE",
         "PRODUCT_APPLICATION_GOVERNED_EVIDENCE_DIGEST_POLICY_REF",
         "PRODUCT_APPLICATION_GOVERNED_EVIDENCE_DIGEST_SOURCE",
         "assemble_external_readonly_refs_product_application",
+        "build_evidence_summary_answer_artifact",
         "build_evidence_summary_answer_context",
+        "build_evidence_summary_answer_answerability_preflight_result",
+        "build_evidence_summary_answer_follow_up_context",
+        "build_evidence_summary_answer_follow_up_seed",
         "build_evidence_summary_answer_llm_invocation_request",
         "build_evidence_summary_answer_result_from_llm_invocation_result",
+        "build_evidence_summary_answer_trace",
         "build_governed_evidence_digest_from_external_readonly_facts",
         "build_no_model_evidence_summary_answer_result",
         "evidence_summary_answer_context_status_dict",
+        "evidence_summary_answer_artifact_status_dict",
+        "evidence_summary_answer_artifact_summary_dict",
+        "evidence_summary_answer_follow_up_seed_status_dict",
         "evidence_summary_answer_result_status_dict",
+        "evidence_summary_answer_trace_status_dict",
+        "evidence_summary_answer_trace_summary_dict",
         "governed_evidence_digest_status_dict",
     )
     assert not hasattr(product_application_assembly, "ProductGatewayResponse")
@@ -81,7 +99,7 @@ def test_product_application_assembly_pyproject_dependencies_are_bounded() -> No
         "cognition-system-cli",
         "cognition-system-contract-core",
         "cognition-system-external-readonly",
-        "cognition-system-task-workflows",
+        "cognition-system-operation-flows",
         "cognition-system-product-runtime-assembly",
     ):
         assert forbidden not in dependency_names
@@ -119,7 +137,7 @@ def test_product_application_assembly_source_has_no_execution_or_config_reads() 
             assert marker not in source, (source_path, marker)
         assert "product_gateway" + "." + "contracts" not in source
         assert "product_gateway" + "." + "response_summary_projection" not in source
-        assert "product_gateway" + "." + "_task_workflows" not in source
+        assert "product_gateway" + "." + "_operation_flows" not in source
 
 
 def _forbidden_import_prefixes() -> tuple[str, ...]:
@@ -131,14 +149,14 @@ def _forbidden_import_prefixes() -> tuple[str, ...]:
         "google" + "." + "adk",
         "lite" + "llm",
         "cognition_cli",
-        "cognition_task_workflows",
+        "cognition_operation_flows",
         "external_readonly",
         "contract_core",
         "product_runtime_assembly",
         "product_gateway" + "." + "contracts",
         "product_gateway" + "." + "response_summary_projection",
         "product_gateway" + "." + "external_readonly_refs_projection",
-        "product_gateway" + "." + "_task_workflows",
+        "product_gateway" + "." + "_operation_flows",
     )
 
 

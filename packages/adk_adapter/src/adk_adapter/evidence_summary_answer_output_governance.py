@@ -608,6 +608,14 @@ def _prompt_text(
     context = request.metadata.get("evidence_summary_answer_context")
     if not isinstance(context, Mapping):
         return request.prompt_preview_sanitized or "Answer the governed evidence question."
+    if request.metadata.get("answer_scoped_transformation") is True:
+        return _answer_scoped_transformation_prompt_text(
+            request,
+            context,
+            repair_reason=repair_reason,
+            previous_output_text=previous_output_text,
+            output_governance_mode=output_governance_mode,
+        )
 
     if (
         output_governance_mode
@@ -667,6 +675,58 @@ def _prompt_text(
                         "reasoning, prompt mentions, or meta framing."
                     )
                 ),
+            ]
+        )
+    return "\n".join(item for item in lines if item is not None)
+
+
+def _answer_scoped_transformation_prompt_text(
+    request: LlmInvocationRequest,
+    context: Mapping[str, Any],
+    *,
+    repair_reason: str | None,
+    previous_output_text: str | None,
+    output_governance_mode: str,
+) -> str:
+    question = (
+        _safe_fragment(context.get("user_question"))
+        or request.prompt_preview_sanitized
+        or ""
+    )
+    facts = _string_list(context.get("summary_facts"))
+    lines = [
+        "Transform the prior assistant answer.",
+        "Return only final user-facing natural language.",
+        "Use only the prior assistant answer text below.",
+        "Do not fetch, search, infer new facts, or reinterpret the original evidence.",
+        "Do not mention prompts, instructions, tools, runtime, memory, or system context.",
+        "Do not output JSON, YAML, code fences, keys, wrappers, protocol fields, or debug fields.",
+        "Do not output thought, analysis, reasoning, scratchpad, or internal notes.",
+        "User transformation request:",
+        question,
+        "Prior assistant answer text:",
+    ]
+    if facts:
+        lines.extend(facts)
+    else:
+        lines.append("No prior assistant answer text is available.")
+    if (
+        output_governance_mode
+        == ADK_EVIDENCE_SUMMARY_ANSWER_OUTPUT_GOVERNANCE_MODE_OUTPUT_SCHEMA
+    ):
+        lines.append(
+            "If an internal draft schema is required, put the transformed final "
+            "answer in the answer field only."
+        )
+    if repair_reason is not None:
+        lines.extend(
+            [
+                "Repair required:",
+                repair_reason,
+                "Previous candidate preview:",
+                _preview(_normalize_output_text(previous_output_text or ""), limit=240),
+                "Repair instruction:",
+                "Return only the transformed answer without meta framing.",
             ]
         )
     return "\n".join(item for item in lines if item is not None)
@@ -742,6 +802,8 @@ def _attempt_output_text(
     if answer:
         return answer
     for event in reversed(getattr(run_result, "runtime_events", ())):
+        if _is_user_message_event(event):
+            continue
         content = event.payload.get("content") if isinstance(event.payload, dict) else None
         text = _content_text(content)
         if text:
@@ -767,6 +829,15 @@ def _content_text(content: Any) -> str:
         if isinstance(text, str) and text.strip():
             texts.append(text.strip())
     return _normalize_output_text(" ".join(texts))
+
+
+def _is_user_message_event(event: Any) -> bool:
+    metadata = getattr(event, "metadata", None)
+    author = metadata.get("author") if isinstance(metadata, Mapping) else None
+    payload = getattr(event, "payload", None)
+    content = payload.get("content") if isinstance(payload, Mapping) else None
+    role = content.get("role") if isinstance(content, Mapping) else None
+    return author == "user" or role == "user"
 
 
 def _answer_from_draft(draft: AdkEvidenceSummaryAnswerDraft | None) -> str | None:

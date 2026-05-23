@@ -22,26 +22,26 @@ from schemas.product_gateway_cli import (
     ProductGatewayCliTwfStatusSummaryPersistenceSchema,
 )
 
-from product_gateway._task_workflows.controls import (
+from product_gateway._operation_flows.controls import (
     build_internal_twf_skill_capability_projection_status,
     build_internal_twf_tools_status,
     resolve_internal_twf_tool_exposure_profile,
 )
-from product_gateway._task_workflows.execution import (
+from product_gateway._operation_flows.execution import (
     InternalTwfExecutionContext,
     InternalTwfExecutionInput,
     execute_internal_twf_workflow,
 )
-from product_gateway._task_workflows.request import (
+from product_gateway._operation_flows.request import (
     build_internal_twf_config_profile_explain_request_draft,
     build_internal_twf_plan_request_draft,
     build_internal_twf_reference_review_request_draft,
     build_internal_twf_run_workspace_evidence_audit_request_draft,
 )
-from product_gateway._task_workflows.route import (
+from product_gateway._operation_flows.route import (
     build_internal_twf_route_projection,
 )
-from product_gateway._task_workflows.workspace import (
+from product_gateway._operation_flows.workspace import (
     build_internal_twf_run_workspace_policy,
     create_internal_twf_run_workspace,
     finalize_internal_twf_run_workspace,

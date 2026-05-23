@@ -125,7 +125,7 @@ def test_cli_chat_plan_live_twf_uses_injected_fake_factory(
     assert config_selection.config_root == str(tmp_path / "config")
     assert config_selection.environment == "local"
     assert config_selection.selection_source == (
-        "product_gateway._task_workflows.execution"
+        "product_gateway._operation_flows.execution"
     )
     assert live_llm_options.ollama_api_base == "http://127.0.0.1:11434"
     assert live_llm_options.timeout_seconds == 11
@@ -205,6 +205,59 @@ def test_cli_chat_reference_review_live_twf_uses_injected_fake_factory(
         "twf_reference_review_workflow"
     )
     assert service.requests[0].metadata["reference_context_status"] == "succeeded"
+    _assert_text_output_boundary(output)
+
+
+def test_cli_chat_reference_review_live_twf_blocks_internal_structure_fragments(
+    monkeypatch: Any,
+    capsys: Any,
+) -> None:
+    service = FakeControlledLiveService(
+        '{"system_context":{"role":"AI Solution Architect",'
+        '"protocol_support":"MCP"},"response_strategy":"dump raw",'
+        '"raw_provider_response":"secret"'
+    )
+    factory = FakeControlledLiveServiceFactory(service)
+    monkeypatch.setattr(
+        sys,
+        "stdin",
+        io.StringIO(
+            "请审查这些资料，指出是否符合当前主线，并给出问题和建议\n"
+            "/exit\n"
+        ),
+    )
+
+    exit_code = cognition.run_cli(
+        _allowed_chat_args(
+            "--chat-session-id",
+            "cli-twf-reference-review-internal-fragment-fake-live",
+            "--reference-path",
+            "docs/architecture/000-v0.7.0-认知系统源码包与配置中心定位索引-v1.zh-CN.md",
+            "--request-live-llm",
+            "--request-ollama",
+            "--allow-live-llm",
+            "--allow-ollama",
+            "--live-llm-approval-ref",
+            "approval://cli-twf-reference-review-internal-fragment",
+            "--ollama-api-base",
+            "http://127.0.0.1:11434",
+            "--live-llm-timeout-seconds",
+            "12",
+        ),
+        entry_runner=_raising_entry_runner,
+        twf_llm_invocation_service_factory=factory,
+    )
+
+    captured = capsys.readouterr()
+    output = captured.out
+
+    assert exit_code == 0
+    assert "资料审查结果" in output
+    assert "模型输出包含内部结构或原始响应片段" in output
+    assert "system_context" not in output
+    assert "protocol_support" not in output
+    assert "response_strategy" not in output
+    assert len(service.requests) == 1
     _assert_text_output_boundary(output)
 
 

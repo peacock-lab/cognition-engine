@@ -4,9 +4,11 @@ from __future__ import annotations
 
 import argparse
 from contextlib import contextmanager
+from dataclasses import dataclass, replace
 import getpass
 import json
 import os
+import re
 import sys
 from collections.abc import Callable, Mapping
 from pathlib import Path
@@ -49,12 +51,23 @@ from external_readonly.governed_summary_facts import (
 )
 from product_application_assembly import (
     EVIDENCE_SUMMARY_ANSWER_GENERATION_INTERACTION_MODE,
+    EVIDENCE_SUMMARY_ANSWER_FOLLOW_UP_INTERACTION_MODE,
+    build_evidence_summary_answer_artifact,
+    build_evidence_summary_answer_answerability_preflight_result,
     build_evidence_summary_answer_context,
+    build_evidence_summary_answer_follow_up_context,
+    build_evidence_summary_answer_follow_up_seed,
     build_evidence_summary_answer_llm_invocation_request,
     build_evidence_summary_answer_result_from_llm_invocation_result,
+    build_evidence_summary_answer_trace,
     build_governed_evidence_digest_from_external_readonly_facts,
     build_no_model_evidence_summary_answer_result,
+    evidence_summary_answer_follow_up_seed_status_dict,
+    evidence_summary_answer_artifact_status_dict,
+    evidence_summary_answer_artifact_summary_dict,
     evidence_summary_answer_result_status_dict,
+    evidence_summary_answer_trace_status_dict,
+    evidence_summary_answer_trace_summary_dict,
 )
 from product_gateway.external_readonly import (
     execute_external_readonly_fetch_gateway_request,
@@ -92,8 +105,23 @@ EXTERNAL_READONLY_ASK_GUIDED_REQUIRES_INTERACTIVE_TERMINAL = (
     "external_readonly_ask_guided_requires_interactive_terminal"
 )
 EXTERNAL_READONLY_ASK_GUIDED_CANCELLED = "external_readonly_ask_guided_cancelled"
+EXTERNAL_READONLY_ASK_GUIDED_EXTERNAL_FETCH_DECLINED = (
+    "external_readonly_ask_guided_external_fetch_declined"
+)
+EXTERNAL_READONLY_ASK_GUIDED_LIVE_LLM_DECLINED = (
+    "external_readonly_ask_guided_live_llm_declined"
+)
+EXTERNAL_READONLY_ASK_GUIDED_EXTERNAL_PROVIDER_DECLINED = (
+    "external_readonly_ask_guided_external_provider_declined"
+)
+EXTERNAL_READONLY_ASK_GUIDED_QUESTION_REQUIRED = (
+    "external_readonly_ask_guided_question_required"
+)
 EXTERNAL_READONLY_ASK_GUIDED_INPUT_REQUIRED = (
     "external_readonly_ask_guided_input_required"
+)
+EXTERNAL_READONLY_ASK_GUIDED_FOLLOW_UP_QUESTION_REQUIRED = (
+    "external_readonly_ask_guided_follow_up_question_required"
 )
 DEEPSEEK_API_KEY_ENV = "DEEPSEEK_API_KEY"
 DEEPSEEK_PROVIDER_KEY_REQUIRED = "deepseek_provider_key_required"
@@ -122,6 +150,20 @@ EXTERNAL_READONLY_ASK_MODEL_ALIAS_EXPLICIT_OPTION_FIELDS = (
 
 ExternalReadonlyAskLlmInvocationServiceFactory = GovernedLlmInvocationServiceFactory
 ExternalReadonlyAskFetchExecutor = Callable[[Mapping[str, Any]], Any]
+
+
+@dataclass(frozen=True)
+class ExternalReadonlyAskCliSessionState:
+    """CLI-local temporary state for same-process external-readonly follow-up."""
+
+    request_id: str
+    source_url: str | None
+    evidence_paths: tuple[str, ...]
+    evidence_bridge: Mapping[str, Any]
+    follow_up_seed: Any | None
+    service: Any | None
+    args: argparse.Namespace
+    follow_up_turn_index: int = 0
 
 
 def external_readonly_ask_command(
@@ -156,6 +198,9 @@ def build_external_readonly_ask_cli_output(
     llm_invocation_service_factory: (
         ExternalReadonlyAskLlmInvocationServiceFactory | None
     ) = None,
+    session_state_collector: (
+        Callable[[ExternalReadonlyAskCliSessionState], None] | None
+    ) = None,
 ) -> tuple[int, dict[str, Any]]:
     """Build the external-readonly QA product output without printing it."""
 
@@ -164,6 +209,9 @@ def build_external_readonly_ask_cli_output(
     evidence_paths = tuple(getattr(args, "evidence_paths", ()) or ())
     source_url = _normalized_optional_text(getattr(args, "source_url", None))
     question = _normalized_question(getattr(args, "question", None))
+    follow_up_questions = _normalized_follow_up_questions(
+        getattr(args, "follow_up_questions", ()) or ()
+    )
     provider_key: str | None = None
     provider_key_metadata: dict[str, Any] = {}
     preflight_reasons = guided_reasons or _apply_model_alias(args)
@@ -268,6 +316,42 @@ def build_external_readonly_ask_cli_output(
 
     context = evidence_bridge["context"]
     generation_policy_facts = _generation_policy_facts(context)
+    preflight_result_model = build_evidence_summary_answer_answerability_preflight_result(
+        context,
+        metadata={
+            "source": EXTERNAL_READONLY_ASK_SOURCE,
+            "product_path": EXTERNAL_READONLY_ASK_PRODUCT_PATH,
+        },
+    )
+    if preflight_result_model is not None:
+        answer_result = evidence_summary_answer_result_status_dict(preflight_result_model)
+        follow_up_seed = build_evidence_summary_answer_follow_up_seed(
+            preflight_result_model,
+            metadata={"product_path": EXTERNAL_READONLY_ASK_PRODUCT_PATH},
+        )
+        output = _output_from_answer_result(
+            request_id,
+            evidence_paths=evidence_paths,
+            source_url=source_url,
+            question=question,
+            answer_result=answer_result,
+            llm_request=None,
+            evidence_bridge=evidence_bridge,
+            resolution_warnings=(),
+            follow_up_seed=follow_up_seed,
+        )
+        _collect_session_state(
+            session_state_collector,
+            request_id=request_id,
+            source_url=source_url,
+            evidence_paths=evidence_paths,
+            evidence_bridge=evidence_bridge,
+            follow_up_seed=follow_up_seed,
+            service=None,
+            args=args,
+        )
+        return _exit_code_from_output(output), output
+
     try:
         llm_request = build_evidence_summary_answer_llm_invocation_request(
             context,
@@ -356,6 +440,12 @@ def build_external_readonly_ask_cli_output(
         metadata={"product_path": EXTERNAL_READONLY_ASK_PRODUCT_PATH},
     )
     answer_result = evidence_summary_answer_result_status_dict(answer_result_model)
+    follow_up_seed = None
+    if answer_result_model.status == "success":
+        follow_up_seed = build_evidence_summary_answer_follow_up_seed(
+            answer_result_model,
+            metadata={"product_path": EXTERNAL_READONLY_ASK_PRODUCT_PATH},
+        )
     output = _output_from_answer_result(
         request_id,
         evidence_paths=evidence_paths,
@@ -365,8 +455,152 @@ def build_external_readonly_ask_cli_output(
         llm_request=llm_request,
         evidence_bridge=evidence_bridge,
         resolution_warnings=tuple(resolution["warnings"]),
+        follow_up_seed=follow_up_seed,
     )
+    _collect_session_state(
+        session_state_collector,
+        request_id=request_id,
+        source_url=source_url,
+        evidence_paths=evidence_paths,
+        evidence_bridge=evidence_bridge,
+        follow_up_seed=follow_up_seed,
+        service=service,
+        args=args,
+    )
+    guided_follow_up = (
+        getattr(args, "guided", False) is True
+        and not follow_up_questions
+        and _guided_follow_up_prompt_available()
+    )
+    if follow_up_questions or guided_follow_up:
+        output = _output_with_follow_up_turns(
+            output,
+            follow_up_questions=follow_up_questions,
+            source_url=source_url,
+            evidence_paths=evidence_paths,
+            evidence_bridge=evidence_bridge,
+            service=service,
+            args=args,
+            request_id=request_id,
+            source_seed=follow_up_seed,
+            guided_follow_up=guided_follow_up,
+        )
     return _exit_code_from_output(output), output
+
+
+def build_external_readonly_ask_follow_up_cli_output(
+    session_state: ExternalReadonlyAskCliSessionState,
+    follow_up_question: str,
+) -> tuple[int, dict[str, Any], ExternalReadonlyAskCliSessionState]:
+    """Run one same-process follow-up over an existing ask session state."""
+
+    question = _normalized_question(follow_up_question)
+    if not question:
+        output = _blocked_output(
+            session_state.request_id,
+            evidence_paths=session_state.evidence_paths,
+            source_url=session_state.source_url,
+            question=follow_up_question,
+            blocking_reasons=(EXTERNAL_READONLY_ASK_GUIDED_FOLLOW_UP_QUESTION_REQUIRED,),
+            warnings=(),
+            product_response_summary=_product_response_summary(
+                request_id=session_state.request_id,
+                answer_status="blocked",
+                evidence_refs=(),
+                additional_refs=(),
+                blocking_reasons=(
+                    EXTERNAL_READONLY_ASK_GUIDED_FOLLOW_UP_QUESTION_REQUIRED,
+                ),
+                warnings=(),
+                readonly_refs_status="blocked",
+                source_url_present=bool(session_state.source_url),
+                evidence_path_count=len(session_state.evidence_paths),
+                model_name=None,
+                llm_call_allowed=False,
+                llm_call_attempted=False,
+                llm_runtime_call_performed=False,
+                external_readonly_fetch_performed=False,
+                external_readonly_network_call_performed=False,
+                external_network_call_performed=False,
+            ),
+            fetch_request_id=None,
+        )
+        return _exit_code_from_output(output), output, session_state
+    if session_state.follow_up_seed is None or session_state.service is None:
+        blocking_reasons = ("external_readonly_ask_follow_up_state_unavailable",)
+        output = _blocked_output(
+            session_state.request_id,
+            evidence_paths=session_state.evidence_paths,
+            source_url=session_state.source_url,
+            question=question,
+            blocking_reasons=blocking_reasons,
+            warnings=(),
+            product_response_summary=_product_response_summary(
+                request_id=session_state.request_id,
+                answer_status="blocked",
+                evidence_refs=(),
+                additional_refs=(),
+                blocking_reasons=blocking_reasons,
+                warnings=(),
+                readonly_refs_status="blocked",
+                source_url_present=bool(session_state.source_url),
+                evidence_path_count=len(session_state.evidence_paths),
+                model_name=None,
+                llm_call_allowed=False,
+                llm_call_attempted=False,
+                llm_runtime_call_performed=False,
+                external_readonly_fetch_performed=False,
+                external_readonly_network_call_performed=False,
+                external_network_call_performed=False,
+            ),
+            fetch_request_id=None,
+        )
+        return _exit_code_from_output(output), output, session_state
+
+    follow_up_index = session_state.follow_up_turn_index + 1
+    output, next_seed = _run_follow_up_turn(
+        question,
+        follow_up_index=follow_up_index,
+        source_url=session_state.source_url,
+        evidence_paths=session_state.evidence_paths,
+        evidence_bridge=session_state.evidence_bridge,
+        service=session_state.service,
+        args=session_state.args,
+        request_id=session_state.request_id,
+        seed=session_state.follow_up_seed,
+    )
+    next_state = replace(
+        session_state,
+        follow_up_seed=next_seed,
+        follow_up_turn_index=follow_up_index,
+    )
+    return _exit_code_from_output(output), output, next_state
+
+
+def _collect_session_state(
+    collector: Callable[[ExternalReadonlyAskCliSessionState], None] | None,
+    *,
+    request_id: str,
+    source_url: str | None,
+    evidence_paths: tuple[str, ...],
+    evidence_bridge: Mapping[str, Any],
+    follow_up_seed: Any | None,
+    service: Any | None,
+    args: argparse.Namespace,
+) -> None:
+    if collector is None:
+        return
+    collector(
+        ExternalReadonlyAskCliSessionState(
+            request_id=request_id,
+            source_url=source_url,
+            evidence_paths=evidence_paths,
+            evidence_bridge=evidence_bridge,
+            follow_up_seed=follow_up_seed,
+            service=service,
+            args=args,
+        )
+    )
 
 
 def _build_evidence_bridge(
@@ -623,7 +857,7 @@ def _fill_guided_first_use_args(args: argparse.Namespace) -> tuple[str, ...]:
         source = _read_guided_source()
         if source is None:
             return (EXTERNAL_READONLY_ASK_GUIDED_CANCELLED,)
-        source = source.strip()
+        source = _normalize_guided_source_input(source)
         if not source:
             return (EXTERNAL_READONLY_ASK_GUIDED_INPUT_REQUIRED,)
         if source.startswith(("http://", "https://")):
@@ -635,9 +869,9 @@ def _fill_guided_first_use_args(args: argparse.Namespace) -> tuple[str, ...]:
         question = _read_guided_question()
         if question is None:
             return (EXTERNAL_READONLY_ASK_GUIDED_CANCELLED,)
-        question = question.strip()
+        question = _normalize_guided_question_input(question)
         if not question:
-            return (EXTERNAL_READONLY_ASK_GUIDED_INPUT_REQUIRED,)
+            return (EXTERNAL_READONLY_ASK_GUIDED_QUESTION_REQUIRED,)
         args.question = question
 
     if not _model_alias(args) and not _explicit_model_name(args):
@@ -651,11 +885,11 @@ def _fill_guided_first_use_args(args: argparse.Namespace) -> tuple[str, ...]:
     source_url = _normalized_optional_text(getattr(args, "source_url", None))
     if source_url:
         if not _guided_confirm("允许本次外部只读抓取该 URL？"):
-            return (EXTERNAL_READONLY_ASK_GUIDED_CANCELLED,)
+            return (EXTERNAL_READONLY_ASK_GUIDED_EXTERNAL_FETCH_DECLINED,)
         _apply_guided_external_readonly_fetch_confirmation(args)
 
     if not _guided_confirm("允许本次受控大模型回答？"):
-        return (EXTERNAL_READONLY_ASK_GUIDED_CANCELLED,)
+        return (EXTERNAL_READONLY_ASK_GUIDED_LIVE_LLM_DECLINED,)
     _apply_guided_live_llm_confirmation(args)
 
     if _guided_local_ollama_selected(args):
@@ -664,7 +898,7 @@ def _fill_guided_first_use_args(args: argparse.Namespace) -> tuple[str, ...]:
 
     if _guided_external_provider_selected(args):
         if not _guided_confirm("允许本次外部模型 provider 调用？"):
-            return (EXTERNAL_READONLY_ASK_GUIDED_CANCELLED,)
+            return (EXTERNAL_READONLY_ASK_GUIDED_EXTERNAL_PROVIDER_DECLINED,)
         _apply_guided_external_provider_confirmation(args)
         if (
             not os.getenv(DEEPSEEK_API_KEY_ENV)
@@ -689,6 +923,12 @@ def _guided_prompt_available() -> bool:
     return sys.stdin.isatty() and sys.stderr.isatty()
 
 
+def _guided_follow_up_prompt_available() -> bool:
+    if os.getenv("CI"):
+        return False
+    return sys.stdin.isatty() and sys.stderr.isatty()
+
+
 def _read_guided_source() -> str | None:
     return _read_guided_line("请输入 URL 或 evidence path: ")
 
@@ -697,10 +937,34 @@ def _read_guided_question() -> str | None:
     return _read_guided_line("请输入问题: ")
 
 
+def _read_guided_follow_up_question() -> str | None:
+    return _read_guided_line("请输入追问问题: ")
+
+
+def _read_guided_follow_up_decision() -> tuple[str, str | None]:
+    choice = _read_guided_line(
+        "继续围绕同一证据追问？ 输入 yes/no，或直接输入追问问题: "
+    )
+    if choice is None:
+        return ("cancel", None)
+    normalized = " ".join(str(choice or "").strip().lower().split())
+    if normalized in {"y", "yes", "true", "1", "同意", "确认", "允许", "继续"}:
+        return ("continue", None)
+    if normalized in {"n", "no", "false", "0", "不同意", "取消", "否", "不", "不用"}:
+        return ("decline", None)
+    question = _normalize_guided_question_input(choice)
+    if question:
+        return ("question", question)
+    return ("decline", None)
+
+
 def _read_guided_model_alias() -> str | None:
     print("请选择模型：1) deepseek  2) gemma4", file=sys.stderr)
     choice = _read_guided_line("请输入 1、2、deepseek 或 gemma4: ")
-    normalized = " ".join(str(choice or "").strip().lower().split())
+    normalized = _normalize_guided_choice_input(
+        choice,
+        labels=("model", "model alias", "模型", "选择模型"),
+    )
     if normalized in {"1", "deepseek"}:
         return "deepseek"
     if normalized in {"2", "gemma4"}:
@@ -713,7 +977,10 @@ def _read_guided_model_alias() -> str | None:
 def _read_guided_provider_key_mode() -> str | None:
     print("请选择 DeepSeek key 使用方式：1) 使用已保存  2) 输入 key  3) 取消", file=sys.stderr)
     choice = _read_guided_line("请输入 1、2 或 3: ")
-    normalized = " ".join(str(choice or "").strip().lower().split())
+    normalized = _normalize_guided_choice_input(
+        choice,
+        labels=("key", "key mode", "provider key", "deepseek key", "方式", "key 方式"),
+    )
     if normalized in {"1", "stored", "saved", "use-stored", "使用已保存"}:
         return "stored"
     if normalized in {"2", "prompt", "input", "输入", "输入key", "输入 key"}:
@@ -730,11 +997,64 @@ def _guided_confirm(prompt: str) -> bool:
 
 
 def _read_guided_line(prompt: str) -> str | None:
-    print(prompt, end="", file=sys.stderr)
-    raw_value = sys.stdin.readline()
+    print(prompt, end="", file=sys.stderr, flush=True)
+    try:
+        raw_value = sys.stdin.readline()
+    except KeyboardInterrupt:
+        print("", file=sys.stderr)
+        return None
     if raw_value == "":
         return None
     return raw_value.strip()
+
+
+def _strip_guided_field_label(value: str, labels: tuple[str, ...]) -> str:
+    text = str(value or "").strip()
+    lowered = text.lower()
+    for label in labels:
+        normalized_label = label.lower()
+        for separator in (":", "："):
+            prefix = f"{normalized_label}{separator}"
+            if lowered.startswith(prefix):
+                return text[len(prefix) :].strip()
+    return text
+
+
+def _normalize_guided_source_input(value: str | None) -> str:
+    text = str(value or "").strip()
+    match = re.search(r"https?://\S+", text)
+    if match:
+        return match.group(0).rstrip(".,;，；。)")
+    return _strip_guided_field_label(
+        text,
+        (
+            "url/evidence",
+            "url",
+            "source url",
+            "source",
+            "evidence path",
+            "evidence",
+            "来源",
+            "地址",
+            "路径",
+        ),
+    )
+
+
+def _normalize_guided_question_input(value: str | None) -> str:
+    return _strip_guided_field_label(
+        str(value or ""),
+        ("question", "q", "问题", "提问"),
+    )
+
+
+def _normalize_guided_choice_input(
+    value: str | None,
+    *,
+    labels: tuple[str, ...],
+) -> str:
+    stripped = _strip_guided_field_label(str(value or ""), labels)
+    return " ".join(stripped.strip().lower().split())
 
 
 def _apply_guided_external_readonly_fetch_confirmation(args: argparse.Namespace) -> None:
@@ -950,12 +1270,15 @@ def _read_provider_key_persistence_choice() -> str:
         "请选择 DeepSeek key 使用方式：1) 仅本次使用  2) 长期保存  3) 取消",
         file=sys.stderr,
     )
-    print("请输入 1、2 或 3：", end="", file=sys.stderr)
+    print("请输入 1、2 或 3：", end="", file=sys.stderr, flush=True)
     try:
         raw_choice = sys.stdin.readline()
     except KeyboardInterrupt:
         return "cancel"
-    normalized = " ".join(str(raw_choice or "").strip().lower().split())
+    normalized = _normalize_guided_choice_input(
+        raw_choice,
+        labels=("key", "key mode", "provider key", "deepseek key", "方式", "key 方式"),
+    )
     if normalized in {"1", "once", "one-time", "本次", "仅本次", "仅本次使用"}:
         return "once"
     if normalized in {"2", "store", "save", "persist", "长期", "长期保存"}:
@@ -1273,6 +1596,9 @@ def _output_from_answer_result(
     llm_request: LlmInvocationRequest | None,
     evidence_bridge: Mapping[str, Any],
     resolution_warnings: tuple[str, ...],
+    follow_up_seed: Any | None = None,
+    follow_up_turn_index: int | None = None,
+    source_follow_up_seed_ref: str | None = None,
 ) -> dict[str, Any]:
     context = evidence_bridge["context"]
     product_summary_refs = _product_refs(answer_result, context)
@@ -1288,6 +1614,42 @@ def _output_from_answer_result(
         *_string_tuple(answer_result.get("warnings")),
         *resolution_warnings,
     ]
+    follow_up_seed_payload = (
+        evidence_summary_answer_follow_up_seed_status_dict(follow_up_seed)
+        if follow_up_seed is not None
+        else None
+    )
+    trace_seed_ref = source_follow_up_seed_ref or _optional_string(
+        _mapping(follow_up_seed_payload).get("seed_ref")
+    )
+    answer_trace_model = build_evidence_summary_answer_trace(
+        context,
+        answer_result,
+        readonly_refs_status=str(evidence_bridge.get("readonly_refs_status") or status),
+        evidence_refs=product_summary_refs["evidence_refs"],
+        additional_refs=product_summary_refs["additional_refs"],
+        follow_up=follow_up_turn_index is not None,
+        follow_up_turn_index=follow_up_turn_index,
+        follow_up_seed_ref=trace_seed_ref,
+        metadata={
+            "product_path": EXTERNAL_READONLY_ASK_PRODUCT_PATH,
+            **_llm_request_trace_metadata(llm_request),
+        },
+    )
+    answer_trace = evidence_summary_answer_trace_status_dict(answer_trace_model)
+    answer_trace_summary = evidence_summary_answer_trace_summary_dict(answer_trace_model)
+    answer_artifact_model = build_evidence_summary_answer_artifact(
+        context,
+        answer_result,
+        answer_trace_model,
+        metadata={"product_path": EXTERNAL_READONLY_ASK_PRODUCT_PATH},
+    )
+    answer_artifact = evidence_summary_answer_artifact_status_dict(
+        answer_artifact_model
+    )
+    answer_artifact_summary = evidence_summary_answer_artifact_summary_dict(
+        answer_artifact_model
+    )
     product_response_summary = _product_response_summary(
         request_id=request_id,
         answer_status=status,
@@ -1313,6 +1675,15 @@ def _output_from_answer_result(
         external_network_call_performed=bool(
             evidence_bridge.get("external_network_call_performed", False)
         ),
+        follow_up=follow_up_turn_index is not None,
+        follow_up_turn_index=follow_up_turn_index,
+        follow_up_seed_ref=source_follow_up_seed_ref,
+        answer_trace_ref=answer_trace["trace_ref"],
+        answer_trace_status=answer_trace["answer_status"],
+        answer_trace_summary=answer_trace_summary,
+        answer_artifact_ref=answer_artifact["artifact_ref"],
+        answer_artifact_status=answer_artifact["artifact_status"],
+        answer_artifact_summary=answer_artifact_summary,
     )
     blocking_reasons = _string_tuple(answer_result.get("blocking_reasons"))
     citation_failures = _string_tuple(answer_result.get("citation_failures"))
@@ -1331,7 +1702,11 @@ def _output_from_answer_result(
     return {
         "product": PRODUCT_NAME,
         "command": EXTERNAL_READONLY_ASK_COMMAND,
-        "interaction_mode": EXTERNAL_READONLY_ASK_INTERACTION_MODE,
+        "interaction_mode": (
+            EVIDENCE_SUMMARY_ANSWER_FOLLOW_UP_INTERACTION_MODE
+            if follow_up_turn_index is not None
+            else EXTERNAL_READONLY_ASK_INTERACTION_MODE
+        ),
         "product_path": EXTERNAL_READONLY_ASK_PRODUCT_PATH,
         "status": status,
         "success": status == "success",
@@ -1348,6 +1723,14 @@ def _output_from_answer_result(
         "evidence_refs": evidence_refs,
         "additional_refs": additional_refs,
         "readonly_refs_status": evidence_bridge.get("readonly_refs_status"),
+        "answer_trace_ref": answer_trace["trace_ref"],
+        "answer_trace_status": answer_trace["answer_status"],
+        "answer_trace_summary": answer_trace_summary,
+        "answer_artifact_ref": answer_artifact["artifact_ref"],
+        "answer_artifact_status": answer_artifact["artifact_status"],
+        "answer_artifact_summary": answer_artifact_summary,
+        "evidence_summary_answer_trace": answer_trace,
+        "evidence_summary_answer_artifact": answer_artifact,
         "product_response_summary": product_response_summary,
         "question_preview": _preview(question, limit=120),
         "answer": answer_text,
@@ -1379,6 +1762,262 @@ def _output_from_answer_result(
         "citation_failures": citation_failures,
         "warnings": warnings,
         "exit_code": _exit_code_from_status(status),
+        "follow_up": follow_up_turn_index is not None,
+        "follow_up_turn_index": follow_up_turn_index,
+        "follow_up_seed_ref": source_follow_up_seed_ref,
+        "follow_up_available": bool(
+            follow_up_seed_payload
+            and follow_up_seed_payload.get("follow_up_allowed") is True
+        ),
+        "follow_up_seed": follow_up_seed_payload,
+        "temporary_follow_up": True,
+        "durable_session": False,
+        "memory_enabled": False,
+    }
+
+
+def _output_with_follow_up_turns(
+    initial_output: dict[str, Any],
+    *,
+    follow_up_questions: tuple[str, ...],
+    source_url: str | None,
+    evidence_paths: tuple[str, ...],
+    evidence_bridge: Mapping[str, Any],
+    service: Any,
+    args: argparse.Namespace,
+    request_id: str,
+    source_seed: Any | None,
+    guided_follow_up: bool = False,
+) -> dict[str, Any]:
+    turns = [_turn_summary(initial_output, turn_index=1)]
+    if initial_output.get("status") != "success" or source_seed is None:
+        initial_output["turn_count"] = len(turns)
+        initial_output["turns"] = turns
+        initial_output["follow_up_requested"] = bool(follow_up_questions)
+        initial_output["follow_up_blocking_reasons"] = (
+            ["source_turn_not_success_or_seed_missing"]
+            if follow_up_questions
+            else []
+        )
+        return initial_output
+
+    current_seed = source_seed
+    final_output = initial_output
+    planned_questions = list(follow_up_questions)
+    follow_up_index = 0
+    guided_prompted = False
+    follow_up_declined = False
+    follow_up_cancelled = False
+    while planned_questions or guided_follow_up:
+        if planned_questions:
+            follow_up_question = planned_questions.pop(0)
+        else:
+            guided_prompted = True
+            _print_guided_follow_up_turn_preview(final_output)
+            try:
+                decision, inline_question = _read_guided_follow_up_decision()
+            except (EOFError, KeyboardInterrupt):
+                follow_up_cancelled = True
+                break
+            if decision == "cancel":
+                follow_up_cancelled = True
+                break
+            if decision == "decline":
+                follow_up_declined = True
+                break
+            raw_question = inline_question
+            if raw_question is None:
+                try:
+                    raw_question = _read_guided_follow_up_question()
+                except (EOFError, KeyboardInterrupt):
+                    follow_up_cancelled = True
+                    break
+                if raw_question is None:
+                    follow_up_cancelled = True
+                    break
+            follow_up_question = _normalize_guided_question_input(raw_question)
+            if not follow_up_question:
+                warnings = list(final_output.get("warnings") or [])
+                warnings.append(
+                    EXTERNAL_READONLY_ASK_GUIDED_FOLLOW_UP_QUESTION_REQUIRED
+                )
+                final_output["warnings"] = warnings
+                final_output["follow_up_blocking_reasons"] = [
+                    EXTERNAL_READONLY_ASK_GUIDED_FOLLOW_UP_QUESTION_REQUIRED
+                ]
+                break
+        follow_up_index += 1
+        final_output, current_seed = _run_follow_up_turn(
+            follow_up_question,
+            follow_up_index=follow_up_index,
+            source_url=source_url,
+            evidence_paths=evidence_paths,
+            evidence_bridge=evidence_bridge,
+            service=service,
+            args=args,
+            request_id=request_id,
+            seed=current_seed,
+        )
+        turns.append(_turn_summary(final_output, turn_index=follow_up_index + 1))
+        if final_output.get("status") != "success" or current_seed is None:
+            break
+
+    final_output["initial_request_id"] = initial_output.get("request_id")
+    final_output["turn_count"] = len(turns)
+    final_output["turns"] = turns
+    final_output["follow_up_requested"] = (
+        bool(follow_up_questions)
+        or follow_up_index > 0
+        or (guided_prompted and not follow_up_declined)
+    )
+    final_output["guided_follow_up_prompted"] = guided_prompted
+    final_output["follow_up_declined"] = follow_up_declined
+    final_output["follow_up_cancelled"] = follow_up_cancelled
+    final_output.setdefault("follow_up_blocking_reasons", [])
+    return final_output
+
+
+def _print_guided_follow_up_turn_preview(output: Mapping[str, Any]) -> None:
+    answer = _optional_string(output.get("answer")) or _optional_string(
+        output.get("answer_preview")
+    )
+    if answer:
+        print("", file=sys.stderr)
+        print("本轮答案:", file=sys.stderr)
+        print(answer, file=sys.stderr)
+    print(
+        "提示：追问仅在当前进程内围绕同一受治理证据继续；"
+        "不启用长期 Memory 或持久会话。",
+        file=sys.stderr,
+    )
+
+
+def _run_follow_up_turn(
+    follow_up_question: str,
+    *,
+    follow_up_index: int,
+    source_url: str | None,
+    evidence_paths: tuple[str, ...],
+    evidence_bridge: Mapping[str, Any],
+    service: Any,
+    args: argparse.Namespace,
+    request_id: str,
+    seed: Any,
+) -> tuple[dict[str, Any], Any | None]:
+    context = build_evidence_summary_answer_follow_up_context(
+        seed,
+        request_id=f"{request_id}/follow-up-{follow_up_index}/context",
+        follow_up_question=follow_up_question,
+        digests=evidence_bridge["context"].digests,
+        metadata={"product_path": EXTERNAL_READONLY_ASK_PRODUCT_PATH},
+    )
+    generation_policy_facts = _generation_policy_facts(context)
+    preflight_result_model = build_evidence_summary_answer_answerability_preflight_result(
+        context,
+        metadata={
+            "source": EXTERNAL_READONLY_ASK_SOURCE,
+            "product_path": EXTERNAL_READONLY_ASK_PRODUCT_PATH,
+        },
+    )
+    if preflight_result_model is not None:
+        answer_result = evidence_summary_answer_result_status_dict(preflight_result_model)
+        next_seed = build_evidence_summary_answer_follow_up_seed(
+            preflight_result_model,
+            metadata={"product_path": EXTERNAL_READONLY_ASK_PRODUCT_PATH},
+        )
+        follow_up_bridge = dict(evidence_bridge)
+        follow_up_bridge["context"] = context
+        output = _output_from_answer_result(
+            f"{request_id}/follow-up-{follow_up_index}",
+            evidence_paths=evidence_paths,
+            source_url=source_url,
+            question=follow_up_question,
+            answer_result=answer_result,
+            llm_request=None,
+            evidence_bridge=follow_up_bridge,
+            resolution_warnings=(),
+            follow_up_seed=next_seed,
+            follow_up_turn_index=follow_up_index,
+            source_follow_up_seed_ref=seed.seed_ref,
+        )
+        return output, next_seed
+
+    llm_request = build_evidence_summary_answer_llm_invocation_request(
+        context,
+        route_facts=_route_facts(args),
+        governance_precondition=_governance_precondition(args),
+        request_id=f"{request_id}/follow-up-{follow_up_index}/llm",
+        generation_policy_facts=generation_policy_facts,
+        metadata={"product_path": EXTERNAL_READONLY_ASK_PRODUCT_PATH},
+    )
+    llm_result = service.invoke(llm_request)
+    answer_result_model = build_evidence_summary_answer_result_from_llm_invocation_result(
+        context,
+        llm_result,
+        generation_policy_facts=generation_policy_facts,
+        metadata={"product_path": EXTERNAL_READONLY_ASK_PRODUCT_PATH},
+    )
+    answer_result = evidence_summary_answer_result_status_dict(answer_result_model)
+    next_seed = (
+        build_evidence_summary_answer_follow_up_seed(
+            answer_result_model,
+            metadata={"product_path": EXTERNAL_READONLY_ASK_PRODUCT_PATH},
+        )
+        if answer_result_model.status == "success"
+        else None
+    )
+    follow_up_bridge = dict(evidence_bridge)
+    follow_up_bridge["context"] = context
+    output = _output_from_answer_result(
+        f"{request_id}/follow-up-{follow_up_index}",
+        evidence_paths=evidence_paths,
+        source_url=source_url,
+        question=follow_up_question,
+        answer_result=answer_result,
+        llm_request=llm_request,
+        evidence_bridge=follow_up_bridge,
+        resolution_warnings=(),
+        follow_up_seed=next_seed,
+        follow_up_turn_index=follow_up_index,
+        source_follow_up_seed_ref=seed.seed_ref,
+    )
+    return output, next_seed
+
+
+def _turn_summary(output: Mapping[str, Any], *, turn_index: int) -> dict[str, Any]:
+    return {
+        "turn_index": turn_index,
+        "request_id": output.get("request_id"),
+        "status": output.get("status"),
+        "follow_up": output.get("follow_up") is True,
+        "follow_up_turn_index": output.get("follow_up_turn_index"),
+        "question_preview": output.get("question_preview"),
+        "answer": output.get("answer"),
+        "evidence_refs": output.get("evidence_refs") or [],
+        "additional_refs": output.get("additional_refs") or [],
+    }
+
+
+def _llm_request_trace_metadata(
+    llm_request: LlmInvocationRequest | None,
+) -> dict[str, str]:
+    if llm_request is None:
+        return {}
+    route_facts = getattr(llm_request, "route_facts", None)
+    metadata = _mapping(getattr(route_facts, "metadata", None))
+    profile_refs = {
+        "provider_profile_ref": metadata.get("provider_profile_ref"),
+        "model_profile_ref": metadata.get("model_profile_ref"),
+        "output_governance_profile_ref": metadata.get(
+            "output_governance_profile_ref"
+        ),
+        "llm_route_provider": getattr(route_facts, "provider", None),
+        "llm_route_model": getattr(route_facts, "model_name", None),
+    }
+    return {
+        key: value
+        for key, value in profile_refs.items()
+        if isinstance(value, str) and value
     }
 
 
@@ -1397,6 +2036,20 @@ def _blocked_output(
     additional_refs = _allowed_refs(product_response_summary.get("additional_refs"))
     public_evidence_refs = _public_ref_details(evidence_refs)
     public_additional_refs = _public_ref_details(additional_refs)
+    answer_trace_ref = _optional_string(product_response_summary.get("answer_trace_ref"))
+    answer_trace_status = _optional_string(
+        product_response_summary.get("answer_trace_status")
+    )
+    answer_trace_summary = _mapping(product_response_summary.get("answer_trace_summary"))
+    answer_artifact_ref = _optional_string(
+        product_response_summary.get("answer_artifact_ref")
+    )
+    answer_artifact_status = _optional_string(
+        product_response_summary.get("answer_artifact_status")
+    )
+    answer_artifact_summary = _mapping(
+        product_response_summary.get("answer_artifact_summary")
+    )
     citation_failures: tuple[str, ...] = ()
     failure_explanation = _failure_explanation(
         status="blocked",
@@ -1428,6 +2081,18 @@ def _blocked_output(
         "evidence_refs": public_evidence_refs,
         "additional_refs": public_additional_refs,
         "readonly_refs_status": "blocked",
+        "answer_trace_ref": answer_trace_ref,
+        "answer_trace_status": answer_trace_status,
+        "answer_trace_summary": dict(answer_trace_summary),
+        "answer_trace_unavailable_reason": (
+            None if answer_trace_ref else "answer_trace_requires_answer_context"
+        ),
+        "answer_artifact_ref": answer_artifact_ref,
+        "answer_artifact_status": answer_artifact_status,
+        "answer_artifact_summary": dict(answer_artifact_summary),
+        "answer_artifact_unavailable_reason": (
+            None if answer_artifact_ref else "answer_artifact_requires_answer_context"
+        ),
         "product_response_summary": dict(product_response_summary),
         "question_preview": _preview(question, limit=120) if question else None,
         "answer": None,
@@ -1502,6 +2167,15 @@ def _product_response_summary(
     external_readonly_fetch_performed: bool,
     external_readonly_network_call_performed: bool,
     external_network_call_performed: bool,
+    follow_up: bool = False,
+    follow_up_turn_index: int | None = None,
+    follow_up_seed_ref: str | None = None,
+    answer_trace_ref: str | None = None,
+    answer_trace_status: str | None = None,
+    answer_trace_summary: Mapping[str, Any] | None = None,
+    answer_artifact_ref: str | None = None,
+    answer_artifact_status: str | None = None,
+    answer_artifact_summary: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     result = execute_external_readonly_ask_gateway_request(
         {
@@ -1523,6 +2197,18 @@ def _product_response_summary(
                 external_readonly_network_call_performed
             ),
             "external_network_call_performed": external_network_call_performed,
+            "follow_up": follow_up,
+            "follow_up_turn_index": follow_up_turn_index,
+            "follow_up_seed_ref": follow_up_seed_ref,
+            "answer_trace_ref": answer_trace_ref,
+            "answer_trace_status": answer_trace_status,
+            "answer_trace_summary": dict(answer_trace_summary or {}),
+            "answer_artifact_ref": answer_artifact_ref,
+            "answer_artifact_status": answer_artifact_status,
+            "answer_artifact_summary": dict(answer_artifact_summary or {}),
+            "temporary_follow_up": True,
+            "durable_session": False,
+            "memory_enabled": False,
             "metadata": {
                 "source": EXTERNAL_READONLY_ASK_SOURCE,
                 "product_path": EXTERNAL_READONLY_ASK_PRODUCT_PATH,
@@ -1649,12 +2335,57 @@ def _text_output(output: Mapping[str, Any]) -> str:
         f"command: {output['command']}",
         f"status: {output['status']}",
         f"request_id: {output['request_id']}",
+        f"answer_trace_ref: {output.get('answer_trace_ref') or 'unavailable'}",
+        f"answer_artifact_ref: {output.get('answer_artifact_ref') or 'unavailable'}",
         f"evidence_ref_count: {output['evidence_ref_count']}",
         f"additional_ref_count: {output['additional_ref_count']}",
         f"readonly_refs_status: {output['readonly_refs_status']}",
         f"llm_call_attempted: {str(output['llm_call_attempted']).lower()}",
         f"llm_runtime_call_performed: {str(output['llm_runtime_call_performed']).lower()}",
     ]
+    if output.get("turn_count"):
+        lines.append(f"turn_count: {output['turn_count']}")
+    if output.get("answer_trace_status"):
+        lines.append(f"answer_trace_status: {output.get('answer_trace_status')}")
+    if output.get("answer_trace_unavailable_reason"):
+        lines.append(
+            "answer_trace_unavailable_reason: "
+            f"{output.get('answer_trace_unavailable_reason')}"
+        )
+    if output.get("answer_artifact_status"):
+        lines.append(
+            f"answer_artifact_status: {output.get('answer_artifact_status')}"
+        )
+    if output.get("answer_artifact_unavailable_reason"):
+        lines.append(
+            "answer_artifact_unavailable_reason: "
+            f"{output.get('answer_artifact_unavailable_reason')}"
+        )
+    if output.get("follow_up"):
+        lines.append(f"follow_up_turn_index: {output.get('follow_up_turn_index')}")
+    if (
+        output.get("follow_up_available")
+        or output.get("follow_up")
+        or output.get("turn_count")
+        or output.get("guided_follow_up_prompted")
+    ):
+        lines.append(
+            "follow_up_scope: temporary_only; "
+            "durable_session=false; memory_enabled=false"
+        )
+    if output.get("guided_follow_up_prompted"):
+        lines.append(
+            "guided_follow_up_prompted: "
+            f"{str(output.get('guided_follow_up_prompted')).lower()}"
+        )
+    if output.get("follow_up_declined"):
+        lines.append("follow_up_declined: true")
+    if output.get("follow_up_cancelled"):
+        lines.append("follow_up_cancelled: true")
+    if output.get("follow_up_available"):
+        seed_ref = _mapping(output.get("follow_up_seed")).get("seed_ref")
+        suffix = f" ({seed_ref})" if seed_ref else ""
+        lines.append(f"follow_up_available: true{suffix}")
     blocking = output.get("blocking_reasons") or []
     warnings = output.get("warnings") or []
     if blocking:
@@ -1680,6 +2411,17 @@ def _text_output(output: Mapping[str, Any]) -> str:
     if answer:
         lines.append("answer:")
         lines.append(str(answer))
+    turns = _list_value(output.get("turns"))
+    if turns:
+        lines.append("turns:")
+        for turn in turns:
+            mapping = _mapping(turn)
+            lines.append(
+                "- "
+                f"{mapping.get('turn_index')}: "
+                f"{mapping.get('status')} "
+                f"{mapping.get('question_preview')}"
+            )
     return "\n".join(lines)
 
 
@@ -1781,6 +2523,15 @@ def _normalized_question(value: Any) -> str:
     return " ".join(str(value).split())
 
 
+def _normalized_follow_up_questions(values: Any) -> tuple[str, ...]:
+    questions = []
+    for value in _list_value(values):
+        question = _normalized_question(value)
+        if question:
+            questions.append(question)
+    return tuple(questions)
+
+
 def _normalized_optional_text(value: Any) -> str | None:
     if value is None:
         return None
@@ -1857,6 +2608,14 @@ def _failure_explanation(
         )
     if _has_model_alias_reason(blocking_reasons):
         return "模型别名参数未通过预检，尚未进入模型回答。"
+    if EXTERNAL_READONLY_ASK_GUIDED_EXTERNAL_FETCH_DECLINED in blocking_reasons:
+        return "用户未授权本次外部只读抓取，已停止在模型回答之前。"
+    if EXTERNAL_READONLY_ASK_GUIDED_LIVE_LLM_DECLINED in blocking_reasons:
+        return "用户未授权本次受控大模型回答，已停止进入模型调用。"
+    if EXTERNAL_READONLY_ASK_GUIDED_EXTERNAL_PROVIDER_DECLINED in blocking_reasons:
+        return "用户未授权本次外部模型 provider 调用，已停止进入模型调用。"
+    if EXTERNAL_READONLY_ASK_GUIDED_QUESTION_REQUIRED in blocking_reasons:
+        return "用户未输入问题，已停止在证据抓取和模型回答之前。"
     if _has_guided_reason(blocking_reasons):
         return "首用引导未完成或当前场景不可交互，尚未进入模型回答。"
     if _has_provider_key_reason(blocking_reasons):
@@ -1871,6 +2630,8 @@ def _failure_explanation(
         return "当前产品入口没有可用的模型调用服务。"
     if EXTERNAL_READONLY_ASK_PROVIDER_RESOLUTION_FAILED in blocking_reasons:
         return "模型调用服务解析失败，尚未形成回答。"
+    if _has_output_schema_validation_failure_reason(blocking_reasons):
+        return "模型输出未通过结构化输出校验，未形成可返回答案。"
     if any(reason.startswith("llm_invocation_failure:") for reason in blocking_reasons):
         return "模型调用失败，未形成可返回答案。"
     if blocking_reasons:
@@ -1907,6 +2668,26 @@ def _recovery_hints(
             return [
                 "当前不是可交互终端，已避免阻塞等待首用输入。",
                 "请在终端中重试 --guided，或显式提供所有 ask 参数。",
+            ]
+        if EXTERNAL_READONLY_ASK_GUIDED_EXTERNAL_FETCH_DECLINED in blocking_reasons:
+            return [
+                "如需让系统读取该 URL，请重新运行 --guided 并在外部只读抓取确认处输入 yes。",
+                "若不希望联网，请先使用受控 fetch 生成 evidence archive，再用 evidence path 提问。",
+            ]
+        if EXTERNAL_READONLY_ASK_GUIDED_LIVE_LLM_DECLINED in blocking_reasons:
+            return [
+                "如需形成模型答案，请重新运行 --guided 并在受控大模型回答确认处输入 yes。",
+                "若只想检查证据抓取，请使用 external-readonly refs/fetch 路径，不进入 ask 模型回答。",
+            ]
+        if EXTERNAL_READONLY_ASK_GUIDED_EXTERNAL_PROVIDER_DECLINED in blocking_reasons:
+            return [
+                "如需使用 DeepSeek，请重新运行 --guided 并在外部 provider 调用确认处输入 yes。",
+                "若不希望调用外部 provider，请选择 gemma4 本地模型。",
+            ]
+        if EXTERNAL_READONLY_ASK_GUIDED_QUESTION_REQUIRED in blocking_reasons:
+            return [
+                "请重新运行 --guided，并在“请输入问题”处输入要基于证据回答的问题。",
+                "问题可以很短，例如：这份资料主要说明了什么？",
             ]
         return [
             "请重新运行 --guided，并按提示输入 URL/evidence、问题、模型与授权确认。",
@@ -1967,6 +2748,12 @@ def _recovery_hints(
             "请检查所选 provider 的环境变量密钥、网络可达性、模型名称和服务额度。",
             "若使用外部 provider，请确认失败详情只保留在本地调试环境，不进入产品响应。",
         ]
+    if _has_output_schema_validation_failure_reason(blocking_reasons):
+        return [
+            "请缩短追问或降低摘要字数，并明确要求只基于证据给出最终答案。",
+            "可重试一次，或切换到 deepseek 路径验证是否为本地结构化输出约束导致。",
+            "若持续失败，请保留 request_id 供后续 output governance profile 修补。",
+        ]
     if _has_missing_gate_reason(blocking_reasons):
         return [
             "请补齐 source URL 或 evidence path。",
@@ -2014,6 +2801,10 @@ def _has_guided_reason(blocking_reasons: tuple[str, ...]) -> bool:
         EXTERNAL_READONLY_ASK_GUIDED_UNAVAILABLE_FOR_JSON_OUTPUT,
         EXTERNAL_READONLY_ASK_GUIDED_REQUIRES_INTERACTIVE_TERMINAL,
         EXTERNAL_READONLY_ASK_GUIDED_CANCELLED,
+        EXTERNAL_READONLY_ASK_GUIDED_EXTERNAL_FETCH_DECLINED,
+        EXTERNAL_READONLY_ASK_GUIDED_LIVE_LLM_DECLINED,
+        EXTERNAL_READONLY_ASK_GUIDED_EXTERNAL_PROVIDER_DECLINED,
+        EXTERNAL_READONLY_ASK_GUIDED_QUESTION_REQUIRED,
         EXTERNAL_READONLY_ASK_GUIDED_INPUT_REQUIRED,
     }
     return any(reason in guided_reasons for reason in blocking_reasons)
@@ -2054,6 +2845,15 @@ def _has_live_call_failure_reason(blocking_reasons: tuple[str, ...]) -> bool:
     )
 
 
+def _has_output_schema_validation_failure_reason(
+    blocking_reasons: tuple[str, ...],
+) -> bool:
+    return any(
+        reason == "llm_invocation_failure:output_schema_validation_failure"
+        for reason in blocking_reasons
+    )
+
+
 def _text_ref_lines(value: list[Any]) -> list[str]:
     lines: list[str] = []
     for item in value:
@@ -2090,8 +2890,10 @@ __all__ = [
     "EXTERNAL_READONLY_ASK_COMMAND",
     "EXTERNAL_READONLY_ASK_INTERACTION_MODE",
     "EXTERNAL_READONLY_ASK_REQUEST_ID",
+    "ExternalReadonlyAskCliSessionState",
     "ExternalReadonlyAskFetchExecutor",
     "ExternalReadonlyAskLlmInvocationServiceFactory",
     "build_external_readonly_ask_cli_output",
+    "build_external_readonly_ask_follow_up_cli_output",
     "external_readonly_ask_command",
 ]

@@ -28,7 +28,7 @@ dependencies = [
     "cognition-system-composition==0.8.0",
     "cognition-system-external-readonly==0.8.0",
     "cognition-system-runtime-container==0.8.0",
-    "cognition-system-task-workflows==0.8.0",
+    "cognition-system-operation-flows==0.8.0",
     "cognition-system-product-gateway==0.8.0",
     "cognition-system-product-runtime-assembly==0.8.0",
     "cognition-system-product-application-assembly==0.8.0",
@@ -105,7 +105,7 @@ cognition-system-contract-core = { workspace = true }
 cognition-system-adk-adapter = { workspace = true }
 cognition-system-observability-hub = { workspace = true }
 cognition-system-runtime-container = { workspace = true }
-cognition-system-task-workflows = { workspace = true }
+cognition-system-operation-flows = { workspace = true }
 cognition-system-cli = { workspace = true }
 cognition-system-product-gateway = { workspace = true }
 cognition-system-product-runtime-assembly = { workspace = true }

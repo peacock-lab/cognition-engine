@@ -21,12 +21,12 @@ PACKAGE_ROOTS = {
         / "src"
         / "product_runtime_assembly"
     ),
-    "task_workflows": (
+    "operation_flows": (
         REPO_ROOT
         / "packages"
-        / "task_workflows"
+        / "operation_flows"
         / "src"
-        / "cognition_task_workflows"
+        / "cognition_operation_flows"
     ),
     "cli": REPO_ROOT / "packages" / "cli" / "src" / "cognition_cli",
 }
@@ -50,7 +50,7 @@ def test_runtime_container_does_not_import_product_or_adapter_layers() -> None:
     forbidden = (
         "product_gateway",
         "cognition_cli",
-        "cognition_task_workflows",
+        "cognition_operation_flows",
         "adk_adapter",
         "google.adk",
         "litellm",
@@ -64,7 +64,7 @@ def test_composition_root_does_not_import_runtime_container_or_product_layers() 
         "runtime_container",
         "product_gateway",
         "cognition_cli",
-        "cognition_task_workflows",
+        "cognition_operation_flows",
     )
 
     _assert_sources_do_not_import(PACKAGE_ROOTS["composition"], forbidden)
@@ -84,8 +84,8 @@ def test_product_runtime_assembly_stays_out_of_composition_and_runtime_layers() 
         "adk_adapter",
         "google.adk",
         "litellm",
-        "cognition_task_workflows",
-        "product_gateway._task_workflows",
+        "cognition_operation_flows",
+        "product_gateway._operation_flows",
         "product_gateway.contracts",
     )
 
@@ -98,11 +98,11 @@ def test_product_runtime_assembly_stays_out_of_composition_and_runtime_layers() 
         _assert_source_does_not_import(source_path, forbidden)
 
 
-def test_cli_and_task_workflows_do_not_import_runtime_container_or_composition() -> None:
+def test_cli_and_operation_flows_do_not_import_runtime_container_or_composition() -> None:
     forbidden = ("runtime_container", "composition")
 
     _assert_sources_do_not_import(PACKAGE_ROOTS["cli"], forbidden)
-    _assert_sources_do_not_import(PACKAGE_ROOTS["task_workflows"], forbidden)
+    _assert_sources_do_not_import(PACKAGE_ROOTS["operation_flows"], forbidden)
 
 
 def _assert_sources_do_not_import(source_root: Path, forbidden: tuple[str, ...]) -> None:

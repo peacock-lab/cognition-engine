@@ -9,19 +9,36 @@ from pydantic import ValidationError
 
 from schemas import (
     EvidenceSummaryAnswerContextSchema as RootEvidenceSummaryAnswerContextSchema,
+    EvidenceSummaryAnswerArtifactSchema as RootEvidenceSummaryAnswerArtifactSchema,
+    EvidenceSummaryAnswerFollowUpSeedSchema as RootEvidenceSummaryAnswerFollowUpSeedSchema,
+    EvidenceSummaryAnswerTraceSchema as RootEvidenceSummaryAnswerTraceSchema,
     GovernedEvidenceDigestSchema as RootGovernedEvidenceDigestSchema,
+    validate_evidence_summary_answer_artifact as root_validate_artifact,
+    validate_evidence_summary_answer_follow_up_seed as root_validate_follow_up_seed,
+    validate_evidence_summary_answer_trace as root_validate_trace,
     validate_governed_evidence_digest as root_validate_governed_evidence_digest,
 )
 from schemas.evidence_summary_answer import (
+    EVIDENCE_SUMMARY_ANSWER_ARTIFACT_REF_PREFIX,
+    EVIDENCE_SUMMARY_ANSWER_ARTIFACT_VERSION,
     EVIDENCE_SUMMARY_ANSWER_CONTEXT_VERSION,
+    EVIDENCE_SUMMARY_ANSWER_FOLLOW_UP_SEED_VERSION,
     EVIDENCE_SUMMARY_ANSWER_PRODUCT,
     EVIDENCE_SUMMARY_ANSWER_RESULT_VERSION,
+    EVIDENCE_SUMMARY_ANSWER_TRACE_REF_PREFIX,
+    EVIDENCE_SUMMARY_ANSWER_TRACE_VERSION,
     GOVERNED_EVIDENCE_DIGEST_VERSION,
+    EvidenceSummaryAnswerArtifactSchema,
     EvidenceSummaryAnswerContextSchema,
+    EvidenceSummaryAnswerFollowUpSeedSchema,
     EvidenceSummaryAnswerResultSchema,
+    EvidenceSummaryAnswerTraceSchema,
     GovernedEvidenceDigestSchema,
+    validate_evidence_summary_answer_artifact,
     validate_evidence_summary_answer_context,
+    validate_evidence_summary_answer_follow_up_seed,
     validate_evidence_summary_answer_result,
+    validate_evidence_summary_answer_trace,
     validate_governed_evidence_digest,
 )
 
@@ -67,6 +84,70 @@ def test_evidence_summary_answer_result_accepts_success_with_citation() -> None:
     assert result.digest_refs_used == ["governed-evidence-digest://request-1/digest-1"]
 
 
+def test_evidence_summary_answer_follow_up_seed_accepts_temporary_public_shape() -> None:
+    seed = validate_evidence_summary_answer_follow_up_seed(_follow_up_seed())
+
+    assert isinstance(seed, EvidenceSummaryAnswerFollowUpSeedSchema)
+    assert seed.product == EVIDENCE_SUMMARY_ANSWER_PRODUCT
+    assert seed.payload_type == "evidence_summary_answer_follow_up_seed"
+    assert seed.payload_version == EVIDENCE_SUMMARY_ANSWER_FOLLOW_UP_SEED_VERSION
+    assert seed.follow_up_allowed is True
+    assert seed.temporary_only is True
+    assert seed.durable_session is False
+    assert seed.memory_enabled is False
+    assert seed.digest_refs == ["governed-evidence-digest://request-1/digest-1"]
+
+
+def test_evidence_summary_answer_trace_accepts_task_workflow_compatible_shape() -> None:
+    trace = validate_evidence_summary_answer_trace(_trace())
+
+    assert isinstance(trace, EvidenceSummaryAnswerTraceSchema)
+    assert trace.payload_version == EVIDENCE_SUMMARY_ANSWER_TRACE_VERSION
+    assert trace.trace_ref.startswith(EVIDENCE_SUMMARY_ANSWER_TRACE_REF_PREFIX)
+    assert trace.answer_status == "success"
+    assert trace.task_compatible is True
+    assert trace.workflow_compatible is True
+    assert trace.backed_by_adk_task_runtime is False
+    assert trace.backed_by_adk_workflow_runtime is False
+    assert trace.provider_profile_ref == "local_ollama"
+    assert trace.model_profile_ref == "gemma4_pro_local"
+    assert trace.output_governance_profile_ref == "adk_output_schema_gemma4_baseline"
+    assert trace.durable_session is False
+    assert trace.memory_enabled is False
+
+
+def test_evidence_summary_answer_artifact_accepts_task_workflow_compatible_shape() -> None:
+    artifact = validate_evidence_summary_answer_artifact(_artifact())
+
+    assert isinstance(artifact, EvidenceSummaryAnswerArtifactSchema)
+    assert artifact.payload_version == EVIDENCE_SUMMARY_ANSWER_ARTIFACT_VERSION
+    assert artifact.artifact_ref.startswith(EVIDENCE_SUMMARY_ANSWER_ARTIFACT_REF_PREFIX)
+    assert artifact.trace_ref.startswith(EVIDENCE_SUMMARY_ANSWER_TRACE_REF_PREFIX)
+    assert artifact.answer_status == "success"
+    assert artifact.artifact_status == "success"
+    assert artifact.answer == "The governed evidence supports using a schema first."
+    assert artifact.export_allowed is False
+    assert artifact.delete_supported is True
+    assert artifact.task_compatible is True
+    assert artifact.workflow_compatible is True
+    assert artifact.backed_by_adk_task_runtime is False
+    assert artifact.backed_by_adk_workflow_runtime is False
+    assert artifact.durable_session is False
+    assert artifact.memory_enabled is False
+
+
+def test_follow_up_seed_rejects_durable_session_or_memory_runtime() -> None:
+    durable_seed = _follow_up_seed()
+    durable_seed["durable_session"] = True
+    memory_seed = _follow_up_seed()
+    memory_seed["memory_enabled"] = True
+
+    with pytest.raises(ValidationError):
+        validate_evidence_summary_answer_follow_up_seed(durable_seed)
+    with pytest.raises(ValidationError):
+        validate_evidence_summary_answer_follow_up_seed(memory_seed)
+
+
 @pytest.mark.parametrize(
     ("payload_kind", "field", "value"),
     [
@@ -79,6 +160,15 @@ def test_evidence_summary_answer_result_accepts_success_with_citation() -> None:
         ("result", "product", "other"),
         ("result", "payload_type", "other"),
         ("result", "payload_version", "other"),
+        ("trace", "product", "other"),
+        ("trace", "payload_type", "other"),
+        ("trace", "payload_version", "other"),
+        ("artifact", "product", "other"),
+        ("artifact", "payload_type", "other"),
+        ("artifact", "payload_version", "other"),
+        ("follow_up_seed", "product", "other"),
+        ("follow_up_seed", "payload_type", "other"),
+        ("follow_up_seed", "payload_version", "other"),
     ],
 )
 def test_evidence_summary_answer_rejects_invalid_payload_headers(
@@ -221,6 +311,20 @@ def test_result_rejects_raw_provider_output_metadata() -> None:
         validate_evidence_summary_answer_result(result)
 
 
+def test_trace_rejects_runtime_backing_or_durable_state() -> None:
+    trace = _trace()
+    trace["backed_by_adk_workflow_runtime"] = True
+
+    with pytest.raises(ValidationError):
+        validate_evidence_summary_answer_trace(trace)
+
+    trace = _trace()
+    trace["durable_session"] = True
+
+    with pytest.raises(ValidationError):
+        validate_evidence_summary_answer_trace(trace)
+
+
 def test_evidence_summary_answer_schema_has_no_execution_layer_imports() -> None:
     source = (SCHEMA_SOURCE_ROOT / "evidence_summary_answer.py").read_text(
         encoding="utf-8"
@@ -239,7 +343,13 @@ def test_evidence_summary_answer_schema_has_no_execution_layer_imports() -> None
 def test_schemas_root_exports_evidence_summary_answer_contracts() -> None:
     assert RootGovernedEvidenceDigestSchema is GovernedEvidenceDigestSchema
     assert RootEvidenceSummaryAnswerContextSchema is EvidenceSummaryAnswerContextSchema
+    assert RootEvidenceSummaryAnswerFollowUpSeedSchema is EvidenceSummaryAnswerFollowUpSeedSchema
+    assert RootEvidenceSummaryAnswerTraceSchema is EvidenceSummaryAnswerTraceSchema
+    assert RootEvidenceSummaryAnswerArtifactSchema is EvidenceSummaryAnswerArtifactSchema
     assert root_validate_governed_evidence_digest(_digest()).digest_id == "digest-1"
+    assert root_validate_follow_up_seed(_follow_up_seed()).seed_id == "seed-1"
+    assert root_validate_trace(_trace()).trace_id == "trace-1"
+    assert root_validate_artifact(_artifact()).artifact_id == "artifact-1"
 
 
 def _validate_payload(payload: dict[str, object]) -> object:
@@ -250,10 +360,18 @@ def _validate_payload(payload: dict[str, object]) -> object:
         return validate_evidence_summary_answer_context(payload)
     if payload_type == "evidence_summary_answer_result":
         return validate_evidence_summary_answer_result(payload)
+    if payload_type == "evidence_summary_answer_follow_up_seed":
+        return validate_evidence_summary_answer_follow_up_seed(payload)
+    if payload_type == "evidence_summary_answer_artifact":
+        return validate_evidence_summary_answer_artifact(payload)
     if "digest_ref" in payload:
         return validate_governed_evidence_digest(payload)
     if "digests" in payload:
         return validate_evidence_summary_answer_context(payload)
+    if "seed_ref" in payload:
+        return validate_evidence_summary_answer_follow_up_seed(payload)
+    if "artifact_ref" in payload:
+        return validate_evidence_summary_answer_artifact(payload)
     return validate_evidence_summary_answer_result(payload)
 
 
@@ -264,7 +382,47 @@ def _payload_for_kind(payload_kind: str) -> dict[str, object]:
         return _context()
     if payload_kind == "result":
         return _result()
+    if payload_kind == "trace":
+        return _trace()
+    if payload_kind == "artifact":
+        return _artifact()
+    if payload_kind == "follow_up_seed":
+        return _follow_up_seed()
     raise AssertionError(f"unknown payload kind: {payload_kind}")
+
+
+def _follow_up_seed() -> dict[str, object]:
+    return {
+        "product": EVIDENCE_SUMMARY_ANSWER_PRODUCT,
+        "payload_type": "evidence_summary_answer_follow_up_seed",
+        "payload_version": EVIDENCE_SUMMARY_ANSWER_FOLLOW_UP_SEED_VERSION,
+        "seed_id": "seed-1",
+        "seed_ref": "evidence-summary-answer-follow-up://seed-1",
+        "source_request_id": "request-1",
+        "source_result_status": "success",
+        "digest_refs": ["governed-evidence-digest://request-1/digest-1"],
+        "evidence_refs": [
+            {
+                "ref": "evidence://external-readonly/request-1/fetch-1",
+                "kind": "external_readonly_evidence",
+                "purpose": "answer_context",
+            }
+        ],
+        "additional_refs": [
+            {
+                "ref": "governed-evidence-digest://request-1/digest-1",
+                "kind": "governed_evidence_digest",
+                "purpose": "digest_context",
+            }
+        ],
+        "follow_up_allowed": True,
+        "temporary_only": True,
+        "durable_session": False,
+        "memory_enabled": False,
+        "blocking_reasons": [],
+        "warnings": [],
+        "metadata": {"source": "schemas.test"},
+    }
 
 
 def _digest() -> dict[str, object]:
@@ -354,6 +512,127 @@ def _result(*, status: str = "success") -> dict[str, object]:
         "llm_call_allowed": True,
         "llm_call_attempted": True,
         "llm_runtime_call_performed": True,
+        "raw_boundary_flags": {},
+        "metadata": {"source": "schemas.test"},
+    }
+
+
+def _trace() -> dict[str, object]:
+    return {
+        "product": EVIDENCE_SUMMARY_ANSWER_PRODUCT,
+        "payload_type": "evidence_summary_answer_trace",
+        "payload_version": EVIDENCE_SUMMARY_ANSWER_TRACE_VERSION,
+        "trace_id": "trace-1",
+        "trace_ref": f"{EVIDENCE_SUMMARY_ANSWER_TRACE_REF_PREFIX}trace-1",
+        "request_id": "request-1",
+        "answer_status": "success",
+        "readonly_refs_status": "ready",
+        "evidence_ref_count": 1,
+        "additional_ref_count": 1,
+        "digest_ref_count": 1,
+        "evidence_refs": [
+            {
+                "ref": "evidence://external-readonly/request-1/fetch-1",
+                "kind": "external_readonly_evidence",
+                "purpose": "answer_context",
+            }
+        ],
+        "additional_refs": [
+            {
+                "ref": "governed-evidence-digest://request-1/digest-1",
+                "kind": "governed_evidence_digest",
+                "purpose": "digest_context",
+            }
+        ],
+        "digest_refs": ["governed-evidence-digest://request-1/digest-1"],
+        "blocking_reasons": [],
+        "warnings": [],
+        "insufficient_evidence_reason": None,
+        "citation_failures": [],
+        "llm_call_allowed": True,
+        "llm_call_attempted": True,
+        "llm_runtime_call_performed": True,
+        "llm_route_provider": "litellm",
+        "llm_route_model": "ollama/gemma4-pro:latest",
+        "provider_profile_ref": "local_ollama",
+        "model_profile_ref": "gemma4_pro_local",
+        "output_governance_profile_ref": "adk_output_schema_gemma4_baseline",
+        "answerability_preflight_applied": False,
+        "answerability_preflight_reason": None,
+        "answer_ref": f"{EVIDENCE_SUMMARY_ANSWER_TRACE_REF_PREFIX}trace-1/answer",
+        "answer_preview": "The governed evidence supports using a schema first.",
+        "follow_up": False,
+        "temporary_follow_up": True,
+        "durable_session": False,
+        "memory_enabled": False,
+        "task_compatible": True,
+        "workflow_compatible": True,
+        "backed_by_adk_task_runtime": False,
+        "backed_by_adk_workflow_runtime": False,
+        "raw_boundary_flags": {},
+        "metadata": {"source": "schemas.test"},
+    }
+
+
+def _artifact() -> dict[str, object]:
+    return {
+        "product": EVIDENCE_SUMMARY_ANSWER_PRODUCT,
+        "payload_type": "evidence_summary_answer_artifact",
+        "payload_version": EVIDENCE_SUMMARY_ANSWER_ARTIFACT_VERSION,
+        "artifact_id": "artifact-1",
+        "artifact_ref": f"{EVIDENCE_SUMMARY_ANSWER_ARTIFACT_REF_PREFIX}artifact-1",
+        "request_id": "request-1",
+        "answer_status": "success",
+        "artifact_status": "success",
+        "trace_ref": f"{EVIDENCE_SUMMARY_ANSWER_TRACE_REF_PREFIX}trace-1",
+        "artifact_policy_ref": (
+            "policy://product-application-assembly/evidence-summary-answer/"
+            "artifact-v1"
+        ),
+        "evidence_ref_count": 1,
+        "additional_ref_count": 1,
+        "digest_ref_count": 1,
+        "evidence_refs": [
+            {
+                "ref": "evidence://external-readonly/request-1/fetch-1",
+                "kind": "external_readonly_evidence",
+                "purpose": "answer_context",
+            }
+        ],
+        "additional_refs": [
+            {
+                "ref": "governed-evidence-digest://request-1/digest-1",
+                "kind": "governed_evidence_digest",
+                "purpose": "digest_context",
+            }
+        ],
+        "digest_refs": ["governed-evidence-digest://request-1/digest-1"],
+        "blocking_reasons": [],
+        "warnings": [],
+        "insufficient_evidence_reason": None,
+        "citation_failures": [],
+        "llm_call_allowed": True,
+        "llm_call_attempted": True,
+        "llm_runtime_call_performed": True,
+        "llm_route_provider": "litellm",
+        "llm_route_model": "ollama/gemma4-pro:latest",
+        "provider_profile_ref": "local_ollama",
+        "model_profile_ref": "gemma4_pro_local",
+        "output_governance_profile_ref": "adk_output_schema_gemma4_baseline",
+        "answerability_preflight_applied": False,
+        "answerability_preflight_reason": None,
+        "answer_ref": f"{EVIDENCE_SUMMARY_ANSWER_TRACE_REF_PREFIX}trace-1/answer",
+        "answer": "The governed evidence supports using a schema first.",
+        "answer_preview": "The governed evidence supports using a schema first.",
+        "export_allowed": False,
+        "delete_supported": True,
+        "retention_policy_ref": None,
+        "durable_session": False,
+        "memory_enabled": False,
+        "task_compatible": True,
+        "workflow_compatible": True,
+        "backed_by_adk_task_runtime": False,
+        "backed_by_adk_workflow_runtime": False,
         "raw_boundary_flags": {},
         "metadata": {"source": "schemas.test"},
     }

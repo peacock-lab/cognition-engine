@@ -228,6 +228,16 @@ def test_composition_assembles_deepseek_profile_as_adk_output_governance(
         },
         output_governance_profiles={
             "direct_controlled_live": RuntimeLlmOutputGovernanceProfileConfigView(),
+            "adk_output_schema_gemma4_baseline": (
+                RuntimeLlmOutputGovernanceProfileConfigView(
+                    mode="adk_output_schema",
+                    adk_native=True,
+                    uses_output_schema=True,
+                    uses_output_key=True,
+                    uses_after_model_callback=True,
+                    max_repair_attempts=1,
+                )
+            ),
             "adk_no_output_schema_candidate": (
                 RuntimeLlmOutputGovernanceProfileConfigView(
                     mode="adk_no_output_schema",
@@ -266,6 +276,138 @@ def test_composition_assembles_deepseek_profile_as_adk_output_governance(
     assert assembly.metadata["profile_selection"]["backend_provider"] == "deepseek"
     assert "DEEPSEEK_API_KEY" not in str(assembly.metadata)
     assert "sk-" not in str(assembly.metadata)
+
+
+def test_composition_assembles_ollama_profile_as_adk_output_governance(
+    monkeypatch: Any,
+) -> None:
+    captured: dict[str, Any] = {}
+
+    class FakeAdkRouteFacts:
+        def to_public_model_route_facts(self) -> ModelRouteFacts:
+            return _route_facts()
+
+    def fake_build_ollama_route(**kwargs: Any) -> tuple[object, FakeAdkRouteFacts]:
+        captured.update(kwargs)
+        return object(), FakeAdkRouteFacts()
+
+    monkeypatch.setattr(
+        llm_invocation_assembly,
+        "build_litellm_ollama_model_route",
+        fake_build_ollama_route,
+    )
+    live_llm = RuntimeLiveLlmConfigView(
+        output_governance_profiles={
+            "direct_controlled_live": RuntimeLlmOutputGovernanceProfileConfigView(),
+            "adk_output_schema_gemma4_baseline": (
+                RuntimeLlmOutputGovernanceProfileConfigView(
+                    mode="adk_output_schema",
+                    adk_native=True,
+                    uses_output_schema=True,
+                    uses_output_key=True,
+                    uses_after_model_callback=True,
+                    max_repair_attempts=1,
+                )
+            ),
+            "adk_no_output_schema_candidate": (
+                RuntimeLlmOutputGovernanceProfileConfigView(
+                    mode="adk_no_output_schema",
+                    adk_native=True,
+                    uses_after_model_callback=True,
+                    max_repair_attempts=1,
+                )
+            ),
+        },
+    )
+
+    assembly = build_controlled_live_llm_invocation_service_assembly_from_runtime_config(
+        config_context=_runtime_config_context(live_llm=live_llm),
+        provider_profile_ref="local_ollama",
+        model_profile_ref="gemma4_pro_local",
+        output_governance_profile_ref="adk_no_output_schema_candidate",
+        ollama_api_base="http://127.0.0.1:11435",
+        timeout_seconds=21,
+        temperature=0.1,
+        max_tokens=48,
+        response_preview_limit=700,
+        metadata={"source": "composition-ollama-adk-test"},
+    )
+
+    assert isinstance(assembly.service, AdkEvidenceSummaryAnswerOutputGovernanceProbe)
+    assert captured["model_name"] == "ollama/gemma4-pro:latest"
+    assert captured["api_base"] == "http://127.0.0.1:11435"
+    assert captured["timeout"] == 21
+    assert captured["temperature"] == 0.1
+    assert captured["max_tokens"] == 48
+    assert assembly.metadata["service_implementation"].endswith(
+        "AdkEvidenceSummaryAnswerOutputGovernanceProbe"
+    )
+    assert assembly.metadata["profile_selection"]["backend_provider"] == "ollama"
+    metadata = assembly.metadata["assembly_options"]["metadata"]
+    assert metadata["live_service_profile"] == "adk_litellm_ollama_output_governance"
+    assert metadata["output_governance_mode"] == "no_output_schema"
+    assert metadata["output_governance_profile_ref"] == (
+        "adk_no_output_schema_candidate"
+    )
+    assert metadata["local_only_provider"] is True
+
+
+def test_composition_assembles_gemma4_output_schema_profile_as_adk_probe(
+    monkeypatch: Any,
+) -> None:
+    captured: dict[str, Any] = {}
+
+    class FakeAdkRouteFacts:
+        def to_public_model_route_facts(self) -> ModelRouteFacts:
+            return _route_facts()
+
+    def fake_build_ollama_route(**kwargs: Any) -> tuple[object, FakeAdkRouteFacts]:
+        captured.update(kwargs)
+        return object(), FakeAdkRouteFacts()
+
+    monkeypatch.setattr(
+        llm_invocation_assembly,
+        "build_litellm_ollama_model_route",
+        fake_build_ollama_route,
+    )
+    live_llm = RuntimeLiveLlmConfigView(
+        output_governance_profiles={
+            "direct_controlled_live": RuntimeLlmOutputGovernanceProfileConfigView(),
+            "adk_output_schema_gemma4_baseline": (
+                RuntimeLlmOutputGovernanceProfileConfigView(
+                    mode="adk_output_schema",
+                    adk_native=True,
+                    uses_output_schema=True,
+                    uses_output_key=True,
+                    uses_after_model_callback=True,
+                    max_repair_attempts=1,
+                )
+            ),
+            "adk_no_output_schema_candidate": (
+                RuntimeLlmOutputGovernanceProfileConfigView(
+                    mode="adk_no_output_schema",
+                    adk_native=True,
+                    uses_after_model_callback=True,
+                    max_repair_attempts=1,
+                )
+            ),
+        },
+    )
+
+    assembly = build_controlled_live_llm_invocation_service_assembly_from_runtime_config(
+        config_context=_runtime_config_context(live_llm=live_llm),
+        provider_profile_ref="local_ollama",
+        model_profile_ref="gemma4_pro_local",
+        output_governance_profile_ref="adk_output_schema_gemma4_baseline",
+    )
+
+    assert isinstance(assembly.service, AdkEvidenceSummaryAnswerOutputGovernanceProbe)
+    assert captured["model_name"] == "ollama/gemma4-pro:latest"
+    metadata = assembly.metadata["assembly_options"]["metadata"]
+    assert metadata["output_governance_profile_ref"] == (
+        "adk_output_schema_gemma4_baseline"
+    )
+    assert metadata["output_governance_mode"] == "output_schema"
 
 
 def test_composition_assembles_controlled_live_service_from_config_root(

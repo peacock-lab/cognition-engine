@@ -4,24 +4,27 @@
 
 ## v0.8.0 未发布候选
 
-`v0.8.0` 是当前公仓 / PyPI 发布候选版本号，采用全仓单一版本号口径。
+`v0.8.0` 是当前产品发布候选版本号。
 
 当前候选口径：
 
 ```text
-external-readonly 工具 + 大模型问答 CLI-first 产品入口
+可复查资料问答：用户授权读取外部只读资料，基于证据回答，并展示证据、trace、artifact、阻断原因与恢复建议。
 ```
 
 候选变化摘要：
 
-1. 全仓根包与 18 个子包统一校准到 `0.8.0`；
-2. 建立 `cognition external-readonly ask --guided` 作为首用引导入口；
-3. 支持 `deepseek` 与 `gemma4` 白名单模型别名，保持联网、live LLM、operator approval、audit 与 provider key 显性治理门；
-4. DeepSeek 路径支持一次性输入 key 与 macOS Keychain 长期保存 / 显式读取；
-5. Gemma4 路径保留为本地 Ollama 调试与试用路径；
-6. ADK 基线已对齐 `google-adk==2.0.0` GA，LiteLLM 继续锁定 `1.82.6`；
-7. `outputs/` 运行产物保持忽略，不进入发布包或公仓提交；
-8. 当前阶段不包含 PyPI 上传、tag、GitHub Release、桌面 GUI、streaming 输出或任意模型开放接入。
+1. 建立 `cognition external-readonly ask --guided` 作为可复查资料问答首用入口；
+2. 成功、阻断、失败和证据不足路径均可外显 answer trace / answer artifact 状态；
+3. 支持围绕同一 evidence digest 的当前进程内追问，并明确不冒充长期 Memory 或跨进程会话；
+4. 支持 `deepseek` 与 `gemma4` 白名单模型别名，保持联网、live LLM、operator approval、audit 与 provider key 显性治理门；
+5. DeepSeek 路径支持一次性输入 key 与 macOS Keychain 长期保存 / 显式读取；
+6. Gemma4 路径保留为本地 Ollama 调试与试用路径；
+7. ADK 基线已对齐 `google-adk==2.0.0` GA，LiteLLM 继续锁定 `1.82.6`；
+8. 公开包命名已将早期任务工作流候选调整为 `cognition-system-operation-flows`，中文口径为受治理操作流包，避免与 ADK Task API / Workflow Runtime 混淆；
+9. 当前公仓发布面先保留根级项目文档，包内 README 暂不作为公仓同步材料，待包独立演进后再按包更新；
+10. `outputs/` 运行产物保持忽略，不进入公开发布材料；
+11. 当前阶段不包含桌面 GUI、streaming 输出或任意模型开放接入。
 
 正式发布时间、PyPI 发布动作、公仓 tag、GitHub Release 与发布后安装复验，等待后续发布链路任务定稿。
 

@@ -4,12 +4,17 @@ import re
 from pathlib import Path
 
 from behavior_contracts.evidence_summary_answer import (
+    EvidenceSummaryAnswerFollowUpSeedGuard,
     build_evidence_summary_answer_outcome_observation_readonly_facts,
     build_evidence_summary_answer_outcome_observation_readonly_public_refs,
     evidence_summary_answer_outcome_observation_readonly_public_refs_status_dict,
     validate_evidence_summary_answer_outcome_observation_readonly_public_refs,
 )
 from contract_core import evidence_summary_answer
+from schemas.evidence_summary_answer import (
+    EvidenceSummaryAnswerFollowUpSeedSchema,
+    validate_evidence_summary_answer_follow_up_seed,
+)
 
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
@@ -37,6 +42,18 @@ def test_contract_core_reexports_evidence_summary_answer_contracts() -> None:
     assert (
         evidence_summary_answer.validate_evidence_summary_answer_outcome_observation_readonly_public_refs
         is validate_evidence_summary_answer_outcome_observation_readonly_public_refs
+    )
+    assert (
+        evidence_summary_answer.EvidenceSummaryAnswerFollowUpSeedGuard
+        is EvidenceSummaryAnswerFollowUpSeedGuard
+    )
+    assert (
+        evidence_summary_answer.EvidenceSummaryAnswerFollowUpSeedSchema
+        is EvidenceSummaryAnswerFollowUpSeedSchema
+    )
+    assert (
+        evidence_summary_answer.validate_evidence_summary_answer_follow_up_seed
+        is validate_evidence_summary_answer_follow_up_seed
     )
 
 
@@ -82,7 +99,7 @@ def test_contract_core_evidence_summary_answer_facade_is_thin() -> None:
     forbidden_imports = re.compile(
         r"^\s*(?:from|import)\s+"
         r"(?:observability_hub|composition|product_gateway|"
-        r"cognition_task_workflows|cognition_cli|runtime_container|"
+        r"cognition_operation_flows|cognition_cli|runtime_container|"
         r"external_readonly|google\.adk|litellm|urllib\.request|requests|httpx)\b",
         re.MULTILINE,
     )

@@ -6,15 +6,20 @@ from pathlib import Path
 
 import pytest
 from behavior_contracts import (
+    EvidenceSummaryAnswerArtifactGuard as RootArtifactGuard,
+    EvidenceSummaryAnswerFollowUpSeedGuard as RootFollowUpSeedGuard,
     EvidenceSummaryAnswerGenerationPolicyGuard as RootGenerationPolicyGuard,
     EvidenceSummaryAnswerHeaderGuard as RootEvidenceSummaryAnswerHeaderGuard,
     EvidenceSummaryAnswerResultQualityGuard as RootQualityGuard,
+    EvidenceSummaryAnswerTraceGuard as RootTraceGuard,
     validate_evidence_summary_answer_guards as root_validate_guards,
     validate_evidence_summary_answer_generation_policy as root_validate_generation_policy,
 )
 from behavior_contracts.evidence_summary_answer import (
+    EvidenceSummaryAnswerArtifactGuard,
     EvidenceSummaryAnswerContextGuard,
     EvidenceSummaryAnswerDigestGuard,
+    EvidenceSummaryAnswerFollowUpSeedGuard,
     EvidenceSummaryAnswerGenerationPolicyGuard,
     EvidenceSummaryAnswerGenerationPreflightGuard,
     EvidenceSummaryAnswerGenerationService,
@@ -25,17 +30,25 @@ from behavior_contracts.evidence_summary_answer import (
     EvidenceSummaryAnswerResultMappingGuard,
     EvidenceSummaryAnswerResultQualityGuard,
     EvidenceSummaryAnswerResultRuntimeFlagsGuard,
+    EvidenceSummaryAnswerTraceGuard,
+    build_evidence_summary_answer_answerability_preflight_facts,
     validate_evidence_summary_answer_answer_quality,
     validate_evidence_summary_answer_generation_policy,
     validate_evidence_summary_answer_generation_preflight,
     validate_evidence_summary_answer_guards,
     validate_evidence_summary_answer_llm_request_boundary,
+    validate_evidence_summary_answer_question_answer_quality,
     validate_evidence_summary_answer_result_mapping,
 )
 from schemas.evidence_summary_answer import (
+    EVIDENCE_SUMMARY_ANSWER_ARTIFACT_REF_PREFIX,
+    EVIDENCE_SUMMARY_ANSWER_ARTIFACT_VERSION,
     EVIDENCE_SUMMARY_ANSWER_CONTEXT_VERSION,
+    EVIDENCE_SUMMARY_ANSWER_FOLLOW_UP_SEED_VERSION,
     EVIDENCE_SUMMARY_ANSWER_PRODUCT,
     EVIDENCE_SUMMARY_ANSWER_RESULT_VERSION,
+    EVIDENCE_SUMMARY_ANSWER_TRACE_REF_PREFIX,
+    EVIDENCE_SUMMARY_ANSWER_TRACE_VERSION,
     GOVERNED_EVIDENCE_DIGEST_VERSION,
 )
 
@@ -65,6 +78,52 @@ def test_evidence_summary_answer_guards_accept_safe_success_result() -> None:
 
     assert result.passed is True
     assert result.violations == ()
+
+
+def test_evidence_summary_answer_guards_accept_safe_follow_up_seed() -> None:
+    result = validate_evidence_summary_answer_guards(_follow_up_seed())
+
+    assert result.passed is True
+    assert result.violations == ()
+
+
+def test_evidence_summary_answer_guards_accept_safe_trace() -> None:
+    result = validate_evidence_summary_answer_guards(_trace())
+
+    assert result.passed is True
+    assert result.violations == ()
+
+
+def test_evidence_summary_answer_guards_accept_safe_artifact() -> None:
+    result = validate_evidence_summary_answer_guards(_artifact())
+
+    assert result.passed is True
+    assert result.violations == ()
+
+
+def test_artifact_guard_rejects_runtime_backing_or_missing_answer() -> None:
+    artifact = _artifact()
+    artifact["backed_by_adk_task_runtime"] = True
+    artifact["answer"] = None
+    artifact["answer_preview"] = None
+
+    result = EvidenceSummaryAnswerArtifactGuard().validate(artifact)
+
+    assert result.passed is False
+    assert any("ADK Task runtime" in item for item in result.violations)
+    assert any("answer or answer_preview" in item for item in result.violations)
+
+
+def test_follow_up_seed_guard_rejects_durable_or_memory_state() -> None:
+    seed = _follow_up_seed()
+    seed["durable_session"] = True
+    seed["memory_enabled"] = True
+
+    result = EvidenceSummaryAnswerFollowUpSeedGuard().validate(seed)
+
+    assert result.passed is False
+    assert any("durable session" in item for item in result.violations)
+    assert any("Memory runtime" in item for item in result.violations)
 
 
 def test_header_guard_rejects_invalid_payload_version() -> None:
@@ -251,6 +310,16 @@ def test_result_runtime_flags_guard_rejects_inconsistent_flags() -> None:
     assert "llm_runtime_call_performed" in result.violations[0]
 
 
+def test_trace_guard_rejects_runtime_backing() -> None:
+    trace = _trace()
+    trace["backed_by_adk_task_runtime"] = True
+
+    result = EvidenceSummaryAnswerTraceGuard().validate(trace)
+
+    assert result.passed is False
+    assert "ADK Task runtime" in " ".join(result.violations)
+
+
 def test_result_quality_guard_rejects_visible_reasoning_json_wrapper() -> None:
     result_payload = _result()
     result_payload["answer"] = '{"thought": "I should summarize the evidence."}'
@@ -301,6 +370,137 @@ def test_result_quality_guard_rejects_prompt_instruction_leakage(answer: str) ->
 
     assert result.passed is False
     assert "instruction leakage" in " ".join(result.violations)
+
+
+@pytest.mark.parametrize(
+    "answer",
+    (
+        "我是一个 AI 解决方案架构师，运行在本地 MacBook M5 环境下，原生支持 MCP 协议。",
+        "我是一个专业的智能代理，负责 AI 治理逻辑、安全审计和本地推理。",
+        "I am an AI solution architect running in a local MacBook environment with MCP support.",
+    ),
+)
+def test_result_quality_guard_rejects_identity_runtime_leakage(answer: str) -> None:
+    result = validate_evidence_summary_answer_answer_quality(answer)
+
+    assert result.passed is False
+    assert "identity or runtime" in " ".join(result.violations)
+
+
+def test_question_answer_quality_rejects_chinese_question_with_english_answer() -> None:
+    result = validate_evidence_summary_answer_question_answer_quality(
+        "The provided material is a domain example used for documentation purposes.",
+        user_question="帮我将该份资料整理出1500字的内容摘要",
+    )
+
+    assert result.passed is False
+    assert "use Chinese" in " ".join(result.violations)
+
+
+def test_question_answer_quality_rejects_request_for_more_source_context() -> None:
+    result = validate_evidence_summary_answer_question_answer_quality(
+        "请提供您希望我详细展开的首页摘要的具体内容或主题。",
+        user_question="首页内容可做成更详细的摘要吗？",
+    )
+
+    assert result.passed is False
+    assert "already in the governed context" in " ".join(result.violations)
+
+
+def test_question_answer_quality_rejects_request_for_longer_source_content() -> None:
+    result = validate_evidence_summary_answer_question_answer_quality(
+        "该内容本身非常简短，无法生成1200字的摘要。"
+        "请提供更长的源内容以获得所需的详细摘要。",
+        user_question="将其首页内容生成1200字的摘要",
+    )
+
+    assert result.passed is False
+    assert "already in the governed context" in " ".join(result.violations)
+
+
+def test_question_answer_quality_rejects_request_for_complete_homepage_content() -> None:
+    result = validate_evidence_summary_answer_question_answer_quality(
+        "摘要事实内容过于简短，不包含可以扩展到1200字的详细首页内容。"
+        "请提供完整的、需要我进行摘要的首页内容。",
+        user_question="请将首页内容改写成1200字的中文摘要",
+    )
+
+    assert result.passed is False
+    assert "already in the governed context" in " ".join(result.violations)
+
+
+def test_question_answer_quality_rejects_short_long_summary_without_limit_note() -> None:
+    result = validate_evidence_summary_answer_question_answer_quality(
+        "这是一个示例域名，用于文档示例，无需许可，不应实际使用。 (字数：约50字)",
+        user_question="将首页内容做成500字的中文摘要",
+    )
+
+    assert result.passed is False
+    assert "evidence limits" in " ".join(result.violations)
+
+
+def test_question_answer_quality_rejects_short_inferred_long_summary_request() -> None:
+    result = validate_evidence_summary_answer_question_answer_quality(
+        "这个网页主要说明 Example Domain 是一个用于文档示例的域名。",
+        user_question="帮我将其首页内容改写成1200 d的内容",
+    )
+
+    assert result.passed is False
+    assert "evidence limits" in " ".join(result.violations)
+
+
+def test_answerability_preflight_facts_detect_short_evidence_long_summary() -> None:
+    facts = build_evidence_summary_answer_answerability_preflight_facts(
+        user_question="请将首页内容改写成1200字的中文摘要",
+        evidence_total_chars=96,
+        summary_fact_chars=88,
+        summary_fact_count=1,
+    )
+
+    assert facts["preflight_required"] is True
+    assert facts["long_summary_requested"] is True
+    assert facts["requested_chars"] == 1200
+    assert facts["preflight_reason"] == "long_summary_request_evidence_too_brief"
+    assert facts["does_not_call_model"] is True
+
+
+def test_answerability_preflight_facts_allows_long_evidence_long_summary() -> None:
+    facts = build_evidence_summary_answer_answerability_preflight_facts(
+        user_question="请将首页内容改写成1200字的中文摘要",
+        evidence_total_chars=1200,
+        summary_fact_chars=500,
+        summary_fact_count=4,
+    )
+
+    assert facts["preflight_required"] is False
+    assert facts["long_summary_requested"] is True
+    assert facts["does_not_call_model"] is False
+
+
+def test_answerability_preflight_facts_detect_short_evidence_100_char_summary() -> None:
+    facts = build_evidence_summary_answer_answerability_preflight_facts(
+        user_question="帮我生成100字内容摘要",
+        evidence_total_chars=96,
+        summary_fact_chars=88,
+        summary_fact_count=1,
+    )
+
+    assert facts["preflight_required"] is True
+    assert facts["long_summary_requested"] is True
+    assert facts["requested_chars"] == 100
+    assert facts["preflight_reason"] == "long_summary_request_evidence_too_brief"
+
+
+def test_question_answer_quality_allows_short_long_summary_with_limit_note() -> None:
+    result = validate_evidence_summary_answer_question_answer_quality(
+        "资料内容很短，无法在不添加未证实信息的情况下整理成500字。"
+        "基于现有证据，它说明 Example Domain 仅用于文档示例，无需许可，"
+        "且不应在实际操作中使用。",
+        user_question="将首页内容做成500字的中文摘要",
+    )
+
+    assert result.passed is True
+    assert result.violations == ()
 
 
 def test_result_quality_guard_accepts_natural_language_with_analysis_word() -> None:
@@ -439,7 +639,10 @@ def test_evidence_summary_answer_guards_have_no_execution_layer_imports() -> Non
 
 def test_behavior_contracts_root_exports_evidence_summary_answer_guards() -> None:
     assert RootEvidenceSummaryAnswerHeaderGuard is EvidenceSummaryAnswerHeaderGuard
+    assert RootFollowUpSeedGuard is EvidenceSummaryAnswerFollowUpSeedGuard
     assert RootQualityGuard is EvidenceSummaryAnswerResultQualityGuard
+    assert RootTraceGuard is EvidenceSummaryAnswerTraceGuard
+    assert RootArtifactGuard is EvidenceSummaryAnswerArtifactGuard
     assert root_validate_guards(_digest()).passed is True
     assert RootGenerationPolicyGuard is EvidenceSummaryAnswerGenerationPolicyGuard
     assert root_validate_generation_policy(_generation_policy()).passed is True
@@ -537,6 +740,40 @@ def _llm_request() -> dict[str, object]:
     }
 
 
+def _follow_up_seed() -> dict[str, object]:
+    return {
+        "product": EVIDENCE_SUMMARY_ANSWER_PRODUCT,
+        "payload_type": "evidence_summary_answer_follow_up_seed",
+        "payload_version": EVIDENCE_SUMMARY_ANSWER_FOLLOW_UP_SEED_VERSION,
+        "seed_id": "seed-1",
+        "seed_ref": "evidence-summary-answer-follow-up://seed-1",
+        "source_request_id": "request-1",
+        "source_result_status": "success",
+        "digest_refs": ["governed-evidence-digest://request-1/digest-1"],
+        "evidence_refs": [
+            {
+                "ref": "evidence://external-readonly/request-1/fetch-1",
+                "kind": "external_readonly_evidence",
+                "purpose": "answer_context",
+            }
+        ],
+        "additional_refs": [
+            {
+                "ref": "governed-evidence-digest://request-1/digest-1",
+                "kind": "governed_evidence_digest",
+                "purpose": "digest_context",
+            }
+        ],
+        "follow_up_allowed": True,
+        "temporary_only": True,
+        "durable_session": False,
+        "memory_enabled": False,
+        "blocking_reasons": [],
+        "warnings": [],
+        "metadata": {"source": "behavior_contracts.test"},
+    }
+
+
 def _digest() -> dict[str, object]:
     return {
         "product": EVIDENCE_SUMMARY_ANSWER_PRODUCT,
@@ -624,6 +861,115 @@ def _result(*, status: str = "success") -> dict[str, object]:
         "llm_call_allowed": True,
         "llm_call_attempted": True,
         "llm_runtime_call_performed": True,
+        "raw_boundary_flags": {},
+        "metadata": {"source": "behavior_contracts.test"},
+    }
+
+
+def _trace() -> dict[str, object]:
+    return {
+        "product": EVIDENCE_SUMMARY_ANSWER_PRODUCT,
+        "payload_type": "evidence_summary_answer_trace",
+        "payload_version": EVIDENCE_SUMMARY_ANSWER_TRACE_VERSION,
+        "trace_id": "trace-1",
+        "trace_ref": f"{EVIDENCE_SUMMARY_ANSWER_TRACE_REF_PREFIX}trace-1",
+        "request_id": "request-1",
+        "answer_status": "success",
+        "readonly_refs_status": "ready",
+        "evidence_ref_count": 1,
+        "additional_ref_count": 1,
+        "digest_ref_count": 1,
+        "evidence_refs": [
+            {
+                "ref": "evidence://external-readonly/request-1/fetch-1",
+                "kind": "external_readonly_evidence",
+                "purpose": "answer_context",
+            }
+        ],
+        "additional_refs": [
+            {
+                "ref": "governed-evidence-digest://request-1/digest-1",
+                "kind": "governed_evidence_digest",
+                "purpose": "digest_context",
+            }
+        ],
+        "digest_refs": ["governed-evidence-digest://request-1/digest-1"],
+        "blocking_reasons": [],
+        "warnings": [],
+        "insufficient_evidence_reason": None,
+        "citation_failures": [],
+        "llm_call_allowed": True,
+        "llm_call_attempted": True,
+        "llm_runtime_call_performed": True,
+        "answerability_preflight_applied": False,
+        "answer_ref": f"{EVIDENCE_SUMMARY_ANSWER_TRACE_REF_PREFIX}trace-1/answer",
+        "answer_preview": "The governed evidence supports using a schema first.",
+        "follow_up": False,
+        "temporary_follow_up": True,
+        "durable_session": False,
+        "memory_enabled": False,
+        "task_compatible": True,
+        "workflow_compatible": True,
+        "backed_by_adk_task_runtime": False,
+        "backed_by_adk_workflow_runtime": False,
+        "raw_boundary_flags": {},
+        "metadata": {"source": "behavior_contracts.test"},
+    }
+
+
+def _artifact() -> dict[str, object]:
+    return {
+        "product": EVIDENCE_SUMMARY_ANSWER_PRODUCT,
+        "payload_type": "evidence_summary_answer_artifact",
+        "payload_version": EVIDENCE_SUMMARY_ANSWER_ARTIFACT_VERSION,
+        "artifact_id": "artifact-1",
+        "artifact_ref": f"{EVIDENCE_SUMMARY_ANSWER_ARTIFACT_REF_PREFIX}artifact-1",
+        "request_id": "request-1",
+        "answer_status": "success",
+        "artifact_status": "success",
+        "trace_ref": f"{EVIDENCE_SUMMARY_ANSWER_TRACE_REF_PREFIX}trace-1",
+        "artifact_policy_ref": (
+            "policy://product-application-assembly/evidence-summary-answer/"
+            "artifact-v1"
+        ),
+        "evidence_ref_count": 1,
+        "additional_ref_count": 1,
+        "digest_ref_count": 1,
+        "evidence_refs": [
+            {
+                "ref": "evidence://external-readonly/request-1/fetch-1",
+                "kind": "external_readonly_evidence",
+                "purpose": "answer_context",
+            }
+        ],
+        "additional_refs": [
+            {
+                "ref": "governed-evidence-digest://request-1/digest-1",
+                "kind": "governed_evidence_digest",
+                "purpose": "digest_context",
+            }
+        ],
+        "digest_refs": ["governed-evidence-digest://request-1/digest-1"],
+        "blocking_reasons": [],
+        "warnings": [],
+        "insufficient_evidence_reason": None,
+        "citation_failures": [],
+        "llm_call_allowed": True,
+        "llm_call_attempted": True,
+        "llm_runtime_call_performed": True,
+        "answerability_preflight_applied": False,
+        "answer_ref": f"{EVIDENCE_SUMMARY_ANSWER_TRACE_REF_PREFIX}trace-1/answer",
+        "answer": "The governed evidence supports using a schema first.",
+        "answer_preview": "The governed evidence supports using a schema first.",
+        "export_allowed": False,
+        "delete_supported": True,
+        "retention_policy_ref": None,
+        "durable_session": False,
+        "memory_enabled": False,
+        "task_compatible": True,
+        "workflow_compatible": True,
+        "backed_by_adk_task_runtime": False,
+        "backed_by_adk_workflow_runtime": False,
         "raw_boundary_flags": {},
         "metadata": {"source": "behavior_contracts.test"},
     }

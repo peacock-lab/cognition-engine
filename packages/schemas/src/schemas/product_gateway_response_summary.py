@@ -166,12 +166,30 @@ class ProductGatewayResponseSummarySchema(ProductGatewayResponseSummaryBaseModel
     tool_execution_enabled: bool = False
     action_execution_enabled: bool = False
     gateway_enabled: bool = False
+    follow_up: bool = False
+    follow_up_turn_index: int | None = Field(default=None, ge=1)
+    follow_up_seed_ref: str | None = None
+    temporary_follow_up: bool = True
+    answer_trace_ref: str | None = None
+    answer_trace_status: str | None = None
+    answer_trace_summary: dict[str, Any] = Field(default_factory=dict)
+    answer_artifact_ref: str | None = None
+    answer_artifact_status: str | None = None
+    answer_artifact_summary: dict[str, Any] = Field(default_factory=dict)
+    durable_session: bool = False
+    memory_enabled: bool = False
 
     @model_validator(mode="after")
     def validate_response_summary(self) -> "ProductGatewayResponseSummarySchema":
         if self.status == "blocked" and not self.blocking_reasons:
             raise ValueError("blocked product gateway summaries require blocking_reasons.")
         _validate_summary_invariant_flags(self)
+        if self.durable_session:
+            raise ValueError("durable_session must remain false.")
+        if self.memory_enabled:
+            raise ValueError("memory_enabled must remain false.")
+        if self.follow_up and self.temporary_follow_up is not True:
+            raise ValueError("follow-up summaries must remain temporary.")
         return self
 
 

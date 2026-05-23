@@ -2,9 +2,7 @@
 
 [English](QUICKSTART.md) | 简体中文 · [返回](README.zh-CN.md)
 
-当前公开版本 `v0.8.0`
-
-本文档说明 Cognition System `v0.8.0` 发布候选的公开本地安装与 CLI smoke 路径。
+当前版本：`v0.8.0`
 
 ## 1. 安装
 
@@ -19,63 +17,46 @@ python -m pip install "cognition-system==0.8.0"
 uv pip install "cognition-system==0.8.0"
 ```
 
+需要 Python `3.14`。
+
 ## 2. 验证
 
 ```bash
-python -c "import importlib.metadata as m; print(m.version('cognition-system'))"
-python -c "import importlib.metadata as m; print('cognition-system', m.version('cognition-system'), 'import ok')"
 cognition --help
 cognition external-readonly ask --help
 ```
 
-预期 smoke 文本：
+## 3. 体验资料问答
+
+```bash
+cognition external-readonly ask --guided
+```
+
+示例输入：
 
 ```text
-cognition-system 0.8.0 import ok
+请输入 URL 或 evidence path: https://example.com
+请输入问题: 这份资料主要说明了什么？
+请选择模型：1) deepseek  2) gemma4
+请输入 1、2、deepseek 或 gemma4: 2
+允许本次外部只读抓取该 URL？ 输入 yes/no: y
+允许本次受控大模型回答？ 输入 yes/no: y
 ```
 
-## 3. 初始化配置
+## 4. 继续追问
+
+成功回答后，可以围绕同一份资料继续追问：
+
+```text
+它适合用于什么场景？
+```
+
+资料不足时，系统会直接说明限制。
+
+## 5. 配置
+
+需要创建用户配置目录时运行：
 
 ```bash
 cognition config init --config-root ./config
 ```
-
-安装态默认配置基线来自包内 `config_assembly/default_config/` 资源。仓库级 `config/` 目录不是独立发布包。
-
-## 4. 引导式外部只读问答
-
-交互式试用：
-
-```bash
-cognition external-readonly ask --guided
-```
-
-引导模式会询问资料来源、问题、模型别名、显式授权和凭据处理方式。它不会静默打开网络访问、live model 调用、审计 gate 或已保存凭据。
-
-模型别名：
-
-1. `deepseek`：适合低硬件用户的线上 DeepSeek V4 Flash 路径。
-2. `gemma4`：适合本地模型用户的 Ollama / Gemma4 路径。
-
-## 5. 自动化
-
-自动化和 JSON 输出路径应显式传入参数。带 JSON 输出的 guided mode 应 fail closed：
-
-```bash
-cognition external-readonly ask --guided --json
-```
-
-## 6. 安全边界
-
-公开 CLI 不应暴露 raw HTML、raw provider response、response headers、traceback、provider key 或不受限制的模型名。网络访问、live model 调用、runtime fetch、operator approval 和 audit ref 都保持显式选择。
-
-## 7. 常用命令
-
-```bash
-cognition --json
-cognition config init --config-root ./config
-cognition external-readonly ask --help
-cognition external-readonly ask --guided
-```
-
-运行产物应留在本地忽略的 `outputs/` 目录中，不属于公开发布面。

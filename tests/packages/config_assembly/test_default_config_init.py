@@ -28,6 +28,7 @@ def test_init_default_config_root_writes_sanitized_baseline(tmp_path: Path) -> N
     assert bundle.run_workspace.enabled_by_default is False
     assert bundle.live_llm.default_provider_profile_ref == "local_ollama"
     assert bundle.live_llm.default_model_profile_ref == "gemma4_pro_local"
+    assert bundle.live_llm.model_profiles["gemma4_pro_local"].max_tokens == 256
     assert (
         bundle.live_llm.default_output_governance_profile_ref
         == "direct_controlled_live"
@@ -36,6 +37,10 @@ def test_init_default_config_root_writes_sanitized_baseline(tmp_path: Path) -> N
     assert (
         bundle.live_llm.model_profiles["deepseek_v4_flash_external"].model_name
         == "deepseek/deepseek-v4-flash"
+    )
+    assert (
+        bundle.live_llm.model_aliases["gemma4"].output_governance_profile_ref
+        == "adk_output_schema_gemma4_baseline"
     )
     assert (
         bundle.live_llm.model_aliases["deepseek"].output_governance_profile_ref

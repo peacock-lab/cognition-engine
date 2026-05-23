@@ -100,7 +100,7 @@ live_llm:
       model_role: local_debug_baseline
       timeout_seconds: 45
       temperature: 0
-      max_tokens: 64
+      max_tokens: 256
       resource_tier: local_debug
       enabled_by_default: false
       metadata:
@@ -150,6 +150,19 @@ live_llm:
       metadata:
         source: config_assembly/default_config/templates/runtime.template.yaml
         default_equivalent: true
+    adk_output_schema_gemma4_baseline:
+      mode: adk_output_schema
+      adk_native: true
+      uses_output_schema: true
+      uses_output_key: true
+      uses_after_model_callback: true
+      uses_answer_quality_guard: true
+      max_repair_attempts: 1
+      enabled_by_default: false
+      metadata:
+        source: config_assembly/default_config/templates/runtime.template.yaml
+        profile_gated: true
+        local_gemma4_baseline: true
     adk_no_output_schema_candidate:
       mode: adk_no_output_schema
       adk_native: true
@@ -166,13 +179,13 @@ live_llm:
     gemma4:
       provider_profile_ref: local_ollama
       model_profile_ref: gemma4_pro_local
-      output_governance_profile_ref: direct_controlled_live
+      output_governance_profile_ref: adk_output_schema_gemma4_baseline
       model_name: ollama/gemma4-pro:latest
       enabled_by_default: false
       metadata:
         source: config_assembly/default_config/templates/runtime.template.yaml
         user_facing: true
-        default_equivalent: true
+        adk_native_output_governance: true
     deepseek:
       provider_profile_ref: deepseek_gated
       model_profile_ref: deepseek_v4_flash_external

@@ -41,7 +41,7 @@ def test_contract_core_governed_summary_facts_facade_is_thin() -> None:
     ).read_text(encoding="utf-8")
     forbidden_imports = re.compile(
         r"^\s*(?:from|import)\s+"
-        r"(?:external_readonly|cognition_task_workflows|cognition_cli|"
+        r"(?:external_readonly|cognition_operation_flows|cognition_cli|"
         r"product_gateway|runtime_container|google\.adk|litellm|"
         r"urllib\.request|requests|httpx)\b",
         re.MULTILINE,

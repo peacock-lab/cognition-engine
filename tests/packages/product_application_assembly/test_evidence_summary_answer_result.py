@@ -6,15 +6,26 @@ from behavior_contracts.evidence_summary_answer import (
     validate_evidence_summary_answer_guards,
 )
 from product_application_assembly import (
+    PRODUCT_APPLICATION_EVIDENCE_SUMMARY_ANSWER_ARTIFACT_POLICY_REF,
     PRODUCT_APPLICATION_EVIDENCE_SUMMARY_ANSWER_RESULT_POLICY_REF,
     PRODUCT_APPLICATION_EVIDENCE_SUMMARY_ANSWER_RESULT_SOURCE,
+    build_evidence_summary_answer_artifact,
     build_evidence_summary_answer_context,
+    build_evidence_summary_answer_trace,
     build_no_model_evidence_summary_answer_result,
+    evidence_summary_answer_artifact_status_dict,
+    evidence_summary_answer_artifact_summary_dict,
     evidence_summary_answer_result_status_dict,
+    evidence_summary_answer_trace_status_dict,
+    evidence_summary_answer_trace_summary_dict,
 )
 from schemas.evidence_summary_answer import (
+    EvidenceSummaryAnswerArtifactSchema,
     EvidenceSummaryAnswerResultSchema,
+    EvidenceSummaryAnswerTraceSchema,
+    validate_evidence_summary_answer_artifact,
     validate_evidence_summary_answer_result,
+    validate_evidence_summary_answer_trace,
 )
 
 
@@ -69,6 +80,189 @@ def test_no_model_result_blocks_answerable_context_without_answer() -> None:
     assert result.metadata["no_model"] is True
     assert validate_evidence_summary_answer_result(status).request_id == "request-603"
     assert validate_evidence_summary_answer_guards(status).passed is True
+
+
+def test_answer_trace_wraps_result_without_runtime_backing() -> None:
+    context = build_evidence_summary_answer_context(
+        request_id="request-603",
+        user_question="What does the governed evidence say?",
+        digests=[_ready_digest()],
+    )
+    result = EvidenceSummaryAnswerResultSchema(
+        request_id="request-603",
+        status="success",
+        answer="The governed evidence supports using a schema first.",
+        answer_preview="The governed evidence supports using a schema first.",
+        evidence_refs_used=list(context.evidence_refs),
+        digest_refs_used=["governed-evidence-digest://digest-603"],
+        additional_refs_used=list(context.additional_refs),
+        llm_call_allowed=True,
+        llm_call_attempted=True,
+        llm_runtime_call_performed=True,
+        metadata={
+            "source": "unit-test",
+            "llm_route_provider": "litellm",
+            "llm_route_model": "ollama/gemma4-pro:latest",
+        },
+    )
+
+    trace = build_evidence_summary_answer_trace(
+        context,
+        evidence_summary_answer_result_status_dict(result),
+        readonly_refs_status="ready",
+        metadata={
+            "provider_profile_ref": "local_ollama",
+            "model_profile_ref": "gemma4_pro_local",
+            "output_governance_profile_ref": "adk_output_schema_gemma4_baseline",
+        },
+    )
+    status = evidence_summary_answer_trace_status_dict(trace)
+    summary = evidence_summary_answer_trace_summary_dict(trace)
+
+    assert isinstance(trace, EvidenceSummaryAnswerTraceSchema)
+    assert trace.answer_status == "success"
+    assert trace.task_compatible is True
+    assert trace.workflow_compatible is True
+    assert trace.backed_by_adk_task_runtime is False
+    assert trace.backed_by_adk_workflow_runtime is False
+    assert trace.llm_route_provider == "litellm"
+    assert trace.llm_route_model == "ollama/gemma4-pro:latest"
+    assert trace.provider_profile_ref == "local_ollama"
+    assert trace.model_profile_ref == "gemma4_pro_local"
+    assert trace.output_governance_profile_ref == "adk_output_schema_gemma4_baseline"
+    assert trace.answer_ref == f"{trace.trace_ref}/answer"
+    assert summary["trace_ref"] == trace.trace_ref
+    assert summary["trace_status"] == "success"
+    assert summary["llm_runtime_call_performed"] is True
+    assert summary["provider_profile_ref"] == "local_ollama"
+    assert summary["model_profile_ref"] == "gemma4_pro_local"
+    assert (
+        summary["output_governance_profile_ref"]
+        == "adk_output_schema_gemma4_baseline"
+    )
+    assert validate_evidence_summary_answer_trace(status).trace_id == trace.trace_id
+    assert validate_evidence_summary_answer_guards(status).passed is True
+
+
+def test_answer_artifact_wraps_trace_without_runtime_backing() -> None:
+    context = build_evidence_summary_answer_context(
+        request_id="request-603",
+        user_question="What does the governed evidence say?",
+        digests=[_ready_digest()],
+    )
+    result = EvidenceSummaryAnswerResultSchema(
+        request_id="request-603",
+        status="success",
+        answer="The governed evidence supports using a schema first.",
+        answer_preview="The governed evidence supports using a schema first.",
+        evidence_refs_used=list(context.evidence_refs),
+        digest_refs_used=["governed-evidence-digest://digest-603"],
+        additional_refs_used=list(context.additional_refs),
+        llm_call_allowed=True,
+        llm_call_attempted=True,
+        llm_runtime_call_performed=True,
+        metadata={"source": "unit-test"},
+    )
+    trace = build_evidence_summary_answer_trace(
+        context,
+        evidence_summary_answer_result_status_dict(result),
+        readonly_refs_status="ready",
+    )
+
+    artifact = build_evidence_summary_answer_artifact(
+        context,
+        evidence_summary_answer_result_status_dict(result),
+        trace,
+    )
+    status = evidence_summary_answer_artifact_status_dict(artifact)
+    summary = evidence_summary_answer_artifact_summary_dict(artifact)
+
+    assert isinstance(artifact, EvidenceSummaryAnswerArtifactSchema)
+    assert artifact.answer_status == "success"
+    assert artifact.artifact_status == "success"
+    assert artifact.artifact_policy_ref == (
+        PRODUCT_APPLICATION_EVIDENCE_SUMMARY_ANSWER_ARTIFACT_POLICY_REF
+    )
+    assert artifact.trace_ref == trace.trace_ref
+    assert artifact.answer == "The governed evidence supports using a schema first."
+    assert artifact.task_compatible is True
+    assert artifact.workflow_compatible is True
+    assert artifact.backed_by_adk_task_runtime is False
+    assert artifact.backed_by_adk_workflow_runtime is False
+    assert artifact.export_allowed is False
+    assert artifact.delete_supported is True
+    assert summary["artifact_ref"] == artifact.artifact_ref
+    assert summary["artifact_status"] == "success"
+    assert summary["answer_present"] is True
+    assert summary["task_compatible"] is True
+    assert validate_evidence_summary_answer_artifact(status).artifact_id == (
+        artifact.artifact_id
+    )
+    assert validate_evidence_summary_answer_guards(status).passed is True
+
+
+def test_answer_artifact_covers_non_success_statuses() -> None:
+    context = build_evidence_summary_answer_context(
+        request_id="request-603",
+        user_question="What does the governed evidence say?",
+        digests=[_empty_digest()],
+    )
+    cases = (
+        (
+            EvidenceSummaryAnswerResultSchema(
+                request_id="request-603",
+                status="blocked",
+                blocking_reasons=["operator_approval_not_true"],
+                digest_refs_used=["governed-evidence-digest://digest-603"],
+                additional_refs_used=list(context.additional_refs),
+            ),
+            "blocked",
+        ),
+        (
+            EvidenceSummaryAnswerResultSchema(
+                request_id="request-603",
+                status="insufficient_evidence",
+                insufficient_evidence_reason="no_answerable_governed_evidence_digest",
+                digest_refs_used=["governed-evidence-digest://digest-603"],
+                additional_refs_used=list(context.additional_refs),
+            ),
+            "insufficient_evidence",
+        ),
+        (
+            EvidenceSummaryAnswerResultSchema(
+                request_id="request-603",
+                status="failed",
+                blocking_reasons=["llm_invocation_failure"],
+                digest_refs_used=["governed-evidence-digest://digest-603"],
+                additional_refs_used=list(context.additional_refs),
+            ),
+            "failed",
+        ),
+    )
+
+    for result, expected_status in cases:
+        result_status = evidence_summary_answer_result_status_dict(result)
+        trace = build_evidence_summary_answer_trace(
+            context,
+            result_status,
+            readonly_refs_status=expected_status,
+        )
+        artifact = build_evidence_summary_answer_artifact(
+            context,
+            result_status,
+            trace,
+        )
+        status = evidence_summary_answer_artifact_status_dict(artifact)
+
+        assert artifact.answer_status == expected_status
+        assert artifact.artifact_status == expected_status
+        assert artifact.answer is None
+        assert artifact.backed_by_adk_task_runtime is False
+        assert artifact.backed_by_adk_workflow_runtime is False
+        assert validate_evidence_summary_answer_artifact(status).artifact_status == (
+            expected_status
+        )
+        assert validate_evidence_summary_answer_guards(status).passed is True
 
 
 def test_no_model_result_blocks_all_blocked_context_with_digest_reasons() -> None:
@@ -221,7 +415,7 @@ def test_no_model_result_source_has_no_forbidden_imports_or_inputs() -> None:
     assert "observability_hub" not in source
     assert "runtime_container" not in source
     assert "cognition_cli" not in source
-    assert "cognition_task_workflows" not in source
+    assert "cognition_operation_flows" not in source
     assert "product_runtime_assembly" not in source
     assert "google.adk" not in source
     assert "litellm" not in source

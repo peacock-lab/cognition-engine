@@ -53,6 +53,7 @@ def test_build_runtime_config_contexts_from_project_payload() -> None:
         bundle.live_llm.model_profiles["gemma4_pro_local"].model_name
         == "ollama/gemma4-pro:latest"
     )
+    assert bundle.live_llm.model_profiles["gemma4_pro_local"].max_tokens == 256
     assert (
         bundle.live_llm.model_profiles["deepseek_v4_flash_external"].model_name
         == "deepseek/deepseek-v4-flash"
@@ -76,6 +77,16 @@ def test_build_runtime_config_contexts_from_project_payload() -> None:
     assert (
         bundle.live_llm.model_aliases["gemma4"].model_profile_ref
         == "gemma4_pro_local"
+    )
+    assert (
+        bundle.live_llm.model_aliases["gemma4"].output_governance_profile_ref
+        == "adk_output_schema_gemma4_baseline"
+    )
+    assert (
+        bundle.live_llm.output_governance_profiles[
+            "adk_output_schema_gemma4_baseline"
+        ].mode
+        == "adk_output_schema"
     )
     assert (
         bundle.live_llm.model_aliases["deepseek"].provider_profile_ref

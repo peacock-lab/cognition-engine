@@ -44,7 +44,7 @@ RUNTIME_EXTERNAL_READONLY_SOURCE_ROOT = (
     / "external_readonly"
 )
 TASK_WORKFLOWS_SOURCE_ROOT = (
-    REPO_ROOT / "packages" / "task_workflows" / "src" / "cognition_task_workflows"
+    REPO_ROOT / "packages" / "operation_flows" / "src" / "cognition_operation_flows"
 )
 _EVIDENCE_OUTPUT_PATH = "outputs/external-readonly/cli-fetch/example.json"
 _EVIDENCE_REF = "evidence://external-readonly/cli-fetch/example.json"
@@ -399,7 +399,7 @@ def test_external_readonly_summary_archive_contracts_keep_contract_boundary() ->
     serialized = summary_source + archive_source
     forbidden_imports = re.compile(
         r"^\s*(?:from|import)\s+"
-        r"(?:external_readonly|cognition_task_workflows|cognition_cli|"
+        r"(?:external_readonly|cognition_operation_flows|cognition_cli|"
         r"composition|observability_hub|product_gateway|runtime_container|"
         r"google\.adk|litellm|"
         r"urllib\.request|requests|httpx)\b",

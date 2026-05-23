@@ -7,6 +7,11 @@ from dataclasses import dataclass
 from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
+from schemas.evidence_summary_answer import (
+    EVIDENCE_SUMMARY_ANSWER_ARTIFACT_REF_PREFIX,
+    EVIDENCE_SUMMARY_ANSWER_FOLLOW_UP_REF_PREFIX,
+    EVIDENCE_SUMMARY_ANSWER_TRACE_REF_PREFIX,
+)
 
 from product_gateway.contracts import (
     ProductGatewayEntryKind,
@@ -94,6 +99,18 @@ class ExternalReadonlyAskGatewayInput(BaseModel):
     external_readonly_fetch_performed: bool = False
     external_readonly_network_call_performed: bool = False
     external_network_call_performed: bool = False
+    follow_up: bool = False
+    follow_up_turn_index: int | None = Field(default=None, ge=1)
+    follow_up_seed_ref: str | None = None
+    temporary_follow_up: bool = True
+    answer_trace_ref: str | None = None
+    answer_trace_status: str | None = None
+    answer_trace_summary: dict[str, Any] = Field(default_factory=dict)
+    answer_artifact_ref: str | None = None
+    answer_artifact_status: str | None = None
+    answer_artifact_summary: dict[str, Any] = Field(default_factory=dict)
+    durable_session: bool = False
+    memory_enabled: bool = False
     metadata: dict[str, Any] = Field(default_factory=dict)
 
     @model_validator(mode="after")
@@ -103,9 +120,37 @@ class ExternalReadonlyAskGatewayInput(BaseModel):
                 "metadata": self.metadata,
                 "evidence_refs": self.evidence_refs,
                 "additional_refs": self.additional_refs,
+                "answer_trace_summary": self.answer_trace_summary,
+                "answer_artifact_summary": self.answer_artifact_summary,
             },
             field_name="external_readonly_ask_gateway_input",
         )
+        if self.durable_session:
+            raise ValueError("external-readonly ask does not use durable sessions.")
+        if self.memory_enabled:
+            raise ValueError("external-readonly ask does not use Memory runtime.")
+        if self.follow_up:
+            if self.temporary_follow_up is not True:
+                raise ValueError("external-readonly follow-up is temporary only.")
+            if not (
+                isinstance(self.follow_up_seed_ref, str)
+                and self.follow_up_seed_ref.startswith(
+                    EVIDENCE_SUMMARY_ANSWER_FOLLOW_UP_REF_PREFIX
+                )
+            ):
+                raise ValueError("follow_up_seed_ref is required for follow-up.")
+        if self.answer_trace_ref is not None and not self.answer_trace_ref.startswith(
+            EVIDENCE_SUMMARY_ANSWER_TRACE_REF_PREFIX
+        ):
+            raise ValueError("answer_trace_ref must be an evidence summary answer trace ref.")
+        if self.answer_artifact_ref is not None and not (
+            self.answer_artifact_ref.startswith(
+                EVIDENCE_SUMMARY_ANSWER_ARTIFACT_REF_PREFIX
+            )
+        ):
+            raise ValueError(
+                "answer_artifact_ref must be an evidence summary answer artifact ref."
+            )
         return self
 
 
@@ -146,6 +191,16 @@ def build_external_readonly_ask_gateway_request(
             "external_readonly_network_call_performed": (
                 normalized_input.external_readonly_network_call_performed
             ),
+            "follow_up": normalized_input.follow_up,
+            "follow_up_turn_index": normalized_input.follow_up_turn_index,
+            "follow_up_seed_ref": normalized_input.follow_up_seed_ref,
+            "temporary_follow_up": normalized_input.temporary_follow_up,
+            "answer_trace_ref": normalized_input.answer_trace_ref,
+            "answer_trace_status": normalized_input.answer_trace_status,
+            "answer_artifact_ref": normalized_input.answer_artifact_ref,
+            "answer_artifact_status": normalized_input.answer_artifact_status,
+            "durable_session": normalized_input.durable_session,
+            "memory_enabled": normalized_input.memory_enabled,
         },
         input_refs=ProductGatewayInputRefs(),
         live_options=ProductGatewayLiveOptions(
@@ -296,6 +351,22 @@ def _response_metadata(gateway_input: ExternalReadonlyAskGatewayInput) -> dict[s
             gateway_input.external_readonly_network_call_performed
         ),
         "external_network_call_performed": gateway_input.external_network_call_performed,
+        "follow_up": gateway_input.follow_up,
+        "follow_up_turn_index": gateway_input.follow_up_turn_index,
+        "follow_up_seed_ref": gateway_input.follow_up_seed_ref,
+        "temporary_follow_up": gateway_input.temporary_follow_up,
+        "answer_trace_ref": gateway_input.answer_trace_ref,
+        "answer_trace_status": gateway_input.answer_trace_status,
+        "answer_trace_summary": _safe_trace_summary(
+            gateway_input.answer_trace_summary
+        ),
+        "answer_artifact_ref": gateway_input.answer_artifact_ref,
+        "answer_artifact_status": gateway_input.answer_artifact_status,
+        "answer_artifact_summary": _safe_trace_summary(
+            gateway_input.answer_artifact_summary
+        ),
+        "durable_session": gateway_input.durable_session,
+        "memory_enabled": gateway_input.memory_enabled,
         **_safe_metadata(gateway_input.metadata),
     }
     return {key: value for key, value in metadata.items() if value is not None}
@@ -316,6 +387,21 @@ def _safe_metadata(value: Any) -> dict[str, Any]:
             continue
         metadata[key] = item
     return metadata
+
+
+def _safe_trace_summary(value: Any) -> dict[str, Any]:
+    if not isinstance(value, Mapping):
+        return {}
+    summary: dict[str, Any] = {}
+    for key, item in value.items():
+        if not isinstance(key, str) or _sensitive_text(key):
+            continue
+        if not isinstance(item, bool | int | float | str):
+            continue
+        if isinstance(item, str) and _sensitive_text(item):
+            continue
+        summary[key] = item
+    return summary
 
 
 def _raise_if_forbidden_ask_payload_found(

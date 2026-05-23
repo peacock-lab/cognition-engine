@@ -75,9 +75,9 @@ def _forbidden_import_prefixes(source_path: Path) -> tuple[str, ...]:
         "adk_adapter",
         "google.adk",
         "litellm",
-        "cognition_task_workflows",
+        "cognition_operation_flows",
         "product_gateway.contracts",
-        "product_gateway._task_workflows",
+        "product_gateway._operation_flows",
     ]
     if "entrypoints" not in source_path.relative_to(PACKAGE_ROOT).parts:
         forbidden_prefixes.append("cognition_cli")

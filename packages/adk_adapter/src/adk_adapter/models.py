@@ -76,12 +76,43 @@ class AdkModelRouteFacts:
 def build_litellm_ollama_model_route(
     *,
     model_name: str = "ollama/gemma4-pro:latest",
+    api_base: str | None = None,
+    timeout: int | None = None,
+    temperature: float | None = 0,
+    max_tokens: int | None = None,
 ) -> tuple[Any, AdkModelRouteFacts]:
     """Construct an ADK LiteLlm model route and return boundary facts."""
 
     from google.adk.models.lite_llm import LiteLlm
 
-    model = LiteLlm(model=model_name)
+    local_no_proxy_applied = _ensure_local_no_proxy(api_base)
+    model_kwargs: dict[str, Any] = {}
+    if api_base:
+        model_kwargs["api_base"] = api_base
+    if timeout is not None:
+        model_kwargs["timeout"] = timeout
+    if temperature is not None:
+        model_kwargs["temperature"] = temperature
+    if max_tokens is not None:
+        model_kwargs["max_tokens"] = max_tokens
+
+    model = LiteLlm(model=model_name, **model_kwargs)
+    route_metadata: dict[str, Any] = {
+        "route": "ADK LiteLlm -> LlmAgent -> InMemoryRunner -> Ollama/Gemma4 -> ADK Event",
+        "backend_provider": "ollama",
+        "route_target": model_name,
+        "route_kind": "adk_litellm",
+        "route_fact_contract": "schemas.model_routing.ModelRouteFacts",
+        "local_no_proxy_applied": local_no_proxy_applied,
+    }
+    if api_base:
+        route_metadata["api_base_host"] = _url_host(api_base)
+    if timeout is not None:
+        route_metadata["timeout_seconds"] = timeout
+    if temperature is not None:
+        route_metadata["temperature"] = temperature
+    if max_tokens is not None:
+        route_metadata["max_tokens"] = max_tokens
     facts = AdkModelRouteFacts(
         model_name=model_name,
         provider="litellm",
@@ -92,13 +123,7 @@ def build_litellm_ollama_model_route(
         runtime_call_performed=False,
         direct_litellm_completion=False,
         governance_direct_model_call=False,
-        metadata={
-            "route": "ADK LiteLlm -> LlmAgent -> InMemoryRunner -> Ollama/Gemma4 -> ADK Event",
-            "backend_provider": "ollama",
-            "route_target": model_name,
-            "route_kind": "adk_litellm",
-            "route_fact_contract": "schemas.model_routing.ModelRouteFacts",
-        },
+        metadata=route_metadata,
     )
     return model, facts
 
@@ -195,6 +220,25 @@ def _url_host(value: str | None) -> str | None:
     if not value:
         return None
     return urlparse(value).hostname
+
+
+def _ensure_local_no_proxy(api_base: str | None) -> bool:
+    host = _url_host(api_base)
+    if host not in {"127.0.0.1", "localhost", "::1"}:
+        return False
+    for key in ("NO_PROXY", "no_proxy"):
+        existing = [
+            item.strip()
+            for item in os.environ.get(key, "").split(",")
+            if item.strip()
+        ]
+        merged = existing + [
+            item
+            for item in ("127.0.0.1", "localhost", "::1")
+            if item not in existing
+        ]
+        os.environ[key] = ",".join(merged)
+    return True
 
 
 def _api_key_from_secret_ref(secret_ref: str) -> str | None:

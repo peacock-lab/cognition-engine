@@ -81,8 +81,10 @@ NO_EXECUTION_FIELDS = frozenset(
         "llm_call_enabled",
         "action_execution_enabled",
         "chat_enabled",
+        "durable_session",
         "gateway_enabled",
         "tool_execution_enabled",
+        "memory_enabled",
     }
 )
 

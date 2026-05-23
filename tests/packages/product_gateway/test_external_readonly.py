@@ -212,7 +212,7 @@ def test_external_readonly_source_keeps_product_gateway_boundary() -> None:
     assert "from external_readonly import" in source
     assert "from runtime_container" not in source
     assert "runtime_container.external_readonly" not in source
-    assert "cognition_task_workflows" not in source
+    assert "cognition_operation_flows" not in source
     assert "product_gateway.cli" not in source
     assert "from google.adk" not in source
     assert "import google.adk" not in source

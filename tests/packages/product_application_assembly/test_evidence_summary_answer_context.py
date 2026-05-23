@@ -206,7 +206,7 @@ def test_context_builder_source_has_no_forbidden_imports_or_inputs() -> None:
     assert "observability_hub" not in source
     assert "runtime_container" not in source
     assert "cognition_cli" not in source
-    assert "cognition_task_workflows" not in source
+    assert "cognition_operation_flows" not in source
     assert "product_runtime_assembly" not in source
     assert "google.adk" not in source
     assert "litellm" not in source

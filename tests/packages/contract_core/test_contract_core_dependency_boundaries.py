@@ -58,7 +58,7 @@ def test_contract_core_source_does_not_import_execution_layers() -> None:
     forbidden_imports = re.compile(
         r"^\s*(?:from|import)\s+"
         r"(?:runtime|composition|adk_adapter|google\.adk|litellm|"
-        r"cognition_cli|cognition_task_workflows|external_readonly|"
+        r"cognition_cli|cognition_operation_flows|external_readonly|"
         r"product_gateway|runtime_container)\b",
         re.MULTILINE,
     )

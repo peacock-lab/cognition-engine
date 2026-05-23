@@ -436,7 +436,7 @@ class RuntimeLiveLlmConfigView(RuntimeConfigBaseModel):
     default_model_profile_ref: str = "gemma4_pro_local"
     model_profiles: dict[str, RuntimeLlmModelProfileConfigView] = Field(
         default_factory=lambda: {
-            "gemma4_pro_local": RuntimeLlmModelProfileConfigView(),
+            "gemma4_pro_local": RuntimeLlmModelProfileConfigView(max_tokens=256),
             "deepseek_v4_flash_external": RuntimeLlmModelProfileConfigView(
                 provider_profile_ref="deepseek_gated",
                 model_name="deepseek/deepseek-v4-flash",
@@ -476,6 +476,21 @@ class RuntimeLiveLlmConfigView(RuntimeConfigBaseModel):
     ] = Field(
         default_factory=lambda: {
             "direct_controlled_live": RuntimeLlmOutputGovernanceProfileConfigView(),
+            "adk_output_schema_gemma4_baseline": (
+                RuntimeLlmOutputGovernanceProfileConfigView(
+                    mode="adk_output_schema",
+                    adk_native=True,
+                    uses_output_schema=True,
+                    uses_output_key=True,
+                    uses_after_model_callback=True,
+                    max_repair_attempts=1,
+                    enabled_by_default=False,
+                    metadata={
+                        "profile_gated": True,
+                        "local_gemma4_baseline": True,
+                    },
+                )
+            ),
             "adk_no_output_schema_candidate": (
                 RuntimeLlmOutputGovernanceProfileConfigView(
                     mode="adk_no_output_schema",
@@ -493,12 +508,12 @@ class RuntimeLiveLlmConfigView(RuntimeConfigBaseModel):
             "gemma4": RuntimeLlmModelAliasConfigView(
                 provider_profile_ref="local_ollama",
                 model_profile_ref="gemma4_pro_local",
-                output_governance_profile_ref="direct_controlled_live",
+                output_governance_profile_ref="adk_output_schema_gemma4_baseline",
                 model_name="ollama/gemma4-pro:latest",
                 enabled_by_default=False,
                 metadata={
                     "user_facing": True,
-                    "default_equivalent": True,
+                    "adk_native_output_governance": True,
                 },
             ),
             "deepseek": RuntimeLlmModelAliasConfigView(

@@ -2,11 +2,29 @@
 
 [English](README.md) | 简体中文
 
-Cognition System 是面向外部只读资料问答、受控 CLI 工作流、配置装配、运行编排、证据观测和产品入口实验的 Python 3.14 多包发布候选。
+当前版本：`v0.8.0`
 
-当前公开版本：`v0.8.0`
+Cognition System 是一个面向受治理 AI 协作的认知能力系统：它把大模型、工具生态、运行能力和治理规则组合起来，在明确授权和可复查边界内帮助用户理解资料、处理任务并交付可追踪结果。
 
-`v0.8.0` 发布候选包含 `cognition-system` 根聚合包和 18 个 `cognition-system-*` 子包。当前候选用于公仓本地发布面验证，不表示已经完成 PyPI 正式发布。
+当前可直接体验的能力是：基于用户授权读取外部只读资料，并给出可复查的回答。
+
+## 当前能做什么
+
+你可以让系统读取一个 URL 或 evidence path，然后基于这份资料回答问题。
+
+```bash
+cognition external-readonly ask --guided
+```
+
+系统会逐步询问：
+
+1. 要读取的资料。
+2. 你想问的问题。
+3. 使用本地模型还是线上模型。
+4. 是否允许本次读取外部资料。
+5. 是否允许本次调用模型回答。
+
+回答会尽量说明答案依据、证据引用和受限原因。资料不足时，系统会提示无法展开，而不是编造内容。
 
 ## 安装
 
@@ -15,99 +33,58 @@ python -m pip install --upgrade pip
 python -m pip install "cognition-system==0.8.0"
 ```
 
-如果使用 uv：
+或使用 uv：
 
 ```bash
 uv pip install "cognition-system==0.8.0"
 ```
 
-## 验证
+需要 Python `3.14`。
 
-```bash
-python -c "import importlib.metadata as m; print(m.version('cognition-system'))"
-python -c "import importlib.metadata as m; print('cognition-system', m.version('cognition-system'), 'import ok')"
-cognition --help
-```
-
-预期 smoke 文本：
-
-```text
-cognition-system 0.8.0 import ok
-```
-
-## CLI
-
-公开控制台命令是：
-
-```bash
-cognition
-```
-
-主要试用入口是：
+## 快速体验
 
 ```bash
 cognition external-readonly ask --guided
 ```
 
-引导模式会询问只读资料来源、问题、模型别名、联网和模型调用授权，以及外部 provider 的凭据处理方式。
+示例：
 
-可用模型别名：
-
-1. `deepseek`：适合低硬件用户的线上 DeepSeek V4 Flash 路径。
-2. `gemma4`：适合本地模型用户的 Ollama / Gemma4 路径。
-
-自动化、CI 和 JSON 输出场景应显式传入完整参数，不使用 `--guided`。`cognition external-readonly ask --guided --json` 应被阻断。
-
-## 配置
-
-仓库级 `config/` 目录不是独立发布包，也不会复制进公仓发布面。安装态默认配置资源由 `cognition-system-config-assembly` 通过 `config_assembly/default_config/` 携带。
-
-需要时可创建用户侧配置目录：
-
-```bash
-cognition config init --config-root ./config
+```text
+请输入 URL 或 evidence path: https://example.com
+请输入问题: 这份资料主要说明了什么？
+请选择模型：1) deepseek  2) gemma4
+请输入 1、2、deepseek 或 gemma4: 2
+允许本次外部只读抓取该 URL？ 输入 yes/no: y
+允许本次受控大模型回答？ 输入 yes/no: y
 ```
 
-## 包结构
+模型选择：
 
-`v0.8.0` 候选包含 19 个 distribution：
-
-1. `cognition-system`
-2. `cognition-system-schemas`
-3. `cognition-system-behavior-contracts`
-4. `cognition-system-config-assembly`
-5. `cognition-system-config-contexts`
-6. `cognition-system-runtime`
-7. `cognition-system-contract-core`
-8. `cognition-system-adk-adapter`
-9. `cognition-system-observability-hub`
-10. `cognition-system-cognition-agent`
-11. `cognition-system-cognition-governance`
-12. `cognition-system-composition`
-13. `cognition-system-external-readonly`
-14. `cognition-system-runtime-container`
-15. `cognition-system-task-workflows`
-16. `cognition-system-product-gateway`
-17. `cognition-system-product-runtime-assembly`
-18. `cognition-system-product-application-assembly`
-19. `cognition-system-cli`
+1. `gemma4`：本地 Ollama / Gemma4。
+2. `deepseek`：线上 DeepSeek V4 Flash。
 
 ## 安全边界
 
-CLI 保持以下边界：
+系统默认不会：
 
-1. 不静默联网。
-2. 不静默调用 live model。
-3. 不静默读取或保存 provider key。
-4. 不在产品输出中暴露 raw HTML、raw provider response、response headers、traceback 或 provider key。
-5. 不接受任意模型名，只接受已配置别名。
-6. 本候选验证不包含 PyPI 上传、Git tag、GitHub Release 或远程 push。
+1. 静默联网。
+2. 静默调用模型。
+3. 静默读取或保存 provider key。
+4. 在回答中暴露原始网页、原始模型响应、traceback 或 provider key。
+5. 把当前追问冒充长期记忆。
 
-运行产物应留在本地忽略的 `outputs/` 目录中，不属于公开发布面。
+## 常用命令
+
+```bash
+cognition --help
+cognition external-readonly ask --help
+cognition external-readonly ask --guided
+cognition config init --config-root ./config
+```
 
 ## 文档
 
 - 快速开始：[QUICKSTART.zh-CN.md](QUICKSTART.zh-CN.md)
-- 英文快速开始：[QUICKSTART.md](QUICKSTART.md)
+- English quick start：[QUICKSTART.md](QUICKSTART.md)
 - 版本历史：[CHANGELOG.md](CHANGELOG.md)
 - 源码仓库：https://github.com/peacock-lab/cognition-engine

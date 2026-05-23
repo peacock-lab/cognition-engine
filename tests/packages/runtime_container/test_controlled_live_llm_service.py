@@ -143,7 +143,7 @@ def test_controlled_live_llm_factory_resolves_with_config_context(
             operator_approved=True,
             approval_ref="approval://external-provider",
             audit_ref="audit://external-provider",
-            selection_source="product_gateway._task_workflows.execution",
+            selection_source="product_gateway._operation_flows.execution",
             metadata={"request_note": "raw value must not leak"},
         ),
     )
@@ -168,7 +168,7 @@ def test_controlled_live_llm_factory_resolves_with_config_context(
     assert captured["approval_ref"] == "approval://external-provider"
     assert captured["audit_ref"] == "audit://external-provider"
     assert captured["metadata"]["source"] == (
-        "product_gateway._task_workflows.execution"
+        "product_gateway._operation_flows.execution"
     )
     assert captured["metadata"]["runtime_container_live_llm_factory"] is True
     assert captured["metadata"]["config_profile"] == "dev"
@@ -205,11 +205,11 @@ def test_controlled_live_llm_factory_resolves_with_config_root(
             config_root="config/twf",
             environment="local",
             profile="dev",
-            selection_source="product_gateway._task_workflows.execution",
+            selection_source="product_gateway._operation_flows.execution",
         ),
         live_llm_options=RuntimeLiveLlmInvocationOptionsContext(
             timeout_seconds=17,
-            selection_source="product_gateway._task_workflows.execution",
+            selection_source="product_gateway._operation_flows.execution",
         ),
     )
 

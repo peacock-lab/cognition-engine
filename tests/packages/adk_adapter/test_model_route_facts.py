@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import re
 from pathlib import Path
 
@@ -40,6 +41,47 @@ def test_adk_model_route_facts_convert_to_public_model_route_facts() -> None:
     assert observability_input["runtime_call_performed"] is False
     assert observability_input["direct_litellm_completion"] is False
     assert observability_input["governance_direct_model_call"] is False
+
+
+def test_litellm_ollama_route_sets_no_proxy_for_loopback_api_base(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.delenv("NO_PROXY", raising=False)
+    monkeypatch.delenv("no_proxy", raising=False)
+
+    model, facts = build_litellm_ollama_model_route(
+        model_name="ollama/gemma4-pro:latest",
+        api_base="http://127.0.0.1:11434",
+    )
+    metadata = facts.to_public_model_route_facts().metadata
+
+    assert model._additional_args["api_base"] == "http://127.0.0.1:11434"
+    assert metadata["local_no_proxy_applied"] is True
+    assert "127.0.0.1" in os.environ["NO_PROXY"].split(",")
+    assert "localhost" in os.environ["NO_PROXY"].split(",")
+    assert "::1" in os.environ["NO_PROXY"].split(",")
+    assert "127.0.0.1" in os.environ["no_proxy"].split(",")
+    assert "localhost" in os.environ["no_proxy"].split(",")
+    assert "::1" in os.environ["no_proxy"].split(",")
+
+
+def test_litellm_ollama_route_keeps_remote_api_base_proxy_env_unchanged(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("NO_PROXY", "example.com")
+    monkeypatch.setenv("no_proxy", "example.org")
+
+    _, facts = build_litellm_ollama_model_route(
+        model_name="ollama/gemma4-pro:latest",
+        api_base="https://ollama.example.com",
+    )
+
+    assert (
+        facts.to_public_model_route_facts().metadata["local_no_proxy_applied"]
+        is False
+    )
+    assert os.environ["NO_PROXY"] == "example.com"
+    assert os.environ["no_proxy"] == "example.org"
 
 
 def test_litellm_deepseek_route_facts_are_gated_and_non_executing() -> None:

@@ -96,6 +96,10 @@ def run_cli(
                 twf_llm_invocation_service_factory=(
                     twf_llm_invocation_service_factory
                 ),
+                external_readonly_ask_llm_invocation_service_factory=(
+                    external_readonly_ask_llm_invocation_service_factory
+                    or external_readonly_answer_llm_invocation_service_factory
+                ),
             )
 
     if (

@@ -9,7 +9,7 @@ dependencies = [
   "cognition-system-config-contexts==0.8.0",
   "cognition-system-external-readonly==0.8.0",
   "cognition-system-schemas==0.8.0",
-  "cognition-system-task-workflows==0.8.0",
+  "cognition-system-operation-flows==0.8.0",
   "pydantic>=2.13.0",
 ]
 
@@ -25,7 +25,7 @@ cognition-system-contract-core = { workspace = true }
 cognition-system-config-contexts = { workspace = true }
 cognition-system-external-readonly = { workspace = true }
 cognition-system-schemas = { workspace = true }
-cognition-system-task-workflows = { workspace = true }
+cognition-system-operation-flows = { workspace = true }
 
 [tool.product_gateway]
 status = "product_entry_gateway"

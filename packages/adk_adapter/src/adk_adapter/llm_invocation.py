@@ -498,6 +498,8 @@ def _evidence_summary_answer_generation_prompt_text(
     context = request.metadata.get("evidence_summary_answer_context")
     if not isinstance(context, Mapping):
         return prompt
+    if request.metadata.get("answer_scoped_transformation") is True:
+        return _answer_scoped_transformation_prompt_text(request, context, prompt)
 
     question = _evidence_summary_prompt_fragment(context.get("user_question"))
     summary_facts = _evidence_summary_prompt_string_list(
@@ -556,6 +558,35 @@ def _evidence_summary_answer_generation_prompt_text(
     lines.append("9. 第一行直接回答问题，不要添加标题、标签、键名或协议包装；")
     lines.append(
         "10. 不得以 {、[、```、thought、analysis、reasoning、scratchpad 开头。"
+    )
+    return "\n".join(lines)
+
+
+def _answer_scoped_transformation_prompt_text(
+    request: LlmInvocationRequest,
+    context: Mapping[str, Any],
+    prompt: str,
+) -> str:
+    question = (
+        _evidence_summary_prompt_fragment(context.get("user_question"))
+        or prompt
+    )
+    facts = _evidence_summary_prompt_string_list(context.get("summary_facts"))
+    lines = [
+        "用户变换请求：",
+        question,
+        "上一轮 assistant answer 文本：",
+    ]
+    lines.extend(_numbered_prompt_lines(facts, "无可用上一轮答案文本"))
+    lines.append("执行要求：")
+    lines.append("1. 只基于上一轮 assistant answer 文本进行翻译、压缩、改写或格式转换；")
+    lines.append("2. 不重新抓取、搜索、扩写或重新解释原始 evidence；")
+    lines.append("3. 不添加上一轮答案以外的新事实；")
+    lines.append("4. 直接输出变换后的用户可读答案；")
+    lines.append("5. 不输出 JSON / YAML object wrapper；")
+    lines.append(
+        "6. 不输出 thought、reasoning、analysis、chain_of_thought、scratchpad "
+        "等可见推理字段。"
     )
     return "\n".join(lines)
 

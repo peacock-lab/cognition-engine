@@ -20,6 +20,7 @@ TwfLlmInvocationServiceFactory = GovernedLlmInvocationServiceFactory
 ExternalReadonlyAnswerLlmInvocationServiceFactory = (
     GovernedLlmInvocationServiceFactory
 )
+ExternalReadonlyAskLlmInvocationServiceFactory = GovernedLlmInvocationServiceFactory
 
 
 @contextmanager

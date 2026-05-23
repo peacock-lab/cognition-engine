@@ -14,18 +14,18 @@ from product_gateway.contracts import (
     ProductGatewayExecutionMode,
     ProductGatewayStatus,
 )
-from product_gateway._task_workflows.execution import (
+from product_gateway._operation_flows.execution import (
     InternalTwfExecutionContext,
     InternalTwfExecutionInput,
     execute_internal_twf_workflow,
 )
-from product_gateway._task_workflows.request import (
+from product_gateway._operation_flows.request import (
     InternalTwfGovernanceRefs,
     InternalTwfReferenceWorkspaceControls,
     build_internal_twf_plan_request_draft,
     build_internal_twf_reference_review_request_draft,
 )
-from product_gateway._task_workflows.route import (
+from product_gateway._operation_flows.route import (
     build_internal_twf_route_projection,
 )
 from product_gateway.response_summary_projection import (
@@ -125,7 +125,7 @@ def test_product_gateway_executes_twf_plan_draft_through_product_entry() -> None
     assert result.product_request.input_payload["route_matched"] is True
     assert result.product_response.status is ProductGatewayStatus.SUCCESS
     assert result.product_response.metadata["source"] == (
-        "product_gateway._task_workflows.execution"
+        "product_gateway._operation_flows.execution"
     )
     assert result.product_response.metadata["no_live"] is True
     assert result.updates_latest_plan is True

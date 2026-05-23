@@ -89,7 +89,7 @@ def test_external_readonly_core_source_has_no_channel_or_runtime_dependencies() 
     assert "runtime_container" not in source
     assert "product_gateway" not in source
     assert "cognition_cli" not in source
-    assert "cognition_task_workflows" not in source
+    assert "cognition_operation_flows" not in source
     assert "google.adk" not in source
     assert "litellm" not in source
     assert "adk_adapter" not in source

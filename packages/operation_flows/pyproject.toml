@@ -1,0 +1,46 @@
+[project]
+name = "cognition-system-operation-flows"
+version = "0.8.0"
+description = "Product-level governed operation flows package for the Cognition System."
+readme = { text = "Cognition System v0.8.0 public package. See the version-specific public README in the release repository for usage and boundary notes.", content-type = "text/markdown" }
+requires-python = ">=3.14"
+dependencies = [
+  "cognition-system-config-contexts==0.8.0",
+  "cognition-system-contract-core==0.8.0",
+  "cognition-system-runtime==0.8.0",
+  "pydantic>=2.13.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/cognition_operation_flows"]
+
+[tool.cognition_operation_flows]
+status = "product_level_governed_operation_flows"
+package = "cognition_operation_flows"
+source_root = "src/cognition_operation_flows"
+channel_neutral = true
+workflow_execution_enabled = false
+operation_flow_descriptor_candidate_enabled = true
+twf_router_candidate_enabled = true
+task_control_candidate_enabled = false
+operation_control_candidate_enabled = true
+run_workspace_candidate_enabled = true
+skill_projection_context_candidate_enabled = true
+request_draft_candidate_enabled = true
+runtime_container_dependency_enabled = false
+runtime_dependency_enabled = true
+contract_core_dependency_enabled = true
+config_contexts_dependency_enabled = true
+product_gateway_dependency_enabled = false
+channel_adapter_dependency_enabled = false
+publishable = true
+release_configured = true
+
+[tool.uv.sources]
+cognition-system-config-contexts = { workspace = true }
+cognition-system-contract-core = { workspace = true }
+cognition-system-runtime = { workspace = true }

@@ -9,12 +9,16 @@ from typing import Any
 
 from adk_adapter import (
     ADK_EVIDENCE_SUMMARY_ANSWER_OUTPUT_GOVERNANCE_MODE_NO_OUTPUT_SCHEMA,
+    ADK_EVIDENCE_SUMMARY_ANSWER_OUTPUT_GOVERNANCE_MODE_OUTPUT_SCHEMA,
     AdkEvidenceSummaryAnswerOutputGovernanceOptions,
     AdkEvidenceSummaryAnswerOutputGovernanceProbe,
     AdkGovernedLlmInvocationOptions,
     AdkGovernedLlmInvocationService,
 )
-from adk_adapter.models import build_litellm_deepseek_model_route
+from adk_adapter.models import (
+    build_litellm_deepseek_model_route,
+    build_litellm_ollama_model_route,
+)
 from behavior_contracts.llm_invocation import GovernedLlmInvocationService
 from config_assembly.runtime import assemble_runtime_config_payload
 from config_contexts.runtime import (
@@ -191,6 +195,20 @@ def build_controlled_live_llm_invocation_service_assembly_from_runtime_config(
             operator_approved=operator_approved,
             approval_ref=approval_ref,
             audit_ref=audit_ref,
+            metadata=metadata,
+        )
+    if (
+        selection.provider_profile.backend_provider == "ollama"
+        and selection.output_governance_profile.mode
+        in {"adk_no_output_schema", "adk_output_schema"}
+    ):
+        return _build_ollama_output_governance_assembly(
+            selection,
+            ollama_api_base=ollama_api_base,
+            timeout_seconds=timeout_seconds,
+            temperature=temperature,
+            max_tokens=max_tokens,
+            response_preview_limit=response_preview_limit,
             metadata=metadata,
         )
     if selection.output_governance_profile.mode != "direct_controlled_live":
@@ -554,6 +572,113 @@ def _build_deepseek_output_governance_assembly(
             "assembly_options": assembly_options.to_metadata(),
         },
     )
+
+
+def _build_ollama_output_governance_assembly(
+    selection: _LiveLlmProfileSelection,
+    *,
+    ollama_api_base: str | None,
+    timeout_seconds: int | None,
+    temperature: float | None,
+    max_tokens: int | None,
+    response_preview_limit: int | None,
+    metadata: dict[str, Any] | None,
+) -> LlmInvocationServiceAssembly:
+    output_governance_mode = _adk_output_governance_mode(
+        selection.output_governance_profile
+    )
+
+    resolved_ollama_api_base = (
+        ollama_api_base
+        if ollama_api_base is not None
+        else _provider_api_base(selection.provider_profile)
+    )
+    resolved_timeout_seconds = (
+        timeout_seconds
+        if timeout_seconds is not None
+        else selection.model_profile.timeout_seconds
+    )
+    resolved_temperature = (
+        temperature if temperature is not None else selection.model_profile.temperature
+    )
+    resolved_max_tokens = (
+        max_tokens if max_tokens is not None else selection.model_profile.max_tokens
+    )
+    model, route_facts = build_litellm_ollama_model_route(
+        model_name=selection.model_profile.model_name,
+        api_base=resolved_ollama_api_base,
+        timeout=resolved_timeout_seconds,
+        temperature=resolved_temperature,
+        max_tokens=resolved_max_tokens,
+    )
+    public_route_facts = route_facts.to_public_model_route_facts()
+    live_metadata = {
+        "live_options_source": "config_contexts.runtime.RuntimeLiveLlmConfigView",
+        "live_service_profile": "adk_litellm_ollama_output_governance",
+        "configured_model_name": selection.model_profile.model_name,
+        "provider_profile_ref": selection.provider_profile_ref,
+        "model_profile_ref": selection.model_profile_ref,
+        "output_governance_profile_ref": selection.output_governance_profile_ref,
+        "backend_provider": selection.provider_profile.backend_provider,
+        "route_kind": selection.provider_profile.route_kind,
+        "output_governance_mode": output_governance_mode,
+        "ollama_api_base": resolved_ollama_api_base,
+        "timeout_seconds": resolved_timeout_seconds,
+        "temperature": resolved_temperature,
+        "max_tokens": resolved_max_tokens,
+        "local_only_provider": True,
+        **(metadata or {}),
+    }
+    service: GovernedLlmInvocationService = (
+        AdkEvidenceSummaryAnswerOutputGovernanceProbe(
+            options=AdkEvidenceSummaryAnswerOutputGovernanceOptions(
+                model=model,
+                model_name=selection.model_profile.model_name,
+                app_name="cognition_engine_external_readonly_ask_ollama",
+                output_governance_mode=output_governance_mode,
+                route_facts=public_route_facts,
+                max_repair_attempts=(
+                    selection.output_governance_profile.max_repair_attempts
+                ),
+                response_preview_limit=response_preview_limit or 600,
+                metadata=live_metadata,
+            )
+        )
+    )
+    assembly_options = LlmInvocationServiceAssemblyOptions(
+        route_facts=public_route_facts,
+        metadata=live_metadata,
+    )
+    return LlmInvocationServiceAssembly(
+        service=service,
+        assembly_options=assembly_options,
+        metadata={
+            "assembly": "composition.llm_invocation_assembly",
+            "service_contract": (
+                "behavior_contracts.llm_invocation.GovernedLlmInvocationService"
+            ),
+            "service_implementation": (
+                "adk_adapter.evidence_summary_answer_output_governance."
+                "AdkEvidenceSummaryAnswerOutputGovernanceProbe"
+            ),
+            "does_not_invoke_service": True,
+            "runtime_connected": False,
+            "runtime_container_connected": False,
+            "observability_candidate_created": False,
+            "profile_selection": _profile_selection_metadata(selection),
+            "assembly_options": assembly_options.to_metadata(),
+        },
+    )
+
+
+def _adk_output_governance_mode(
+    output_governance_profile: RuntimeLlmOutputGovernanceProfileConfigView,
+) -> str:
+    if output_governance_profile.mode == "adk_no_output_schema":
+        return ADK_EVIDENCE_SUMMARY_ANSWER_OUTPUT_GOVERNANCE_MODE_NO_OUTPUT_SCHEMA
+    if output_governance_profile.mode == "adk_output_schema":
+        return ADK_EVIDENCE_SUMMARY_ANSWER_OUTPUT_GOVERNANCE_MODE_OUTPUT_SCHEMA
+    raise ValueError("Ollama ADK product path requires an ADK output governance mode.")
 
 
 def _validate_external_provider_controls(

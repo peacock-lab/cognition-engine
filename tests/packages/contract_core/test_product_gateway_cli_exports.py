@@ -67,7 +67,7 @@ def test_product_gateway_cli_facade_has_no_forbidden_imports() -> None:
     )
     forbidden_imports = re.compile(
         r"^\s*(?:from|import)\s+"
-        r"(?:product_gateway|cognition_task_workflows|runtime_container|"
+        r"(?:product_gateway|cognition_operation_flows|runtime_container|"
         r"composition|adk_adapter|google\.adk|litellm)\b",
         re.MULTILINE,
     )

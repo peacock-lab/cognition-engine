@@ -15,8 +15,8 @@ FORBIDDEN_REVERSE_DEPENDENCY_SOURCE_ROOTS = [
     ("contract_core", REPO_ROOT / "packages" / "contract_core" / "src" / "contract_core"),
     ("product_gateway", REPO_ROOT / "packages" / "product_gateway" / "src" / "product_gateway"),
     (
-        "task_workflows",
-        REPO_ROOT / "packages" / "task_workflows" / "src" / "cognition_task_workflows",
+        "operation_flows",
+        REPO_ROOT / "packages" / "operation_flows" / "src" / "cognition_operation_flows",
     ),
     ("external_readonly", REPO_ROOT / "packages" / "external_readonly" / "src" / "external_readonly"),
     ("cli", REPO_ROOT / "packages" / "cli" / "src" / "cognition_cli"),

@@ -19,6 +19,7 @@ members = [
     "cognition-system-config-assembly",
     "cognition-system-config-contexts",
     "cognition-system-contract-core",
+    "cognition-system-evaluation",
     "cognition-system-external-readonly",
     "cognition-system-observability-hub",
     "cognition-system-operation-flows",
@@ -286,6 +287,7 @@ dependencies = [
     { name = "cognition-system-config-assembly" },
     { name = "cognition-system-config-contexts" },
     { name = "cognition-system-contract-core" },
+    { name = "cognition-system-evaluation" },
     { name = "cognition-system-external-readonly" },
     { name = "cognition-system-observability-hub" },
     { name = "cognition-system-operation-flows" },
@@ -334,6 +336,7 @@ requires-dist = [
     { name = "cognition-system-config-assembly", editable = "packages/config_assembly" },
     { name = "cognition-system-config-contexts", editable = "packages/config_contexts" },
     { name = "cognition-system-contract-core", editable = "packages/contract_core" },
+    { name = "cognition-system-evaluation", editable = "packages/cognition_evaluation" },
     { name = "cognition-system-external-readonly", editable = "packages/external_readonly" },
     { name = "cognition-system-observability-hub", editable = "packages/observability_hub" },
     { name = "cognition-system-operation-flows", editable = "packages/operation_flows" },
@@ -530,6 +533,17 @@ requires-dist = [
     { name = "cognition-system-config-contexts", editable = "packages/config_contexts" },
     { name = "cognition-system-schemas", editable = "packages/schemas" },
 ]
+
+[[package]]
+name = "cognition-system-evaluation"
+version = "0.8.0"
+source = { editable = "packages/cognition_evaluation" }
+dependencies = [
+    { name = "pydantic" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "pydantic", specifier = ">=2.13.0" }]
 
 [[package]]
 name = "cognition-system-external-readonly"

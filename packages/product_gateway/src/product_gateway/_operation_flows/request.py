@@ -1,4 +1,4 @@
-"""Product gateway request-draft API for Twf task workflows."""
+"""Product gateway request-draft API for OperationFlow operation flows."""
 
 from __future__ import annotations
 
@@ -18,21 +18,21 @@ from cognition_operation_flows.product_entry_service import (
 )
 
 
-INTERNAL_TWF_PLAN_WORKFLOW_NAME = OPERATION_FLOW_PRODUCT_ENTRY_PLAN_FLOW_NAME
-INTERNAL_TWF_REFERENCE_REVIEW_WORKFLOW_NAME = (
+INTERNAL_OPERATION_FLOW_PLAN_WORKFLOW_NAME = OPERATION_FLOW_PRODUCT_ENTRY_PLAN_FLOW_NAME
+INTERNAL_OPERATION_FLOW_REFERENCE_REVIEW_WORKFLOW_NAME = (
     OPERATION_FLOW_PRODUCT_ENTRY_REFERENCE_REVIEW_FLOW_NAME
 )
-INTERNAL_TWF_CONFIG_PROFILE_EXPLAIN_WORKFLOW_NAME = (
+INTERNAL_OPERATION_FLOW_CONFIG_PROFILE_EXPLAIN_WORKFLOW_NAME = (
     OPERATION_FLOW_PRODUCT_ENTRY_CONFIG_PROFILE_EXPLAIN_FLOW_NAME
 )
-INTERNAL_TWF_RUN_WORKSPACE_EVIDENCE_AUDIT_WORKFLOW_NAME = (
+INTERNAL_OPERATION_FLOW_RUN_WORKSPACE_EVIDENCE_AUDIT_WORKFLOW_NAME = (
     OPERATION_FLOW_PRODUCT_ENTRY_RUN_WORKSPACE_EVIDENCE_AUDIT_FLOW_NAME
 )
 
 
 @dataclass(frozen=True)
-class InternalTwfGovernanceRefs:
-    """Product-gateway refs carried into a task workflow request draft."""
+class InternalOperationFlowGovernanceRefs:
+    """Product-gateway refs carried into a operation flow request draft."""
 
     approval_ref: str | None = None
     audit_ref: str | None = None
@@ -43,8 +43,8 @@ class InternalTwfGovernanceRefs:
 
 
 @dataclass(frozen=True)
-class InternalTwfReferenceWorkspaceControls:
-    """Product-gateway reference and workspace controls for task workflows."""
+class InternalOperationFlowReferenceWorkspaceControls:
+    """Product-gateway reference and workspace controls for operation flows."""
 
     reference_paths: tuple[str, ...] = ()
     reference_repo_root: str | None = None
@@ -64,15 +64,15 @@ class InternalTwfReferenceWorkspaceControls:
     metadata: dict[str, Any] = field(default_factory=dict)
 
 
-def build_internal_twf_plan_request_draft(
+def build_internal_operation_flow_plan_request_draft(
     *,
     sanitized_user_text: str,
     chat_session_id: str | None = None,
     turn_index: int | None = None,
     sanitized_history: Sequence[Mapping[str, str]] = (),
     sanitized_previous_display_text: str | None = None,
-    governance_refs: InternalTwfGovernanceRefs | Mapping[str, Any] | None = None,
-    controls: InternalTwfReferenceWorkspaceControls
+    governance_refs: InternalOperationFlowGovernanceRefs | Mapping[str, Any] | None = None,
+    controls: InternalOperationFlowReferenceWorkspaceControls
     | Mapping[str, Any]
     | None = None,
     route_summary: Mapping[str, Any] | None = None,
@@ -109,14 +109,14 @@ def build_internal_twf_plan_request_draft(
     )
 
 
-def build_internal_twf_reference_review_request_draft(
+def build_internal_operation_flow_reference_review_request_draft(
     *,
     sanitized_user_text: str,
     chat_session_id: str | None = None,
     turn_index: int | None = None,
     sanitized_history: Sequence[Mapping[str, str]] = (),
-    governance_refs: InternalTwfGovernanceRefs | Mapping[str, Any] | None = None,
-    controls: InternalTwfReferenceWorkspaceControls
+    governance_refs: InternalOperationFlowGovernanceRefs | Mapping[str, Any] | None = None,
+    controls: InternalOperationFlowReferenceWorkspaceControls
     | Mapping[str, Any]
     | None = None,
     route_summary: Mapping[str, Any] | None = None,
@@ -152,14 +152,14 @@ def build_internal_twf_reference_review_request_draft(
     )
 
 
-def build_internal_twf_config_profile_explain_request_draft(
+def build_internal_operation_flow_config_profile_explain_request_draft(
     *,
     sanitized_user_text: str,
     chat_session_id: str | None = None,
     turn_index: int | None = None,
     sanitized_history: Sequence[Mapping[str, str]] = (),
-    governance_refs: InternalTwfGovernanceRefs | Mapping[str, Any] | None = None,
-    controls: InternalTwfReferenceWorkspaceControls
+    governance_refs: InternalOperationFlowGovernanceRefs | Mapping[str, Any] | None = None,
+    controls: InternalOperationFlowReferenceWorkspaceControls
     | Mapping[str, Any]
     | None = None,
     route_summary: Mapping[str, Any] | None = None,
@@ -199,14 +199,14 @@ def build_internal_twf_config_profile_explain_request_draft(
     )
 
 
-def build_internal_twf_run_workspace_evidence_audit_request_draft(
+def build_internal_operation_flow_run_workspace_evidence_audit_request_draft(
     *,
     sanitized_user_text: str,
     chat_session_id: str | None = None,
     turn_index: int | None = None,
     sanitized_history: Sequence[Mapping[str, str]] = (),
-    governance_refs: InternalTwfGovernanceRefs | Mapping[str, Any] | None = None,
-    controls: InternalTwfReferenceWorkspaceControls
+    governance_refs: InternalOperationFlowGovernanceRefs | Mapping[str, Any] | None = None,
+    controls: InternalOperationFlowReferenceWorkspaceControls
     | Mapping[str, Any]
     | None = None,
     route_summary: Mapping[str, Any] | None = None,
@@ -243,14 +243,14 @@ def build_internal_twf_run_workspace_evidence_audit_request_draft(
 
 
 __all__ = [
-    "INTERNAL_TWF_CONFIG_PROFILE_EXPLAIN_WORKFLOW_NAME",
-    "INTERNAL_TWF_PLAN_WORKFLOW_NAME",
-    "INTERNAL_TWF_REFERENCE_REVIEW_WORKFLOW_NAME",
-    "INTERNAL_TWF_RUN_WORKSPACE_EVIDENCE_AUDIT_WORKFLOW_NAME",
-    "InternalTwfGovernanceRefs",
-    "InternalTwfReferenceWorkspaceControls",
-    "build_internal_twf_config_profile_explain_request_draft",
-    "build_internal_twf_plan_request_draft",
-    "build_internal_twf_reference_review_request_draft",
-    "build_internal_twf_run_workspace_evidence_audit_request_draft",
+    "INTERNAL_OPERATION_FLOW_CONFIG_PROFILE_EXPLAIN_WORKFLOW_NAME",
+    "INTERNAL_OPERATION_FLOW_PLAN_WORKFLOW_NAME",
+    "INTERNAL_OPERATION_FLOW_REFERENCE_REVIEW_WORKFLOW_NAME",
+    "INTERNAL_OPERATION_FLOW_RUN_WORKSPACE_EVIDENCE_AUDIT_WORKFLOW_NAME",
+    "InternalOperationFlowGovernanceRefs",
+    "InternalOperationFlowReferenceWorkspaceControls",
+    "build_internal_operation_flow_config_profile_explain_request_draft",
+    "build_internal_operation_flow_plan_request_draft",
+    "build_internal_operation_flow_reference_review_request_draft",
+    "build_internal_operation_flow_run_workspace_evidence_audit_request_draft",
 ]

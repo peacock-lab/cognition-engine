@@ -18,7 +18,7 @@ from contract_core.product_gateway_cli import (
     PRODUCT_GATEWAY_CLI_REFERENCE_READER_FORBIDDEN_SEGMENTS,
     PRODUCT_GATEWAY_CLI_REFERENCE_READER_TOOL_NAME,
 )
-from product_gateway.cli_surface import resolve_cli_twf_tool_exposure_profile
+from product_gateway.cli_surface import resolve_cli_operation_flow_tool_exposure_profile
 
 
 REFERENCE_PATH_HINT = (
@@ -273,7 +273,7 @@ def validate_reference_path_for_chat(
     try:
         controls = _chat_plan_control_kwargs(args)
         repo_root = Path(str(controls["reference_repo_root"])).expanduser().resolve()
-        exposure = resolve_cli_twf_tool_exposure_profile(
+        exposure = resolve_cli_operation_flow_tool_exposure_profile(
             profile_name=str(controls["reference_profile_name"]),
             profile_config=controls["reference_profile_config"],
             repo_root=repo_root,

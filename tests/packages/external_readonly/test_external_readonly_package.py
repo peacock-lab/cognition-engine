@@ -36,7 +36,7 @@ def test_external_readonly_package_metadata_is_independent_candidate() -> None:
 
     assert pyproject["project"]["name"] == "cognition-system-external-readonly"
     assert pyproject["project"]["dependencies"] == [
-        "cognition-system-schemas==0.8.0"
+        "cognition-system-schemas==0.8.1"
     ]
     assert pyproject["tool"]["uv"]["sources"] == {
         "cognition-system-schemas": {"workspace": True}
@@ -101,7 +101,7 @@ def test_external_readonly_package_dependencies_stay_contract_only() -> None:
     )
     dependencies = " ".join(pyproject["project"]["dependencies"])
 
-    assert dependencies == "cognition-system-schemas==0.8.0"
+    assert dependencies == "cognition-system-schemas==0.8.1"
     assert "behavior-contracts" not in dependencies
     assert "contract-core" not in dependencies
     assert "runtime-container" not in dependencies

@@ -1,4 +1,4 @@
-"""Task workflow facade for governed LLM invocation."""
+"""Operation flow facade for governed LLM invocation."""
 
 from __future__ import annotations
 
@@ -20,16 +20,16 @@ from runtime.llm_invocation import (
 
 
 @dataclass(frozen=True)
-class TwfLlmInvocationFacade:
-    """Thin task workflow facade over governed runtime LLM invocation."""
+class OperationFlowLlmInvocationFacade:
+    """Thin operation flow facade over governed runtime LLM invocation."""
 
     service: GovernedLlmInvocationService
     metadata: dict[str, Any] = field(default_factory=dict)
 
     def run(self, request: LlmInvocationRequest) -> LlmInvocationResult:
-        """Run a governed invocation for a task workflow."""
+        """Run a governed invocation for a operation flow."""
 
-        return run_twf_llm_invocation(
+        return run_operation_flow_llm_invocation(
             service=self.service,
             request=request,
             metadata=self.metadata,
@@ -49,7 +49,7 @@ class TwfLlmInvocationFacade:
         }
 
 
-def build_twf_llm_invocation_request(
+def build_operation_flow_llm_invocation_request(
     *,
     request_id: str,
     route_facts: ModelRouteFacts,
@@ -58,7 +58,7 @@ def build_twf_llm_invocation_request(
     prompt_preview_sanitized: str | None = None,
     metadata: dict[str, Any] | None = None,
 ) -> LlmInvocationRequest:
-    """Build public request facts for a task workflow LLM call."""
+    """Build public request facts for a operation flow LLM call."""
 
     return build_runtime_llm_invocation_request(
         request_id=request_id,
@@ -67,13 +67,13 @@ def build_twf_llm_invocation_request(
         prompt_ref=prompt_ref,
         prompt_preview_sanitized=prompt_preview_sanitized,
         metadata={
-            "twf_llm_invocation_facade": "cognition_operation_flows._llm.invocation",
+            "operation_flow_llm_invocation_facade": "cognition_operation_flows._llm.invocation",
             **(metadata or {}),
         },
     )
 
 
-def run_twf_llm_invocation(
+def run_operation_flow_llm_invocation(
     *,
     service: GovernedLlmInvocationService,
     request: LlmInvocationRequest,
@@ -85,7 +85,7 @@ def run_twf_llm_invocation(
         context=RuntimeLlmInvocationContext(
             service=service,
             metadata={
-                "twf_llm_invocation_facade": "cognition_operation_flows._llm.invocation",
+                "operation_flow_llm_invocation_facade": "cognition_operation_flows._llm.invocation",
                 **(metadata or {}),
             },
         ),

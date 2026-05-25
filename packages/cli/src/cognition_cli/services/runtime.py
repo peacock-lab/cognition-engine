@@ -16,11 +16,9 @@ RequestBuilder = Callable[
     [argparse.Namespace, Mapping[str, Any]], Any
 ]
 RunGatewayExecutor = Callable[..., Any]
-TwfLlmInvocationServiceFactory = GovernedLlmInvocationServiceFactory
-ExternalReadonlyAnswerLlmInvocationServiceFactory = (
-    GovernedLlmInvocationServiceFactory
-)
+OperationFlowLlmInvocationServiceFactory = GovernedLlmInvocationServiceFactory
 ExternalReadonlyAskLlmInvocationServiceFactory = GovernedLlmInvocationServiceFactory
+ExternalReadonlyAskProviderCredentialStoreFactory = Callable[[], Any]
 
 
 @contextmanager

@@ -165,7 +165,7 @@ def test_external_readonly_readonly_public_refs_contract_is_sanitized() -> None:
     assert "observability_hub.internal" not in serialized
 
 
-def test_read_context_to_readonly_public_refs_preserves_twf_refs_semantics() -> None:
+def test_read_context_to_readonly_public_refs_preserves_operation_flow_refs_semantics() -> None:
     public_refs = build_external_readonly_evidence_readonly_public_refs_from_read_context(
         {
             "status": "ready",
@@ -383,7 +383,7 @@ def test_external_readonly_summary_archive_have_no_compatibility_facades() -> No
         RUNTIME_EXTERNAL_READONLY_SOURCE_ROOT / "evidence_archive.py"
     ).exists()
     assert not (
-        TASK_WORKFLOWS_SOURCE_ROOT / "twf_external_readonly_evidence_summary.py"
+        TASK_WORKFLOWS_SOURCE_ROOT / "operation_flow_external_readonly_evidence_summary.py"
     ).exists()
     assert not (EXTERNAL_READONLY_SOURCE_ROOT / "evidence_summary.py").exists()
     assert not (EXTERNAL_READONLY_SOURCE_ROOT / "evidence_archive.py").exists()

@@ -1,4 +1,4 @@
-"""Observation slot candidates for task workflow agent workflow registry visibility."""
+"""Observation slot candidates for operation flow agent workflow registry visibility."""
 
 from __future__ import annotations
 
@@ -25,7 +25,7 @@ AGENT_WORKFLOW_REGISTRY_OBSERVATION_STATUSES = frozenset(
 
 
 @dataclass(frozen=True)
-class TwfAgentWorkflowCandidateDescriptorSource:
+class OperationFlowAgentWorkflowCandidateDescriptorSource:
     """Candidate source summary; not a registered workflow descriptor."""
 
     source_name: str
@@ -40,7 +40,7 @@ class TwfAgentWorkflowCandidateDescriptorSource:
 
 
 @dataclass(frozen=True)
-class TwfAgentWorkflowRegistryObservationCandidate:
+class OperationFlowAgentWorkflowRegistryObservationCandidate:
     """Registry observation slot for a candidate Agent workflow."""
 
     observation_name: str
@@ -60,11 +60,11 @@ class TwfAgentWorkflowRegistryObservationCandidate:
     metadata: dict[str, Any] = field(default_factory=dict)
 
 
-def build_twf_agent_workflow_candidate_descriptor_source(
+def build_operation_flow_agent_workflow_candidate_descriptor_source(
     gate: AgentWorkflowLoadingGateCandidate,
     *,
     evidence_projection: AgentWorkflowEvidenceProjectionCandidate | None = None,
-) -> TwfAgentWorkflowCandidateDescriptorSource:
+) -> OperationFlowAgentWorkflowCandidateDescriptorSource:
     """Build a candidate descriptor source without registering a workflow."""
 
     projection = evidence_projection or build_agent_workflow_evidence_projection(gate)
@@ -72,7 +72,7 @@ def build_twf_agent_workflow_candidate_descriptor_source(
     admission = gate.admission
     workflow_slug = _slug_or_default(descriptor.workflow_name, "agent-workflow")
     team_slug = _slug_or_default(admission.agent_team_name, "agent-team")
-    return TwfAgentWorkflowCandidateDescriptorSource(
+    return OperationFlowAgentWorkflowCandidateDescriptorSource(
         source_name=f"{workflow_slug}-candidate-descriptor-source",
         source_kind="agent_workflow_admission_gate",
         agent_gate_status=gate.status,
@@ -104,15 +104,15 @@ def build_twf_agent_workflow_candidate_descriptor_source(
     )
 
 
-def build_twf_agent_workflow_registry_observation(
+def build_operation_flow_agent_workflow_registry_observation(
     gate: AgentWorkflowLoadingGateCandidate,
     *,
-    source: TwfAgentWorkflowCandidateDescriptorSource | None = None,
+    source: OperationFlowAgentWorkflowCandidateDescriptorSource | None = None,
     observation_version: str = "v0.7.0-candidate",
-) -> TwfAgentWorkflowRegistryObservationCandidate:
+) -> OperationFlowAgentWorkflowRegistryObservationCandidate:
     """Build a registry observation slot without touching the registry."""
 
-    descriptor_source = source or build_twf_agent_workflow_candidate_descriptor_source(
+    descriptor_source = source or build_operation_flow_agent_workflow_candidate_descriptor_source(
         gate
     )
     descriptor = gate.descriptor
@@ -122,7 +122,7 @@ def build_twf_agent_workflow_registry_observation(
         if gate.allowed_for_candidate_registration and gate.status == "passed"
         else "blocked"
     )
-    return TwfAgentWorkflowRegistryObservationCandidate(
+    return OperationFlowAgentWorkflowRegistryObservationCandidate(
         observation_name=(
             f"{_slug_or_default(descriptor.workflow_name, 'agent-workflow')}-"
             "registry-observation"
@@ -158,8 +158,8 @@ def build_twf_agent_workflow_registry_observation(
     )
 
 
-def twf_agent_workflow_candidate_descriptor_source_status_dict(
-    source: TwfAgentWorkflowCandidateDescriptorSource,
+def operation_flow_agent_workflow_candidate_descriptor_source_status_dict(
+    source: OperationFlowAgentWorkflowCandidateDescriptorSource,
 ) -> dict[str, Any]:
     """Return a JSON-ready candidate descriptor source summary."""
 
@@ -178,8 +178,8 @@ def twf_agent_workflow_candidate_descriptor_source_status_dict(
     }
 
 
-def twf_agent_workflow_registry_observation_status_dict(
-    observation: TwfAgentWorkflowRegistryObservationCandidate,
+def operation_flow_agent_workflow_registry_observation_status_dict(
+    observation: OperationFlowAgentWorkflowRegistryObservationCandidate,
 ) -> dict[str, Any]:
     """Return a JSON-ready registry observation summary."""
 

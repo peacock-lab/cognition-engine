@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
@@ -18,6 +19,20 @@ EVIDENCE_SUMMARY_ANSWER_TRACE_PAYLOAD_TYPE = "evidence_summary_answer_trace"
 EVIDENCE_SUMMARY_ANSWER_TRACE_VERSION = "evidence_summary_answer_trace_v1"
 EVIDENCE_SUMMARY_ANSWER_ARTIFACT_PAYLOAD_TYPE = "evidence_summary_answer_artifact"
 EVIDENCE_SUMMARY_ANSWER_ARTIFACT_VERSION = "evidence_summary_answer_artifact_v1"
+EVIDENCE_SUMMARY_ANSWER_OBSERVABILITY_SUMMARY_PAYLOAD_TYPE = (
+    "evidence_summary_answer_observability_summary"
+)
+EVIDENCE_SUMMARY_ANSWER_OBSERVABILITY_SUMMARY_VERSION = (
+    "evidence_summary_answer_observability_summary_v1"
+)
+EVIDENCE_SUMMARY_ANSWER_TRACE_INSPECT_PAYLOAD_TYPE = (
+    "evidence_summary_answer_trace_inspect"
+)
+EVIDENCE_SUMMARY_ANSWER_TRACE_INSPECT_VERSION = (
+    "evidence_summary_answer_trace_inspect_v1"
+)
+EVIDENCE_SUMMARY_ANSWER_RUN_PAYLOAD_TYPE = "evidence_summary_answer_run"
+EVIDENCE_SUMMARY_ANSWER_RUN_VERSION = "evidence_summary_answer_run_v1"
 EVIDENCE_SUMMARY_ANSWER_FOLLOW_UP_SEED_PAYLOAD_TYPE = (
     "evidence_summary_answer_follow_up_seed"
 )
@@ -33,6 +48,13 @@ EVIDENCE_SUMMARY_ANSWER_TRACE_REF_PREFIX = "evidence-summary-answer-trace://"
 EVIDENCE_SUMMARY_ANSWER_ARTIFACT_REF_PREFIX = (
     "evidence-summary-answer-artifact://"
 )
+EVIDENCE_SUMMARY_ANSWER_OBSERVABILITY_SUMMARY_REF_PREFIX = (
+    "evidence-summary-answer-observability-summary://"
+)
+EVIDENCE_SUMMARY_ANSWER_TRACE_INSPECT_REF_PREFIX = (
+    "evidence-summary-answer-trace-inspect://"
+)
+EVIDENCE_SUMMARY_ANSWER_RUN_REF_PREFIX = "evidence-summary-answer-run://"
 EXTERNAL_READONLY_EVIDENCE_REF_PREFIX = "evidence://external-readonly/"
 SUMMARY_FACT_MAX_ITEMS = 24
 SUMMARY_FACT_MAX_CHARS = 4000
@@ -51,6 +73,19 @@ EvidenceSummaryAnswerResultStatus = Literal[
     "blocked",
     "failed",
 ]
+EvidenceSummaryAnswerTraceInspectStatus = Literal[
+    "success",
+    "blocked",
+    "failed",
+    "unavailable",
+]
+EvidenceSummaryAnswerRunStatus = Literal[
+    "success",
+    "insufficient_evidence",
+    "blocked",
+    "failed",
+    "unavailable",
+]
 
 GOVERNED_EVIDENCE_DIGEST_STATUSES = frozenset({"ready", "blocked", "empty"})
 GOVERNED_EVIDENCE_ANSWERABILITY_VALUES = frozenset(
@@ -58,6 +93,12 @@ GOVERNED_EVIDENCE_ANSWERABILITY_VALUES = frozenset(
 )
 EVIDENCE_SUMMARY_ANSWER_RESULT_STATUSES = frozenset(
     {"success", "insufficient_evidence", "blocked", "failed"}
+)
+EVIDENCE_SUMMARY_ANSWER_TRACE_INSPECT_STATUSES = frozenset(
+    {"success", "blocked", "failed", "unavailable"}
+)
+EVIDENCE_SUMMARY_ANSWER_RUN_STATUSES = frozenset(
+    {"success", "insufficient_evidence", "blocked", "failed", "unavailable"}
 )
 
 FORBIDDEN_EVIDENCE_SUMMARY_ANSWER_KEYS = frozenset(
@@ -157,6 +198,25 @@ class EvidenceSummaryAnswerRawBoundaryFlagsSchema(EvidenceSummaryAnswerBaseModel
         """Return whether any forbidden raw boundary was declared present."""
 
         return any(self.model_dump(mode="python").values())
+
+
+class EvidenceSummaryAnswerRawBoundarySummarySchema(EvidenceSummaryAnswerBaseModel):
+    """User-safe restricted payload boundary summary for one answer turn."""
+
+    restricted_payload_absent: bool = True
+    restricted_boundary_intact: bool = True
+    blocked_field_count: int = Field(default=0, ge=0)
+    boundary_note: str | None = None
+
+    @model_validator(mode="after")
+    def validate_raw_boundary_summary(
+        self,
+    ) -> "EvidenceSummaryAnswerRawBoundarySummarySchema":
+        if self.restricted_payload_absent is not True:
+            raise ValueError("restricted payload must remain absent.")
+        if self.restricted_boundary_intact is not True:
+            raise ValueError("restricted boundary must remain intact.")
+        return self
 
 
 class GovernedEvidenceDigestSchema(EvidenceSummaryAnswerBaseModel):
@@ -660,6 +720,319 @@ class EvidenceSummaryAnswerArtifactSchema(EvidenceSummaryAnswerBaseModel):
         return self
 
 
+class EvidenceSummaryAnswerObservabilitySummarySchema(EvidenceSummaryAnswerBaseModel):
+    """Product-safe observability summary for external-readable answer turns."""
+
+    product: Literal["evidence_summary_answer"] = EVIDENCE_SUMMARY_ANSWER_PRODUCT
+    payload_type: Literal["evidence_summary_answer_observability_summary"] = (
+        EVIDENCE_SUMMARY_ANSWER_OBSERVABILITY_SUMMARY_PAYLOAD_TYPE
+    )
+    payload_version: Literal["evidence_summary_answer_observability_summary_v1"] = (
+        EVIDENCE_SUMMARY_ANSWER_OBSERVABILITY_SUMMARY_VERSION
+    )
+    summary_id: str = Field(..., min_length=1)
+    summary_ref: str = Field(..., min_length=1)
+    request_id: str = Field(..., min_length=1)
+    status: EvidenceSummaryAnswerResultStatus
+    reason: str = Field(..., min_length=1)
+    user_explanation: str = Field(..., min_length=1)
+    recovery_hints: list[str] = Field(default_factory=list)
+    refs: list[EvidenceSummaryAnswerRefSchema] = Field(default_factory=list)
+    raw_boundary_summary: EvidenceSummaryAnswerRawBoundarySummarySchema = Field(
+        default_factory=EvidenceSummaryAnswerRawBoundarySummarySchema
+    )
+    evaluation_findings_summary: dict[str, Any] = Field(default_factory=dict)
+    task_compatible: bool = True
+    workflow_compatible: bool = True
+    runtime_backed: bool = False
+    backed_by_adk_task_runtime: bool = False
+    backed_by_adk_workflow_runtime: bool = False
+    durable_session: bool = False
+    memory_enabled: bool = False
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+    @model_validator(mode="after")
+    def validate_observability_summary(
+        self,
+    ) -> "EvidenceSummaryAnswerObservabilitySummarySchema":
+        if not self.summary_ref.startswith(
+            EVIDENCE_SUMMARY_ANSWER_OBSERVABILITY_SUMMARY_REF_PREFIX
+        ):
+            raise ValueError(
+                "summary_ref must start with "
+                f"{EVIDENCE_SUMMARY_ANSWER_OBSERVABILITY_SUMMARY_REF_PREFIX!r}."
+            )
+        _validate_safe_scalar_mapping(
+            self.evaluation_findings_summary,
+            field_name="evaluation_findings_summary",
+        )
+        _validate_safe_scalar_mapping(self.metadata, field_name="metadata")
+        for index, hint in enumerate(self.recovery_hints):
+            if not isinstance(hint, str) or not hint.strip():
+                raise ValueError(f"recovery_hints[{index}] cannot be blank.")
+        if self.task_compatible is not True:
+            raise ValueError("observability summaries must remain Task-compatible.")
+        if self.workflow_compatible is not True:
+            raise ValueError(
+                "observability summaries must remain Workflow-compatible."
+            )
+        if self.runtime_backed:
+            raise ValueError("observability summaries are not runtime-backed.")
+        if self.backed_by_adk_task_runtime:
+            raise ValueError(
+                "observability summaries are not backed by ADK Task runtime."
+            )
+        if self.backed_by_adk_workflow_runtime:
+            raise ValueError(
+                "observability summaries are not backed by ADK Workflow Runtime."
+            )
+        if self.durable_session:
+            raise ValueError(
+                "observability summaries must not declare durable session use."
+            )
+        if self.memory_enabled:
+            raise ValueError(
+                "observability summaries must not declare Memory runtime use."
+            )
+        return self
+
+
+class EvidenceSummaryAnswerTraceInspectSchema(EvidenceSummaryAnswerBaseModel):
+    """Product-level safe explanation view for one answer trace."""
+
+    product: Literal["evidence_summary_answer"] = EVIDENCE_SUMMARY_ANSWER_PRODUCT
+    payload_type: Literal["evidence_summary_answer_trace_inspect"] = (
+        EVIDENCE_SUMMARY_ANSWER_TRACE_INSPECT_PAYLOAD_TYPE
+    )
+    payload_version: Literal["evidence_summary_answer_trace_inspect_v1"] = (
+        EVIDENCE_SUMMARY_ANSWER_TRACE_INSPECT_VERSION
+    )
+    trace_inspect_id: str = Field(..., min_length=1)
+    trace_inspect_ref: str = Field(..., min_length=1)
+    request_id: str = Field(..., min_length=1)
+    inspect_status: EvidenceSummaryAnswerTraceInspectStatus
+    inspect_reason: str = Field(..., min_length=1)
+    answer_status: EvidenceSummaryAnswerResultStatus | None = None
+    user_explanation: str = Field(..., min_length=1)
+    developer_facts_summary: dict[str, Any] = Field(default_factory=dict)
+    refs_summary: dict[str, Any] = Field(default_factory=dict)
+    event_facts_summary: dict[str, Any] = Field(default_factory=dict)
+    artifact_handoff_summary: dict[str, Any] = Field(default_factory=dict)
+    raw_boundary_summary: EvidenceSummaryAnswerRawBoundarySummarySchema = Field(
+        default_factory=EvidenceSummaryAnswerRawBoundarySummarySchema
+    )
+    evaluation_summary: dict[str, Any] = Field(default_factory=dict)
+    governance_summary: dict[str, Any] = Field(default_factory=dict)
+    unavailable_reason: str | None = None
+    recovery_hints: list[str] = Field(default_factory=list)
+    task_compatible: bool = True
+    workflow_compatible: bool = True
+    runtime_backed: bool = False
+    backed_by_adk_task_runtime: bool = False
+    backed_by_adk_workflow_runtime: bool = False
+    durable_session: bool = False
+    memory_enabled: bool = False
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+    @model_validator(mode="after")
+    def validate_trace_inspect(
+        self,
+    ) -> "EvidenceSummaryAnswerTraceInspectSchema":
+        if not self.trace_inspect_ref.startswith(
+            EVIDENCE_SUMMARY_ANSWER_TRACE_INSPECT_REF_PREFIX
+        ):
+            raise ValueError(
+                "trace_inspect_ref must start with "
+                f"{EVIDENCE_SUMMARY_ANSWER_TRACE_INSPECT_REF_PREFIX!r}."
+            )
+        if self.inspect_status == "unavailable" and not self.unavailable_reason:
+            raise ValueError("unavailable trace inspect views require reason.")
+        for field_name in (
+            "developer_facts_summary",
+            "refs_summary",
+            "event_facts_summary",
+            "artifact_handoff_summary",
+            "evaluation_summary",
+            "governance_summary",
+            "metadata",
+        ):
+            _validate_safe_scalar_mapping(
+                getattr(self, field_name),
+                field_name=field_name,
+            )
+        for index, hint in enumerate(self.recovery_hints):
+            if not isinstance(hint, str) or not hint.strip():
+                raise ValueError(f"recovery_hints[{index}] cannot be blank.")
+        if self.task_compatible is not True:
+            raise ValueError("trace inspect views must remain Task-compatible.")
+        if self.workflow_compatible is not True:
+            raise ValueError("trace inspect views must remain Workflow-compatible.")
+        if self.runtime_backed:
+            raise ValueError("trace inspect views are not runtime-backed.")
+        if self.backed_by_adk_task_runtime:
+            raise ValueError(
+                "trace inspect views are not backed by ADK Task runtime."
+            )
+        if self.backed_by_adk_workflow_runtime:
+            raise ValueError(
+                "trace inspect views are not backed by ADK Workflow Runtime."
+            )
+        if self.durable_session:
+            raise ValueError(
+                "trace inspect views must not declare durable session use."
+            )
+        if self.memory_enabled:
+            raise ValueError(
+                "trace inspect views must not declare Memory runtime use."
+            )
+        return self
+
+
+class EvidenceSummaryAnswerRunSchema(EvidenceSummaryAnswerBaseModel):
+    """Product-level aggregate ref for one reviewable answer run."""
+
+    product: Literal["evidence_summary_answer"] = EVIDENCE_SUMMARY_ANSWER_PRODUCT
+    payload_type: Literal["evidence_summary_answer_run"] = (
+        EVIDENCE_SUMMARY_ANSWER_RUN_PAYLOAD_TYPE
+    )
+    payload_version: Literal["evidence_summary_answer_run_v1"] = (
+        EVIDENCE_SUMMARY_ANSWER_RUN_VERSION
+    )
+    run_id: str = Field(..., min_length=1)
+    answer_run_ref: str = Field(..., min_length=1)
+    request_id: str = Field(..., min_length=1)
+    source_request_id: str | None = None
+    parent_answer_run_ref: str | None = None
+    answer_run_status: EvidenceSummaryAnswerRunStatus
+    answer_status: EvidenceSummaryAnswerResultStatus | None = None
+    readonly_refs_status: str | None = None
+    answer_trace_ref: str | None = None
+    answer_artifact_ref: str | None = None
+    observability_summary_ref: str | None = None
+    trace_inspect_ref: str | None = None
+    follow_up_seed_ref: str | None = None
+    evidence_ref_count: int = Field(default=0, ge=0)
+    additional_ref_count: int = Field(default=0, ge=0)
+    evidence_refs: list[EvidenceSummaryAnswerRefSchema] = Field(default_factory=list)
+    additional_refs: list[EvidenceSummaryAnswerRefSchema] = Field(default_factory=list)
+    blocking_reasons: list[str] = Field(default_factory=list)
+    warnings: list[str] = Field(default_factory=list)
+    recovery_hints: list[str] = Field(default_factory=list)
+    unavailable_reason: str | None = None
+    follow_up: bool = False
+    follow_up_turn_index: int | None = Field(default=None, ge=1)
+    answer_scoped_transformation: bool = False
+    task_compatible: bool = True
+    workflow_compatible: bool = True
+    runtime_backed: bool = False
+    backed_by_adk_task_runtime: bool = False
+    backed_by_adk_workflow_runtime: bool = False
+    backed_by_adk_artifact_service: bool = False
+    backed_by_adk_event_stream: bool = False
+    durable_session: bool = False
+    memory_enabled: bool = False
+    raw_boundary_summary: EvidenceSummaryAnswerRawBoundarySummarySchema = Field(
+        default_factory=EvidenceSummaryAnswerRawBoundarySummarySchema
+    )
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+    @model_validator(mode="after")
+    def validate_answer_run(self) -> "EvidenceSummaryAnswerRunSchema":
+        if not self.answer_run_ref.startswith(EVIDENCE_SUMMARY_ANSWER_RUN_REF_PREFIX):
+            raise ValueError(
+                "answer_run_ref must start with "
+                f"{EVIDENCE_SUMMARY_ANSWER_RUN_REF_PREFIX!r}."
+            )
+        if self.parent_answer_run_ref is not None and not (
+            self.parent_answer_run_ref.startswith(EVIDENCE_SUMMARY_ANSWER_RUN_REF_PREFIX)
+        ):
+            raise ValueError(
+                "parent_answer_run_ref must start with "
+                f"{EVIDENCE_SUMMARY_ANSWER_RUN_REF_PREFIX!r}."
+            )
+        if self.answer_trace_ref is not None and not (
+            self.answer_trace_ref.startswith(EVIDENCE_SUMMARY_ANSWER_TRACE_REF_PREFIX)
+        ):
+            raise ValueError("answer_trace_ref must be an answer trace ref.")
+        if self.answer_artifact_ref is not None and not (
+            self.answer_artifact_ref.startswith(
+                EVIDENCE_SUMMARY_ANSWER_ARTIFACT_REF_PREFIX
+            )
+        ):
+            raise ValueError("answer_artifact_ref must be an answer artifact ref.")
+        if self.observability_summary_ref is not None and not (
+            self.observability_summary_ref.startswith(
+                EVIDENCE_SUMMARY_ANSWER_OBSERVABILITY_SUMMARY_REF_PREFIX
+            )
+        ):
+            raise ValueError(
+                "observability_summary_ref must be an observability summary ref."
+            )
+        if self.trace_inspect_ref is not None and not (
+            self.trace_inspect_ref.startswith(
+                EVIDENCE_SUMMARY_ANSWER_TRACE_INSPECT_REF_PREFIX
+            )
+        ):
+            raise ValueError("trace_inspect_ref must be a trace inspect ref.")
+        if self.follow_up_seed_ref is not None and not (
+            self.follow_up_seed_ref.startswith(EVIDENCE_SUMMARY_ANSWER_FOLLOW_UP_REF_PREFIX)
+        ):
+            raise ValueError("follow_up_seed_ref must be a follow-up seed ref.")
+        if self.evidence_ref_count != len(self.evidence_refs):
+            raise ValueError("evidence_ref_count must match evidence_refs length.")
+        if self.additional_ref_count != len(self.additional_refs):
+            raise ValueError("additional_ref_count must match additional_refs length.")
+        if self.answer_run_status == "success":
+            if self.answer_status != "success":
+                raise ValueError("successful answer runs require successful answer_status.")
+            if not self.answer_trace_ref:
+                raise ValueError("successful answer runs require answer_trace_ref.")
+            if not self.answer_artifact_ref:
+                raise ValueError("successful answer runs require answer_artifact_ref.")
+            if not self.evidence_refs:
+                raise ValueError("successful answer runs require evidence_refs.")
+        if self.answer_run_status == "blocked" and not self.blocking_reasons:
+            raise ValueError("blocked answer runs require blocking_reasons.")
+        if self.answer_run_status == "insufficient_evidence" and not (
+            self.unavailable_reason or self.blocking_reasons
+        ):
+            raise ValueError(
+                "insufficient evidence answer runs require unavailable reason "
+                "or blocking reasons."
+            )
+        if self.answer_run_status == "failed" and not (
+            self.unavailable_reason or self.blocking_reasons
+        ):
+            raise ValueError("failed answer runs require unavailable reason or blockers.")
+        if self.answer_run_status == "unavailable" and not self.unavailable_reason:
+            raise ValueError("unavailable answer runs require unavailable_reason.")
+        if self.follow_up and self.follow_up_turn_index is None:
+            raise ValueError("follow-up answer runs require follow_up_turn_index.")
+        if self.task_compatible is not True:
+            raise ValueError("answer runs must remain Task-compatible.")
+        if self.workflow_compatible is not True:
+            raise ValueError("answer runs must remain Workflow-compatible.")
+        if self.runtime_backed:
+            raise ValueError("answer runs are not runtime-backed.")
+        if self.backed_by_adk_task_runtime:
+            raise ValueError("answer runs are not backed by ADK Task runtime.")
+        if self.backed_by_adk_workflow_runtime:
+            raise ValueError("answer runs are not backed by ADK Workflow Runtime.")
+        if self.backed_by_adk_artifact_service:
+            raise ValueError("answer runs are not backed by ADK ArtifactService.")
+        if self.backed_by_adk_event_stream:
+            raise ValueError("answer runs are not backed by ADK Event stream.")
+        if self.durable_session:
+            raise ValueError("answer runs must not declare durable session use.")
+        if self.memory_enabled:
+            raise ValueError("answer runs must not declare Memory runtime use.")
+        for index, hint in enumerate(self.recovery_hints):
+            if not isinstance(hint, str) or not hint.strip():
+                raise ValueError(f"recovery_hints[{index}] cannot be blank.")
+        _validate_safe_scalar_mapping(self.metadata, field_name="metadata")
+        return self
+
+
 def validate_governed_evidence_digest(
     digest: dict[str, Any],
 ) -> GovernedEvidenceDigestSchema:
@@ -706,6 +1079,46 @@ def validate_evidence_summary_answer_artifact(
     """Validate a plain dict as an evidence summary answer artifact."""
 
     return EvidenceSummaryAnswerArtifactSchema.model_validate(artifact)
+
+
+def validate_evidence_summary_answer_observability_summary(
+    summary: dict[str, Any],
+) -> EvidenceSummaryAnswerObservabilitySummarySchema:
+    """Validate a plain dict as a safe evidence answer observability summary."""
+
+    return EvidenceSummaryAnswerObservabilitySummarySchema.model_validate(summary)
+
+
+def validate_evidence_summary_answer_trace_inspect(
+    trace_inspect: dict[str, Any],
+) -> EvidenceSummaryAnswerTraceInspectSchema:
+    """Validate a plain dict as a safe evidence answer trace inspect view."""
+
+    return EvidenceSummaryAnswerTraceInspectSchema.model_validate(trace_inspect)
+
+
+def validate_evidence_summary_answer_run(
+    run: dict[str, Any],
+) -> EvidenceSummaryAnswerRunSchema:
+    """Validate a plain dict as an evidence answer run aggregate ref."""
+
+    return EvidenceSummaryAnswerRunSchema.model_validate(run)
+
+
+def _validate_safe_scalar_mapping(
+    value: dict[str, Any],
+    *,
+    field_name: str,
+) -> None:
+    for key, item in value.items():
+        if not isinstance(key, str) or not key:
+            raise ValueError(f"{field_name} keys must be non-empty strings.")
+        if _is_forbidden_answer_key(key):
+            raise ValueError(f"{field_name}.{key} is forbidden.")
+        if item is not None and not isinstance(item, bool | int | float | str):
+            raise ValueError(f"{field_name}.{key} must be a scalar value.")
+        if isinstance(item, str) and _looks_like_forbidden_answer_marker(item):
+            raise ValueError(f"{field_name}.{key} contains a forbidden marker.")
 
 
 def _validate_source_url_host(source_url_host: str) -> None:
@@ -787,26 +1200,31 @@ def _is_runtime_module(module_name: str) -> bool:
 
 def _looks_like_forbidden_answer_marker(value: str) -> bool:
     lowered = value.lower()
+    phrase_markers = (
+        "config context value",
+        "full productgatewayresponse",
+        "raw html",
+        "raw payload",
+        "raw provider response",
+    )
+    if any(marker in lowered for marker in phrase_markers):
+        return True
+    token_markers = (
+        "api_key",
+        "config_context",
+        "full_product_gateway_response",
+        "observability_candidate_body",
+        "prompt_or_messages",
+        "raw_payload",
+        "raw_provider_response",
+        "response_headers",
+        "response_text",
+        "sanitized_excerpt_preview",
+        "system_prompt",
+    )
     return any(
-        marker in lowered
-        for marker in (
-            "api_key",
-            "config_context",
-            "config context value",
-            "full productgatewayresponse",
-            "full_product_gateway_response",
-            "observability_candidate_body",
-            "prompt_or_messages",
-            "raw html",
-            "raw payload",
-            "raw provider response",
-            "raw_payload",
-            "raw_provider_response",
-            "response_headers",
-            "response_text",
-            "sanitized_excerpt_preview",
-            "system_prompt",
-        )
+        re.search(rf"(?<![a-z0-9_]){re.escape(marker)}(?![a-z0-9_])", lowered)
+        for marker in token_markers
     )
 
 
@@ -819,10 +1237,21 @@ __all__ = [
     "EVIDENCE_SUMMARY_ANSWER_FOLLOW_UP_REF_PREFIX",
     "EVIDENCE_SUMMARY_ANSWER_FOLLOW_UP_SEED_PAYLOAD_TYPE",
     "EVIDENCE_SUMMARY_ANSWER_FOLLOW_UP_SEED_VERSION",
+    "EVIDENCE_SUMMARY_ANSWER_OBSERVABILITY_SUMMARY_PAYLOAD_TYPE",
+    "EVIDENCE_SUMMARY_ANSWER_OBSERVABILITY_SUMMARY_REF_PREFIX",
+    "EVIDENCE_SUMMARY_ANSWER_OBSERVABILITY_SUMMARY_VERSION",
     "EVIDENCE_SUMMARY_ANSWER_PRODUCT",
     "EVIDENCE_SUMMARY_ANSWER_RESULT_PAYLOAD_TYPE",
     "EVIDENCE_SUMMARY_ANSWER_RESULT_STATUSES",
     "EVIDENCE_SUMMARY_ANSWER_RESULT_VERSION",
+    "EVIDENCE_SUMMARY_ANSWER_RUN_PAYLOAD_TYPE",
+    "EVIDENCE_SUMMARY_ANSWER_RUN_REF_PREFIX",
+    "EVIDENCE_SUMMARY_ANSWER_RUN_STATUSES",
+    "EVIDENCE_SUMMARY_ANSWER_RUN_VERSION",
+    "EVIDENCE_SUMMARY_ANSWER_TRACE_INSPECT_PAYLOAD_TYPE",
+    "EVIDENCE_SUMMARY_ANSWER_TRACE_INSPECT_REF_PREFIX",
+    "EVIDENCE_SUMMARY_ANSWER_TRACE_INSPECT_STATUSES",
+    "EVIDENCE_SUMMARY_ANSWER_TRACE_INSPECT_VERSION",
     "EVIDENCE_SUMMARY_ANSWER_TRACE_PAYLOAD_TYPE",
     "EVIDENCE_SUMMARY_ANSWER_TRACE_REF_PREFIX",
     "EVIDENCE_SUMMARY_ANSWER_TRACE_VERSION",
@@ -840,10 +1269,16 @@ __all__ = [
     "EvidenceSummaryAnswerContextSchema",
     "EvidenceSummaryAnswerArtifactSchema",
     "EvidenceSummaryAnswerFollowUpSeedSchema",
+    "EvidenceSummaryAnswerObservabilitySummarySchema",
     "EvidenceSummaryAnswerRawBoundaryFlagsSchema",
+    "EvidenceSummaryAnswerRawBoundarySummarySchema",
     "EvidenceSummaryAnswerRefSchema",
     "EvidenceSummaryAnswerResultSchema",
     "EvidenceSummaryAnswerResultStatus",
+    "EvidenceSummaryAnswerRunSchema",
+    "EvidenceSummaryAnswerRunStatus",
+    "EvidenceSummaryAnswerTraceInspectSchema",
+    "EvidenceSummaryAnswerTraceInspectStatus",
     "EvidenceSummaryAnswerTraceSchema",
     "GovernedEvidenceAnswerability",
     "GovernedEvidenceDigestSchema",
@@ -851,7 +1286,10 @@ __all__ = [
     "validate_evidence_summary_answer_artifact",
     "validate_evidence_summary_answer_context",
     "validate_evidence_summary_answer_follow_up_seed",
+    "validate_evidence_summary_answer_observability_summary",
     "validate_evidence_summary_answer_result",
+    "validate_evidence_summary_answer_run",
     "validate_evidence_summary_answer_trace",
+    "validate_evidence_summary_answer_trace_inspect",
     "validate_governed_evidence_digest",
 ]

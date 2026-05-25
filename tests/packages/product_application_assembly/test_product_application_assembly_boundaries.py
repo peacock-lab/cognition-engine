@@ -23,6 +23,10 @@ PYPROJECT_PATH = (
 def test_product_application_assembly_public_surface_is_narrow() -> None:
     assert product_application_assembly.__all__ == (
         "ExternalReadonlyRefsProductApplicationAssemblyResult",
+        "EvidenceSummaryAnswerAskInteractionResult",
+        "EvidenceSummaryAnswerAskInteractionState",
+        "EvidenceSummaryAnswerProductOutputAssemblyResult",
+        "EvidenceSummaryAnswerProductSummaryAssemblyResult",
         "EVIDENCE_SUMMARY_ANSWER_FOLLOW_UP_INTERACTION_MODE",
         "EVIDENCE_SUMMARY_ANSWER_GENERATION_INTERACTION_MODE",
         "PRODUCT_APPLICATION_ASSEMBLY_PACKAGE",
@@ -38,31 +42,64 @@ def test_product_application_assembly_public_surface_is_narrow() -> None:
         "PRODUCT_APPLICATION_EVIDENCE_SUMMARY_ANSWER_GENERATED_RESULT_POLICY_REF",
         "PRODUCT_APPLICATION_EVIDENCE_SUMMARY_ANSWER_GENERATION_SOURCE",
         "PRODUCT_APPLICATION_EVIDENCE_SUMMARY_ANSWER_LLM_REQUEST_POLICY_REF",
+        "PRODUCT_APPLICATION_EVIDENCE_SUMMARY_ANSWER_OBSERVABILITY_SUMMARY_POLICY_REF",
+        "PRODUCT_APPLICATION_EVIDENCE_SUMMARY_ANSWER_OBSERVABILITY_SUMMARY_SOURCE",
+        "PRODUCT_APPLICATION_EVIDENCE_SUMMARY_ANSWER_PRODUCT_OUTPUT_SOURCE",
+        "PRODUCT_APPLICATION_EVIDENCE_SUMMARY_ANSWER_RUN_POLICY_REF",
+        "PRODUCT_APPLICATION_EVIDENCE_SUMMARY_ANSWER_RUN_SOURCE",
+        "PRODUCT_APPLICATION_EVIDENCE_SUMMARY_ANSWER_TRACE_INSPECT_POLICY_REF",
+        "PRODUCT_APPLICATION_EVIDENCE_SUMMARY_ANSWER_TRACE_INSPECT_SOURCE",
         "PRODUCT_APPLICATION_EVIDENCE_SUMMARY_ANSWER_RESULT_POLICY_REF",
         "PRODUCT_APPLICATION_EVIDENCE_SUMMARY_ANSWER_RESULT_SOURCE",
         "PRODUCT_APPLICATION_EVIDENCE_SUMMARY_ANSWER_TRACE_POLICY_REF",
         "PRODUCT_APPLICATION_EVIDENCE_SUMMARY_ANSWER_TRACE_SOURCE",
         "PRODUCT_APPLICATION_GOVERNED_EVIDENCE_DIGEST_POLICY_REF",
         "PRODUCT_APPLICATION_GOVERNED_EVIDENCE_DIGEST_SOURCE",
+        "PRODUCT_APPLICATION_PRODUCT_CONSOLE_DISPLAY_MODEL_POLICY_REF",
+        "PRODUCT_APPLICATION_PRODUCT_CONSOLE_DISPLAY_SOURCE",
+        "PRODUCT_CONSOLE_DISPLAY_MODEL_CANDIDATE_REF",
+        "ProductConsoleActionDisplay",
+        "ProductConsoleAskOutputDisplay",
+        "ProductConsoleAskReviewDisplay",
+        "ProductConsoleAnswerRunDisplay",
+        "ProductConsoleCapabilityDisplay",
+        "ProductConsoleHomeDisplay",
         "assemble_external_readonly_refs_product_application",
+        "assemble_evidence_summary_answer_product_output",
+        "assemble_evidence_summary_answer_product_summary",
+        "build_evidence_summary_answer_ask_follow_up_interaction",
+        "build_evidence_summary_answer_ask_initial_interaction",
         "build_evidence_summary_answer_artifact",
         "build_evidence_summary_answer_context",
         "build_evidence_summary_answer_answerability_preflight_result",
         "build_evidence_summary_answer_follow_up_context",
         "build_evidence_summary_answer_follow_up_seed",
         "build_evidence_summary_answer_llm_invocation_request",
+        "build_evidence_summary_answer_observability_summary",
+        "build_evidence_summary_answer_trace_inspect",
         "build_evidence_summary_answer_result_from_llm_invocation_result",
+        "build_evidence_summary_answer_run",
         "build_evidence_summary_answer_trace",
         "build_governed_evidence_digest_from_external_readonly_facts",
         "build_no_model_evidence_summary_answer_result",
+        "build_product_console_ask_output_display",
+        "build_product_console_home_display",
         "evidence_summary_answer_context_status_dict",
         "evidence_summary_answer_artifact_status_dict",
         "evidence_summary_answer_artifact_summary_dict",
         "evidence_summary_answer_follow_up_seed_status_dict",
+        "evidence_summary_answer_observability_summary_gateway_dict",
+        "evidence_summary_answer_observability_summary_status_dict",
+        "evidence_summary_answer_trace_inspect_gateway_dict",
+        "evidence_summary_answer_trace_inspect_status_dict",
         "evidence_summary_answer_result_status_dict",
+        "evidence_summary_answer_run_status_dict",
+        "evidence_summary_answer_run_summary_dict",
         "evidence_summary_answer_trace_status_dict",
         "evidence_summary_answer_trace_summary_dict",
         "governed_evidence_digest_status_dict",
+        "product_console_ask_output_display_dict",
+        "product_console_home_display_dict",
     )
     assert not hasattr(product_application_assembly, "ProductGatewayResponse")
     assert not hasattr(product_application_assembly, "ProductGatewayRequest")
@@ -72,7 +109,7 @@ def test_product_application_assembly_pyproject_declares_distribution() -> None:
     project = _pyproject()["project"]
 
     assert project["name"] == "cognition-system-product-application-assembly"
-    assert project["version"] == "0.8.0"
+    assert project["version"] == "0.8.1"
 
 
 def test_product_application_assembly_pyproject_dependencies_are_bounded() -> None:
@@ -83,10 +120,12 @@ def test_product_application_assembly_pyproject_dependencies_are_bounded() -> No
     )
 
     assert dependencies == (
-        "cognition-system-behavior-contracts==0.8.0",
-        "cognition-system-composition==0.8.0",
-        "cognition-system-product-gateway==0.8.0",
-        "cognition-system-schemas==0.8.0",
+        "cognition-system-behavior-contracts==0.8.1",
+        "cognition-system-composition==0.8.1",
+        "cognition-system-config-contexts==0.8.1",
+        "cognition-system-evaluation==0.8.1",
+        "cognition-system-product-gateway==0.8.1",
+        "cognition-system-schemas==0.8.1",
     )
     dependency_names = tuple(
         dependency.split("==", maxsplit=1)[0] for dependency in dependencies

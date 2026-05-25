@@ -6,18 +6,18 @@ from collections.abc import Mapping, Sequence
 from typing import Any
 
 from cognition_operation_flows._product_entry.types import (
-    TwfProductEntryRouteResultCandidate,
+    OperationFlowProductEntryRouteResultCandidate,
 )
 from cognition_operation_flows._requests.registry import (
-    TwfTurnRequestCandidate,
-    build_default_twf_registry,
-    route_twf_turn,
-    twf_registry_status_dict,
-    twf_route_status_dict,
+    OperationFlowTurnRequestCandidate,
+    build_default_operation_flow_registry,
+    route_operation_flow_turn,
+    operation_flow_registry_status_dict,
+    operation_flow_route_status_dict,
 )
 
 
-def route_twf_product_entry_turn(
+def route_operation_flow_product_entry_turn(
     *,
     sanitized_user_text: str,
     chat_session_id: str | None = None,
@@ -31,13 +31,13 @@ def route_twf_product_entry_turn(
     audit_run_workspace_requested: bool = False,
     source: str,
     metadata: Mapping[str, Any] | None = None,
-) -> TwfProductEntryRouteResultCandidate:
-    """Route a product-entry turn through the TWF registry."""
+) -> OperationFlowProductEntryRouteResultCandidate:
+    """Route a product-entry turn through the operation flow registry."""
 
-    registry = build_default_twf_registry()
-    route = route_twf_turn(
+    registry = build_default_operation_flow_registry()
+    route = route_operation_flow_turn(
         registry,
-        TwfTurnRequestCandidate(
+        OperationFlowTurnRequestCandidate(
             user_text=sanitized_user_text,
             chat_session_id=chat_session_id,
             turn_index=turn_index,
@@ -53,9 +53,9 @@ def route_twf_product_entry_turn(
             metadata={"source": source, **dict(metadata or {})},
         ),
     )
-    registry_status = dict(twf_registry_status_dict(registry))
-    route_status = dict(twf_route_status_dict(route))
-    return TwfProductEntryRouteResultCandidate(
+    registry_status = dict(operation_flow_registry_status_dict(registry))
+    route_status = dict(operation_flow_route_status_dict(route))
+    return OperationFlowProductEntryRouteResultCandidate(
         route=route,
         registry_status=registry_status,
         route_status=route_status,
@@ -65,4 +65,4 @@ def route_twf_product_entry_turn(
     )
 
 
-__all__ = ["route_twf_product_entry_turn"]
+__all__ = ["route_operation_flow_product_entry_turn"]

@@ -6,7 +6,7 @@ from typing import Any, Mapping
 
 from behavior_contracts.governance_candidate import CandidateGuardResult
 from schemas.product_gateway_cli import (
-    PRODUCT_GATEWAY_CLI_TWF_WORKFLOW_NAMES,
+    PRODUCT_GATEWAY_CLI_OPERATION_FLOW_WORKFLOW_NAMES,
     product_gateway_cli_surface_boundary_violations,
 )
 
@@ -39,10 +39,10 @@ class ProductGatewayCliSurfaceNoRuntimeLeakageGuard:
         return _result(violations)
 
 
-class ProductGatewayCliTaskWorkflowHeaderGuard:
-    """Validate stable task workflow names in CLI-facing request contracts."""
+class ProductGatewayCliOperationFlowHeaderGuard:
+    """Validate stable operation flow names in CLI-facing request contracts."""
 
-    guard_name = "product_gateway_cli_task_workflow_header_guard"
+    guard_name = "product_gateway_cli_operation_flow_header_guard"
 
     def validate(self, value: Mapping[str, Any]) -> CandidateGuardResult:
         workflow_name = value.get("workflow_name")
@@ -52,15 +52,15 @@ class ProductGatewayCliTaskWorkflowHeaderGuard:
                 workflow_name = draft_input.get("workflow_name")
         if workflow_name is None:
             return _result([])
-        if workflow_name not in PRODUCT_GATEWAY_CLI_TWF_WORKFLOW_NAMES:
-            return _result([f"unsupported task workflow name: {workflow_name}."])
+        if workflow_name not in PRODUCT_GATEWAY_CLI_OPERATION_FLOW_WORKFLOW_NAMES:
+            return _result([f"unsupported operation flow name: {workflow_name}."])
         return _result([])
 
 
 DEFAULT_PRODUCT_GATEWAY_CLI_SURFACE_GUARDS = (
     ProductGatewayCliSurfaceNoRawPayloadGuard(),
     ProductGatewayCliSurfaceNoRuntimeLeakageGuard(),
-    ProductGatewayCliTaskWorkflowHeaderGuard(),
+    ProductGatewayCliOperationFlowHeaderGuard(),
 )
 
 
@@ -69,7 +69,7 @@ def validate_product_gateway_cli_surface_guards(
     guards: tuple[
         ProductGatewayCliSurfaceNoRawPayloadGuard
         | ProductGatewayCliSurfaceNoRuntimeLeakageGuard
-        | ProductGatewayCliTaskWorkflowHeaderGuard,
+        | ProductGatewayCliOperationFlowHeaderGuard,
         ...,
     ] = DEFAULT_PRODUCT_GATEWAY_CLI_SURFACE_GUARDS,
 ) -> CandidateGuardResult:
@@ -90,6 +90,6 @@ __all__ = [
     "DEFAULT_PRODUCT_GATEWAY_CLI_SURFACE_GUARDS",
     "ProductGatewayCliSurfaceNoRawPayloadGuard",
     "ProductGatewayCliSurfaceNoRuntimeLeakageGuard",
-    "ProductGatewayCliTaskWorkflowHeaderGuard",
+    "ProductGatewayCliOperationFlowHeaderGuard",
     "validate_product_gateway_cli_surface_guards",
 ]

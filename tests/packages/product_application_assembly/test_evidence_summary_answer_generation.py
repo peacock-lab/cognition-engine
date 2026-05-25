@@ -304,6 +304,35 @@ def test_generation_result_composer_fails_chinese_question_with_english_answer()
     assert validate_evidence_summary_answer_guards(serialized).passed
 
 
+def test_generation_result_composer_allows_requested_english_output() -> None:
+    answer = (
+        "Cognition System is a governed AI collaboration system. It can read "
+        "authorized public material, answer questions with reviewable evidence, "
+        "and explain safety boundaries such as no silent network access or "
+        "silent model calls."
+    )
+    context = _context().model_copy(
+        update={
+            "user_question": (
+                "请基于这份公开资料，用300到500字说明 Cognition System 当前能做什么，"
+                "要求英文输出"
+            )
+        }
+    )
+
+    result = build_evidence_summary_answer_result_from_llm_invocation_result(
+        context,
+        _success_llm_result(answer=answer, preview=answer[:120]),
+        generation_policy_facts=_generation_policy(),
+    )
+
+    serialized = result.model_dump(mode="json")
+
+    assert result.status == "success"
+    assert result.answer == answer
+    assert validate_evidence_summary_answer_guards(serialized).passed
+
+
 def test_generation_result_composer_fails_request_for_more_context() -> None:
     context = _context().model_copy(
         update={"user_question": "首页内容可做成更详细的摘要吗？"}

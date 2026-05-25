@@ -1,4 +1,4 @@
-"""Read-only Skill projection context helpers for task workflows."""
+"""Read-only Skill projection context helpers for operation flows."""
 
 from __future__ import annotations
 
@@ -7,20 +7,20 @@ from dataclasses import dataclass, field
 from typing import Any
 
 
-TWF_SKILL_CAPABILITY_ALLOWED_SLOT_USES = frozenset(
+OPERATION_FLOW_SKILL_CAPABILITY_ALLOWED_SLOT_USES = frozenset(
     {"workflow_planning_hint", "status_evidence_summary"}
 )
-TWF_SKILL_CAPABILITY_FORBIDDEN_SLOT_USES = (
+OPERATION_FLOW_SKILL_CAPABILITY_FORBIDDEN_SLOT_USES = (
     "skill_runtime_loading",
     "script_execution",
     "tool_exposure",
     "agent_runtime",
     "public_schema",
 )
-TWF_SKILL_CAPABILITY_REFERENCEABLE_SLOT_STATUSES = frozenset(
+OPERATION_FLOW_SKILL_CAPABILITY_REFERENCEABLE_SLOT_STATUSES = frozenset(
     {"candidate_only_frozen", "reference_only_candidate"}
 )
-TWF_SKILL_PROJECTION_FORBIDDEN_RAW_KEYS = (
+OPERATION_FLOW_SKILL_PROJECTION_FORBIDDEN_RAW_KEYS = (
     "raw_skill_instructions",
     "skill_instructions",
     "raw_instructions",
@@ -29,7 +29,7 @@ TWF_SKILL_PROJECTION_FORBIDDEN_RAW_KEYS = (
     "raw_script_body",
     "script_body",
 )
-TWF_SKILL_PROJECTION_SECRET_KEY_MARKERS = (
+OPERATION_FLOW_SKILL_PROJECTION_SECRET_KEY_MARKERS = (
     "access_token",
     "api_key",
     "credential",
@@ -42,7 +42,7 @@ TWF_SKILL_PROJECTION_SECRET_KEY_MARKERS = (
 
 
 @dataclass(frozen=True)
-class TwfSkillProjectionStatusSummaryCandidate:
+class OperationFlowSkillProjectionStatusSummaryCandidate:
     """Sanitized status summary for candidate-only Skill projections."""
 
     status: str
@@ -72,7 +72,7 @@ class TwfSkillProjectionStatusSummaryCandidate:
 
 
 @dataclass(frozen=True)
-class TwfSkillProjectionReadContextCandidate:
+class OperationFlowSkillProjectionReadContextCandidate:
     """Candidate-only read context for workflow-side Skill projection hints."""
 
     status: str
@@ -110,14 +110,14 @@ class TwfSkillProjectionReadContextCandidate:
     metadata: dict[str, Any] = field(default_factory=dict)
 
 
-def build_twf_skill_projection_read_context(
+def build_operation_flow_skill_projection_read_context(
     *,
     descriptor: Any | Mapping[str, Any],
     projections: Sequence[Mapping[str, Any] | Any],
     slot_references: Sequence[Mapping[str, Any] | Any],
     allowed_use_stage: str,
     tool_loading_gate: Mapping[str, Any] | Any | None = None,
-) -> TwfSkillProjectionReadContextCandidate:
+) -> OperationFlowSkillProjectionReadContextCandidate:
     """Build sanitized read-only Skill projection context for one workflow."""
 
     projection_statuses = {
@@ -135,9 +135,9 @@ def build_twf_skill_projection_read_context(
     )
     blocking: list[str] = []
     warnings: list[str] = []
-    if allowed_use_stage not in TWF_SKILL_CAPABILITY_ALLOWED_SLOT_USES:
+    if allowed_use_stage not in OPERATION_FLOW_SKILL_CAPABILITY_ALLOWED_SLOT_USES:
         blocking.append("allowed_use_stage_unsupported")
-    if skills_slot_status not in TWF_SKILL_CAPABILITY_REFERENCEABLE_SLOT_STATUSES:
+    if skills_slot_status not in OPERATION_FLOW_SKILL_CAPABILITY_REFERENCEABLE_SLOT_STATUSES:
         blocking.append("workflow_skills_slot_not_reference_only")
     if not projection_statuses:
         return _unavailable_read_context(
@@ -232,7 +232,7 @@ def build_twf_skill_projection_read_context(
         for status in combined_statuses
     )
     status = "available_candidate" if not blocking else "blocked_candidate"
-    return TwfSkillProjectionReadContextCandidate(
+    return OperationFlowSkillProjectionReadContextCandidate(
         status=status,
         workflow_name=workflow_name,
         workflow_version=workflow_version,
@@ -352,8 +352,8 @@ def build_twf_skill_projection_read_context(
     )
 
 
-def twf_skill_projection_read_context_status_dict(
-    read_context: TwfSkillProjectionReadContextCandidate,
+def operation_flow_skill_projection_read_context_status_dict(
+    read_context: OperationFlowSkillProjectionReadContextCandidate,
 ) -> dict[str, Any]:
     """Return a JSON-ready workflow Skill projection read context."""
 
@@ -394,12 +394,12 @@ def twf_skill_projection_read_context_status_dict(
     }
 
 
-def build_twf_skill_projection_status_summary(
+def build_operation_flow_skill_projection_status_summary(
     *,
     projections: Sequence[Mapping[str, Any] | Any],
     slot_references: Sequence[Mapping[str, Any] | Any],
     source: str = "cognition_operation_flows._skills.projection_context",
-) -> TwfSkillProjectionStatusSummaryCandidate:
+) -> OperationFlowSkillProjectionStatusSummaryCandidate:
     """Build a sanitized aggregate status summary for Skill projection refs."""
 
     projection_statuses = tuple(
@@ -467,7 +467,7 @@ def build_twf_skill_projection_status_summary(
             if blocked_slots or has_runtime_escalation
             else "candidate_only_referenceable"
         )
-    return TwfSkillProjectionStatusSummaryCandidate(
+    return OperationFlowSkillProjectionStatusSummaryCandidate(
         status=status,
         source=source,
         projection_count=len(projection_statuses),
@@ -547,8 +547,8 @@ def build_twf_skill_projection_status_summary(
     )
 
 
-def twf_skill_projection_status_summary_status_dict(
-    summary: TwfSkillProjectionStatusSummaryCandidate,
+def operation_flow_skill_projection_status_summary_status_dict(
+    summary: OperationFlowSkillProjectionStatusSummaryCandidate,
 ) -> dict[str, Any]:
     """Return a JSON-ready Skills projection status summary."""
 
@@ -681,8 +681,8 @@ def _unavailable_read_context(
     task_kind: str,
     allowed_use_stage: str,
     blocking_reasons: Sequence[str],
-) -> TwfSkillProjectionReadContextCandidate:
-    return TwfSkillProjectionReadContextCandidate(
+) -> OperationFlowSkillProjectionReadContextCandidate:
+    return OperationFlowSkillProjectionReadContextCandidate(
         status="unavailable",
         workflow_name=workflow_name,
         workflow_version=workflow_version,
@@ -764,7 +764,7 @@ def _forbidden_raw_keys(metadata: Mapping[str, Any]) -> tuple[str, ...]:
     keys: list[str] = []
     for key, value in metadata.items():
         key_text = str(key)
-        if key_text in TWF_SKILL_PROJECTION_FORBIDDEN_RAW_KEYS:
+        if key_text in OPERATION_FLOW_SKILL_PROJECTION_FORBIDDEN_RAW_KEYS:
             keys.append(key_text)
         if isinstance(value, Mapping):
             keys.extend(_forbidden_raw_keys(value))
@@ -779,7 +779,7 @@ def _raw_secret_keys(metadata: Mapping[str, Any]) -> tuple[str, ...]:
         if (
             value
             and not is_negative_boundary_flag
-            and any(marker in key_text for marker in TWF_SKILL_PROJECTION_SECRET_KEY_MARKERS)
+            and any(marker in key_text for marker in OPERATION_FLOW_SKILL_PROJECTION_SECRET_KEY_MARKERS)
         ):
             keys.append(str(key))
         if isinstance(value, Mapping):

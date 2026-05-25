@@ -105,7 +105,10 @@ def test_no_live_dev_entry_is_inside_publishable_runtime_container_package() -> 
     ).is_file(), "dev entry must live under the publishable package root"
     assert "scripts" not in pyproject["project"]
     assert product_runtime_pyproject["project"]["scripts"] == {
-        "cognition": "product_runtime_assembly.entrypoints.cognition:main"
+        "cognition": "product_runtime_assembly.entrypoints.cognition:main",
+        "cognition-console": (
+            "product_runtime_assembly.entrypoints.cognition_console:main"
+        ),
     }
 
 

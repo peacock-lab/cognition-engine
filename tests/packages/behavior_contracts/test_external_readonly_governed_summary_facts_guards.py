@@ -96,6 +96,32 @@ def test_governed_summary_facts_guards_reject_sanitized_excerpt_marker() -> None
     assert any("raw boundary" in violation for violation in result.violations)
 
 
+def test_governed_summary_facts_guards_allow_public_package_names() -> None:
+    payload = _ready_payload()
+    fact_text = (
+        "The public packages include contract_core, schemas, "
+        "behavior_contracts, config_assembly, and config_contexts."
+    )
+    payload["facts"][0]["fact_text"] = fact_text
+    payload["total_fact_chars"] = len(fact_text)
+
+    result = validate_external_readonly_governed_summary_facts_guards(payload)
+
+    assert result.passed is True
+
+
+def test_governed_summary_facts_guards_reject_config_context_marker() -> None:
+    payload = _ready_payload()
+    fact_text = "The config_context value must stay inside the runtime boundary."
+    payload["facts"][0]["fact_text"] = fact_text
+    payload["total_fact_chars"] = len(fact_text)
+
+    result = validate_external_readonly_governed_summary_facts_guards(payload)
+
+    assert result.passed is False
+    assert any("raw boundary" in violation for violation in result.violations)
+
+
 def test_governed_summary_facts_guards_reject_raw_flags() -> None:
     payload = _ready_payload()
     payload["raw_boundary_flags"] = {"raw_payload_included": True}
@@ -116,6 +142,30 @@ def test_governed_summary_facts_guards_reject_invalid_content() -> None:
     assert result.passed is False
     assert any("source_url_host" in violation for violation in result.violations)
     assert any("fact_count" in violation for violation in result.violations)
+
+
+def test_governed_summary_facts_guards_accept_chunk_lineage_metadata() -> None:
+    payload = _ready_payload()
+    payload["facts"][0]["metadata"] = _chunk_metadata()
+
+    result = validate_external_readonly_governed_summary_facts_guards(payload)
+
+    assert result.passed is True
+
+
+def test_governed_summary_facts_guards_reject_invalid_chunk_lineage_metadata() -> None:
+    payload = _ready_payload()
+    payload["facts"][0]["metadata"] = {
+        **_chunk_metadata(),
+        "chunk_index": 3,
+        "chunk_count": 2,
+    }
+
+    result = validate_external_readonly_governed_summary_facts_guards(payload)
+
+    assert result.passed is False
+    assert any("chunk_index" in violation for violation in result.violations)
+    assert any("chunk_count" in violation for violation in result.violations)
 
 
 def test_governed_summary_facts_guards_reject_non_ready_model_context() -> None:
@@ -165,3 +215,16 @@ def _ready_payload() -> dict:
         "metadata": {"candidate_only": True},
     }
     return deepcopy(payload)
+
+
+def _chunk_metadata() -> dict:
+    return {
+        "source_evidence_ref": EVIDENCE_REF,
+        "source_item_index": 1,
+        "chunk_index": 1,
+        "chunk_count": 2,
+        "source_char_start": 0,
+        "source_char_end": len(FACT_TEXT),
+        "source_excerpt_chars": len(FACT_TEXT) + 25,
+        "chunking_strategy_ref": "policy://external-readonly/chunking/fact-slice-v1",
+    }

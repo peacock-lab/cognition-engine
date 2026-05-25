@@ -6,72 +6,72 @@ from collections.abc import Mapping
 from typing import Any
 
 from schemas.product_gateway_cli import (
-    PRODUCT_GATEWAY_CLI_TWF_CONFIG_PROFILE_EXPLAIN_WORKFLOW_NAME,
-    PRODUCT_GATEWAY_CLI_TWF_PLAN_WORKFLOW_NAME,
-    PRODUCT_GATEWAY_CLI_TWF_REFERENCE_REVIEW_WORKFLOW_NAME,
-    PRODUCT_GATEWAY_CLI_TWF_RUN_WORKSPACE_EVIDENCE_AUDIT_WORKFLOW_NAME,
+    PRODUCT_GATEWAY_CLI_OPERATION_FLOW_CONFIG_PROFILE_EXPLAIN_WORKFLOW_NAME,
+    PRODUCT_GATEWAY_CLI_OPERATION_FLOW_PLAN_WORKFLOW_NAME,
+    PRODUCT_GATEWAY_CLI_OPERATION_FLOW_REFERENCE_REVIEW_WORKFLOW_NAME,
+    PRODUCT_GATEWAY_CLI_OPERATION_FLOW_RUN_WORKSPACE_EVIDENCE_AUDIT_WORKFLOW_NAME,
     ProductGatewayCliReferenceReaderPolicySchema,
     ProductGatewayCliToolExposureResolutionSchema,
-    ProductGatewayCliTwfExecutionInputSchema,
-    ProductGatewayCliTwfExecutionResultSchema,
-    ProductGatewayCliTwfLatestPlanSnapshotSchema,
-    ProductGatewayCliTwfRequestDraftInputSchema,
-    ProductGatewayCliTwfRunWorkspaceSnapshotSchema,
-    ProductGatewayCliTwfRouteInputSchema,
-    ProductGatewayCliTwfRouteProjectionSchema,
-    ProductGatewayCliTwfStatusSummaryPersistenceSchema,
+    ProductGatewayCliOperationFlowExecutionInputSchema,
+    ProductGatewayCliOperationFlowExecutionResultSchema,
+    ProductGatewayCliOperationFlowLatestPlanSnapshotSchema,
+    ProductGatewayCliOperationFlowRequestDraftInputSchema,
+    ProductGatewayCliOperationFlowRunWorkspaceSnapshotSchema,
+    ProductGatewayCliOperationFlowRouteInputSchema,
+    ProductGatewayCliOperationFlowRouteProjectionSchema,
+    ProductGatewayCliOperationFlowStatusSummaryPersistenceSchema,
 )
 
 from product_gateway._operation_flows.controls import (
-    build_internal_twf_skill_capability_projection_status,
-    build_internal_twf_tools_status,
-    resolve_internal_twf_tool_exposure_profile,
+    build_internal_operation_flow_skill_capability_projection_status,
+    build_internal_operation_flow_tools_status,
+    resolve_internal_operation_flow_tool_exposure_profile,
 )
 from product_gateway._operation_flows.execution import (
-    InternalTwfExecutionContext,
-    InternalTwfExecutionInput,
-    execute_internal_twf_workflow,
+    InternalOperationFlowExecutionContext,
+    InternalOperationFlowExecutionInput,
+    execute_internal_operation_flow_workflow,
 )
 from product_gateway._operation_flows.request import (
-    build_internal_twf_config_profile_explain_request_draft,
-    build_internal_twf_plan_request_draft,
-    build_internal_twf_reference_review_request_draft,
-    build_internal_twf_run_workspace_evidence_audit_request_draft,
+    build_internal_operation_flow_config_profile_explain_request_draft,
+    build_internal_operation_flow_plan_request_draft,
+    build_internal_operation_flow_reference_review_request_draft,
+    build_internal_operation_flow_run_workspace_evidence_audit_request_draft,
 )
 from product_gateway._operation_flows.route import (
-    build_internal_twf_route_projection,
+    build_internal_operation_flow_route_projection,
 )
 from product_gateway._operation_flows.workspace import (
-    build_internal_twf_run_workspace_policy,
-    create_internal_twf_run_workspace,
-    finalize_internal_twf_run_workspace,
-    restore_internal_twf_run_workspace_snapshot,
-    write_internal_twf_run_workspace_json,
-    write_internal_twf_run_workspace_text,
+    build_internal_operation_flow_run_workspace_policy,
+    create_internal_operation_flow_run_workspace,
+    finalize_internal_operation_flow_run_workspace,
+    restore_internal_operation_flow_run_workspace_snapshot,
+    write_internal_operation_flow_run_workspace_json,
+    write_internal_operation_flow_run_workspace_text,
 )
 from product_gateway.response_summary_projection import (
     project_product_gateway_response_summary,
 )
 
 
-def build_cli_twf_route_projection(
-    route_input: ProductGatewayCliTwfRouteInputSchema | Mapping[str, Any],
+def build_cli_operation_flow_route_projection(
+    route_input: ProductGatewayCliOperationFlowRouteInputSchema | Mapping[str, Any],
 ) -> Any:
-    """Build a task workflow route projection through one CLI-facing entry."""
+    """Build a operation flow route projection through one CLI-facing entry."""
 
     normalized = _route_input(route_input)
-    projection = build_internal_twf_route_projection(
+    projection = build_internal_operation_flow_route_projection(
         normalized.model_dump(mode="python")
     )
-    return ProductGatewayCliTwfRouteProjectionSchema.model_validate(
+    return ProductGatewayCliOperationFlowRouteProjectionSchema.model_validate(
         projection.model_dump(mode="python")
     )
 
 
-def _build_cli_twf_request_draft(
-    draft_input: ProductGatewayCliTwfRequestDraftInputSchema | Mapping[str, Any],
+def _build_cli_operation_flow_request_draft(
+    draft_input: ProductGatewayCliOperationFlowRequestDraftInputSchema | Mapping[str, Any],
 ) -> Any:
-    """Build a task workflow request draft behind the product gateway surface."""
+    """Build a operation flow request draft behind the product gateway surface."""
 
     normalized = _draft_input(draft_input)
     common = {
@@ -92,51 +92,51 @@ def _build_cli_twf_request_draft(
         "live_model_allowed": normalized.live_model_allowed,
         "metadata": dict(normalized.metadata),
     }
-    if normalized.workflow_name == PRODUCT_GATEWAY_CLI_TWF_PLAN_WORKFLOW_NAME:
-        return build_internal_twf_plan_request_draft(
+    if normalized.workflow_name == PRODUCT_GATEWAY_CLI_OPERATION_FLOW_PLAN_WORKFLOW_NAME:
+        return build_internal_operation_flow_plan_request_draft(
             sanitized_previous_display_text=normalized.sanitized_previous_display_text,
             **common,
         )
     if (
         normalized.workflow_name
-        == PRODUCT_GATEWAY_CLI_TWF_REFERENCE_REVIEW_WORKFLOW_NAME
+        == PRODUCT_GATEWAY_CLI_OPERATION_FLOW_REFERENCE_REVIEW_WORKFLOW_NAME
     ):
-        return build_internal_twf_reference_review_request_draft(**common)
+        return build_internal_operation_flow_reference_review_request_draft(**common)
     if (
         normalized.workflow_name
-        == PRODUCT_GATEWAY_CLI_TWF_CONFIG_PROFILE_EXPLAIN_WORKFLOW_NAME
+        == PRODUCT_GATEWAY_CLI_OPERATION_FLOW_CONFIG_PROFILE_EXPLAIN_WORKFLOW_NAME
     ):
-        return build_internal_twf_config_profile_explain_request_draft(
+        return build_internal_operation_flow_config_profile_explain_request_draft(
             entrypoint_explicit_args=normalized.entrypoint_explicit_args,
             session_args=normalized.session_args,
             **common,
         )
     if (
         normalized.workflow_name
-        == PRODUCT_GATEWAY_CLI_TWF_RUN_WORKSPACE_EVIDENCE_AUDIT_WORKFLOW_NAME
+        == PRODUCT_GATEWAY_CLI_OPERATION_FLOW_RUN_WORKSPACE_EVIDENCE_AUDIT_WORKFLOW_NAME
     ):
-        return build_internal_twf_run_workspace_evidence_audit_request_draft(
+        return build_internal_operation_flow_run_workspace_evidence_audit_request_draft(
             **common
         )
-    raise ValueError(f"unsupported CLI task workflow: {normalized.workflow_name}")
+    raise ValueError(f"unsupported CLI operation flow: {normalized.workflow_name}")
 
 
-def execute_cli_twf_workflow(
+def execute_cli_operation_flow_workflow(
     *,
-    execution_input: ProductGatewayCliTwfExecutionInputSchema,
+    execution_input: ProductGatewayCliOperationFlowExecutionInputSchema,
     config_context: Any | None = None,
     llm_invocation_service_factory: Any | None = None,
-) -> ProductGatewayCliTwfExecutionResultSchema:
-    """Execute a task workflow through the CLI-facing product gateway surface."""
+) -> ProductGatewayCliOperationFlowExecutionResultSchema:
+    """Execute a operation flow through the CLI-facing product gateway surface."""
 
     options = execution_input.execution_options
-    request_draft = _build_cli_twf_request_draft(execution_input.request_draft_input)
-    result = execute_internal_twf_workflow(
-        InternalTwfExecutionInput(
+    request_draft = _build_cli_operation_flow_request_draft(execution_input.request_draft_input)
+    result = execute_internal_operation_flow_workflow(
+        InternalOperationFlowExecutionInput(
             request_id=execution_input.request_id,
             route_projection=execution_input.route_projection,
             request_draft=request_draft,
-            execution_context=InternalTwfExecutionContext(
+            execution_context=InternalOperationFlowExecutionContext(
                 llm_invocation_service_factory=llm_invocation_service_factory,
                 config_context=config_context,
                 config_root=options.config_root,
@@ -154,8 +154,8 @@ def execute_cli_twf_workflow(
     return _execution_result_schema(result)
 
 
-def build_cli_twf_latest_plan_status(
-    latest_plan_snapshot: ProductGatewayCliTwfLatestPlanSnapshotSchema
+def build_cli_operation_flow_latest_plan_status(
+    latest_plan_snapshot: ProductGatewayCliOperationFlowLatestPlanSnapshotSchema
     | Mapping[str, Any]
     | None,
 ) -> dict[str, Any]:
@@ -187,25 +187,25 @@ def build_cli_twf_latest_plan_status(
     }
 
 
-def persist_cli_twf_status_summary(
+def persist_cli_operation_flow_status_summary(
     *,
-    latest_plan_snapshot: ProductGatewayCliTwfLatestPlanSnapshotSchema
+    latest_plan_snapshot: ProductGatewayCliOperationFlowLatestPlanSnapshotSchema
     | Mapping[str, Any]
     | None,
     status_summary_payload: Mapping[str, Any],
-) -> ProductGatewayCliTwfStatusSummaryPersistenceSchema:
+) -> ProductGatewayCliOperationFlowStatusSummaryPersistenceSchema:
     """Persist a status summary artifact from a CLI-facing latest-plan snapshot."""
 
     snapshot = _latest_plan_snapshot_or_none(latest_plan_snapshot)
     if snapshot is None or snapshot.workspace is None:
-        return ProductGatewayCliTwfStatusSummaryPersistenceSchema(
+        return ProductGatewayCliOperationFlowStatusSummaryPersistenceSchema(
             latest_plan_snapshot=snapshot,
             status="skipped",
             warnings=("latest_plan_snapshot_unavailable",),
         )
     workspace_snapshot = snapshot.workspace
     if not workspace_snapshot.workspace_created or workspace_snapshot.cleanup_performed:
-        return ProductGatewayCliTwfStatusSummaryPersistenceSchema(
+        return ProductGatewayCliOperationFlowStatusSummaryPersistenceSchema(
             latest_plan_snapshot=snapshot,
             status="skipped",
             warnings=("run_workspace_unavailable",),
@@ -216,10 +216,10 @@ def persist_cli_twf_status_summary(
         or workspace_snapshot.metadata.get("max_write_bytes")
         or 65536
     )
-    workspace = restore_internal_twf_run_workspace_snapshot(
+    workspace = restore_internal_operation_flow_run_workspace_snapshot(
         workspace_snapshot.model_dump(mode="python")
     )
-    workspace, write_result = write_internal_twf_run_workspace_json(
+    workspace, write_result = write_internal_operation_flow_run_workspace_json(
         workspace,
         relative_path="artifacts/status_summary.json",
         payload=status_summary_payload,
@@ -227,7 +227,7 @@ def persist_cli_twf_status_summary(
         max_write_bytes=max_write_bytes,
     )
     if write_result.status != "succeeded":
-        return ProductGatewayCliTwfStatusSummaryPersistenceSchema(
+        return ProductGatewayCliOperationFlowStatusSummaryPersistenceSchema(
             latest_plan_snapshot=snapshot,
             status=write_result.status,
             blocking_reasons=tuple(write_result.blocking_reasons),
@@ -236,11 +236,11 @@ def persist_cli_twf_status_summary(
 
     updated_snapshot = _replace_latest_plan_workspace(snapshot, workspace)
     payload_with_ref = dict(status_summary_payload)
-    payload_with_ref["latest_plan"] = build_cli_twf_latest_plan_status(
+    payload_with_ref["latest_plan"] = build_cli_operation_flow_latest_plan_status(
         updated_snapshot
     )
     payload_with_ref["status_summary_artifact_ref"] = write_result.ref
-    workspace, write_result = write_internal_twf_run_workspace_json(
+    workspace, write_result = write_internal_operation_flow_run_workspace_json(
         workspace,
         relative_path="artifacts/status_summary.json",
         payload=payload_with_ref,
@@ -248,27 +248,27 @@ def persist_cli_twf_status_summary(
         max_write_bytes=max_write_bytes,
     )
     if write_result.status != "succeeded":
-        return ProductGatewayCliTwfStatusSummaryPersistenceSchema(
+        return ProductGatewayCliOperationFlowStatusSummaryPersistenceSchema(
             latest_plan_snapshot=updated_snapshot,
             status=write_result.status,
             blocking_reasons=tuple(write_result.blocking_reasons),
             warnings=tuple(write_result.warnings),
         )
 
-    workspace = finalize_internal_twf_run_workspace(
+    workspace = finalize_internal_operation_flow_run_workspace(
         workspace,
         status=updated_snapshot.status,
         metadata={"status_summary_artifact_ref": write_result.ref},
     )
     updated_snapshot = _replace_latest_plan_workspace(updated_snapshot, workspace)
-    return ProductGatewayCliTwfStatusSummaryPersistenceSchema(
+    return ProductGatewayCliOperationFlowStatusSummaryPersistenceSchema(
         latest_plan_snapshot=updated_snapshot,
         status_summary_artifact_ref=write_result.ref,
         status="succeeded",
     )
 
 
-def resolve_cli_twf_tool_exposure_profile(
+def resolve_cli_operation_flow_tool_exposure_profile(
     *,
     profile_name: str,
     profile_config: Mapping[str, Any] | None = None,
@@ -277,7 +277,7 @@ def resolve_cli_twf_tool_exposure_profile(
 ) -> ProductGatewayCliToolExposureResolutionSchema:
     """Resolve tool exposure as a CLI-facing contract schema."""
 
-    resolution = resolve_internal_twf_tool_exposure_profile(
+    resolution = resolve_internal_operation_flow_tool_exposure_profile(
         profile_name=profile_name,
         profile_config=profile_config,
         repo_root=repo_root,
@@ -307,7 +307,7 @@ def resolve_cli_twf_tool_exposure_profile(
     )
 
 
-def build_cli_twf_tools_status(
+def build_cli_operation_flow_tools_status(
     *,
     profile_name: str,
     profile_config: Mapping[str, Any] | None,
@@ -316,9 +316,9 @@ def build_cli_twf_tools_status(
     operator_approved: bool,
     approval_ref: str | None,
 ) -> dict[str, Any]:
-    """Build CLI-facing task workflow tools status."""
+    """Build CLI-facing operation flow tools status."""
 
-    return build_internal_twf_tools_status(
+    return build_internal_operation_flow_tools_status(
         profile_name=profile_name,
         profile_config=profile_config,
         repo_root=repo_root,
@@ -328,13 +328,13 @@ def build_cli_twf_tools_status(
     )
 
 
-def build_cli_twf_skill_capability_projection_status() -> dict[str, Any]:
+def build_cli_operation_flow_skill_capability_projection_status() -> dict[str, Any]:
     """Build CLI-facing Skills capability projection status."""
 
-    return build_internal_twf_skill_capability_projection_status()
+    return build_internal_operation_flow_skill_capability_projection_status()
 
 
-def build_cli_twf_run_workspace_policy(
+def build_cli_operation_flow_run_workspace_policy(
     *,
     workspace_root: Any,
     retention_policy: str,
@@ -343,7 +343,7 @@ def build_cli_twf_run_workspace_policy(
 ) -> Any:
     """Build a run-workspace policy through the product gateway surface."""
 
-    return build_internal_twf_run_workspace_policy(
+    return build_internal_operation_flow_run_workspace_policy(
         workspace_root=workspace_root,
         retention_policy=retention_policy,
         cleanup_policy=cleanup_policy,
@@ -351,7 +351,7 @@ def build_cli_twf_run_workspace_policy(
     )
 
 
-def create_cli_twf_run_workspace(
+def create_cli_operation_flow_run_workspace(
     *,
     policy: Any,
     workflow_name: str,
@@ -359,14 +359,14 @@ def create_cli_twf_run_workspace(
 ) -> Any:
     """Create a run workspace through the product gateway surface."""
 
-    return create_internal_twf_run_workspace(
+    return create_internal_operation_flow_run_workspace(
         policy=policy,
         workflow_name=workflow_name,
         run_id=run_id,
     )
 
 
-def write_cli_twf_run_workspace_json(
+def write_cli_operation_flow_run_workspace_json(
     workspace: Any,
     *,
     relative_path: str,
@@ -376,7 +376,7 @@ def write_cli_twf_run_workspace_json(
 ) -> tuple[Any, Any]:
     """Write a run-workspace JSON artifact through the product gateway surface."""
 
-    return write_internal_twf_run_workspace_json(
+    return write_internal_operation_flow_run_workspace_json(
         workspace,
         relative_path=relative_path,
         payload=payload,
@@ -385,7 +385,7 @@ def write_cli_twf_run_workspace_json(
     )
 
 
-def write_cli_twf_run_workspace_text(
+def write_cli_operation_flow_run_workspace_text(
     workspace: Any,
     *,
     relative_path: str,
@@ -395,7 +395,7 @@ def write_cli_twf_run_workspace_text(
 ) -> tuple[Any, Any]:
     """Write a run-workspace text artifact through the product gateway surface."""
 
-    return write_internal_twf_run_workspace_text(
+    return write_internal_operation_flow_run_workspace_text(
         workspace,
         relative_path=relative_path,
         text=text,
@@ -404,7 +404,7 @@ def write_cli_twf_run_workspace_text(
     )
 
 
-def finalize_cli_twf_run_workspace(
+def finalize_cli_operation_flow_run_workspace(
     workspace: Any,
     *,
     status: str,
@@ -412,17 +412,17 @@ def finalize_cli_twf_run_workspace(
 ) -> Any:
     """Finalize a run workspace through the product gateway surface."""
 
-    return finalize_internal_twf_run_workspace(
+    return finalize_internal_operation_flow_run_workspace(
         workspace,
         status=status,
         metadata=metadata,
     )
 
 
-def _execution_result_schema(result: Any) -> ProductGatewayCliTwfExecutionResultSchema:
+def _execution_result_schema(result: Any) -> ProductGatewayCliOperationFlowExecutionResultSchema:
     product_response = result.product_response
     latest_plan_snapshot = _latest_plan_snapshot(result)
-    return ProductGatewayCliTwfExecutionResultSchema(
+    return ProductGatewayCliOperationFlowExecutionResultSchema(
         handled=bool(result.handled),
         terminal_display_text=result.terminal_display_text,
         latest_plan_display_text=result.latest_plan_display_text,
@@ -441,7 +441,7 @@ def _execution_result_schema(result: Any) -> ProductGatewayCliTwfExecutionResult
 
 def _latest_plan_snapshot(
     result: Any,
-) -> ProductGatewayCliTwfLatestPlanSnapshotSchema | None:
+) -> ProductGatewayCliOperationFlowLatestPlanSnapshotSchema | None:
     workflow_result = getattr(result, "latest_plan_snapshot", None)
     workflow_result = workflow_result or getattr(result, "latest_plan_result", None)
     if workflow_result is None:
@@ -452,7 +452,7 @@ def _latest_plan_snapshot(
     request_metadata = getattr(request, "metadata", {})
     if not isinstance(request_metadata, Mapping):
         request_metadata = {}
-    return ProductGatewayCliTwfLatestPlanSnapshotSchema(
+    return ProductGatewayCliOperationFlowLatestPlanSnapshotSchema(
         status=_plan_result_status(workflow_result),
         reference_context_status=(
             reference_context.status if reference_context is not None else "not_run"
@@ -482,11 +482,11 @@ def _latest_plan_snapshot(
 
 def _workspace_snapshot(
     workspace: Any | None,
-) -> ProductGatewayCliTwfRunWorkspaceSnapshotSchema | None:
+) -> ProductGatewayCliOperationFlowRunWorkspaceSnapshotSchema | None:
     if workspace is None:
         return None
     metadata = dict(getattr(workspace, "metadata", {}) or {})
-    return ProductGatewayCliTwfRunWorkspaceSnapshotSchema(
+    return ProductGatewayCliOperationFlowRunWorkspaceSnapshotSchema(
         workspace_ref=getattr(workspace, "workspace_ref", None),
         workspace_path=getattr(workspace, "workspace_path", None),
         workflow_name=getattr(workspace, "workflow_name", None),
@@ -512,20 +512,20 @@ def _workspace_snapshot(
 
 
 def _replace_latest_plan_workspace(
-    snapshot: ProductGatewayCliTwfLatestPlanSnapshotSchema,
+    snapshot: ProductGatewayCliOperationFlowLatestPlanSnapshotSchema,
     workspace: Any,
-) -> ProductGatewayCliTwfLatestPlanSnapshotSchema:
+) -> ProductGatewayCliOperationFlowLatestPlanSnapshotSchema:
     return snapshot.model_copy(update={"workspace": _workspace_snapshot(workspace)})
 
 
 def _latest_plan_snapshot_or_none(
-    value: ProductGatewayCliTwfLatestPlanSnapshotSchema | Mapping[str, Any] | None,
-) -> ProductGatewayCliTwfLatestPlanSnapshotSchema | None:
+    value: ProductGatewayCliOperationFlowLatestPlanSnapshotSchema | Mapping[str, Any] | None,
+) -> ProductGatewayCliOperationFlowLatestPlanSnapshotSchema | None:
     if value is None:
         return None
-    if isinstance(value, ProductGatewayCliTwfLatestPlanSnapshotSchema):
+    if isinstance(value, ProductGatewayCliOperationFlowLatestPlanSnapshotSchema):
         return value
-    return ProductGatewayCliTwfLatestPlanSnapshotSchema.model_validate(dict(value))
+    return ProductGatewayCliOperationFlowLatestPlanSnapshotSchema.model_validate(dict(value))
 
 
 def _plan_result_status(plan_result: Any) -> str:
@@ -595,19 +595,19 @@ def _value(value: Any) -> Any:
 
 
 def _route_input(
-    value: ProductGatewayCliTwfRouteInputSchema | Mapping[str, Any],
-) -> ProductGatewayCliTwfRouteInputSchema:
-    if isinstance(value, ProductGatewayCliTwfRouteInputSchema):
+    value: ProductGatewayCliOperationFlowRouteInputSchema | Mapping[str, Any],
+) -> ProductGatewayCliOperationFlowRouteInputSchema:
+    if isinstance(value, ProductGatewayCliOperationFlowRouteInputSchema):
         return value
-    return ProductGatewayCliTwfRouteInputSchema.model_validate(dict(value))
+    return ProductGatewayCliOperationFlowRouteInputSchema.model_validate(dict(value))
 
 
 def _draft_input(
-    value: ProductGatewayCliTwfRequestDraftInputSchema | Mapping[str, Any],
-) -> ProductGatewayCliTwfRequestDraftInputSchema:
-    if isinstance(value, ProductGatewayCliTwfRequestDraftInputSchema):
+    value: ProductGatewayCliOperationFlowRequestDraftInputSchema | Mapping[str, Any],
+) -> ProductGatewayCliOperationFlowRequestDraftInputSchema:
+    if isinstance(value, ProductGatewayCliOperationFlowRequestDraftInputSchema):
         return value
-    return ProductGatewayCliTwfRequestDraftInputSchema.model_validate(dict(value))
+    return ProductGatewayCliOperationFlowRequestDraftInputSchema.model_validate(dict(value))
 
 
 def _model_dump_or_none(value: Any | None) -> dict[str, Any] | None:
@@ -620,16 +620,16 @@ def _model_dump_or_none(value: Any | None) -> dict[str, Any] | None:
 
 
 __all__ = [
-    "build_cli_twf_run_workspace_policy",
-    "build_cli_twf_latest_plan_status",
-    "build_cli_twf_route_projection",
-    "build_cli_twf_skill_capability_projection_status",
-    "build_cli_twf_tools_status",
-    "create_cli_twf_run_workspace",
-    "execute_cli_twf_workflow",
-    "finalize_cli_twf_run_workspace",
-    "persist_cli_twf_status_summary",
-    "resolve_cli_twf_tool_exposure_profile",
-    "write_cli_twf_run_workspace_json",
-    "write_cli_twf_run_workspace_text",
+    "build_cli_operation_flow_run_workspace_policy",
+    "build_cli_operation_flow_latest_plan_status",
+    "build_cli_operation_flow_route_projection",
+    "build_cli_operation_flow_skill_capability_projection_status",
+    "build_cli_operation_flow_tools_status",
+    "create_cli_operation_flow_run_workspace",
+    "execute_cli_operation_flow_workflow",
+    "finalize_cli_operation_flow_run_workspace",
+    "persist_cli_operation_flow_status_summary",
+    "resolve_cli_operation_flow_tool_exposure_profile",
+    "write_cli_operation_flow_run_workspace_json",
+    "write_cli_operation_flow_run_workspace_text",
 ]

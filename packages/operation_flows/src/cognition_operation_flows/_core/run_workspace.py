@@ -1,4 +1,4 @@
-"""Governed run workspace helpers for task workflows."""
+"""Governed run workspace helpers for operation flows."""
 
 from __future__ import annotations
 
@@ -11,21 +11,21 @@ import shutil
 from typing import Any
 
 
-TWF_RUN_WORKSPACE_SCHEMA_VERSION = "twf-run-workspace.v1"
-TWF_RUN_WORKSPACE_SUBDIRS = (
+OPERATION_FLOW_RUN_WORKSPACE_SCHEMA_VERSION = "operation_flow-run-workspace.v1"
+OPERATION_FLOW_RUN_WORKSPACE_SUBDIRS = (
     "inputs",
     "references",
     "evidence",
     "artifacts",
     "results",
 )
-TWF_RUN_WORKSPACE_RETENTION_POLICIES = frozenset(
+OPERATION_FLOW_RUN_WORKSPACE_RETENTION_POLICIES = frozenset(
     {"keep", "ephemeral", "delete_on_success"}
 )
-TWF_RUN_WORKSPACE_CLEANUP_POLICIES = frozenset(
+OPERATION_FLOW_RUN_WORKSPACE_CLEANUP_POLICIES = frozenset(
     {"manual", "delete_on_success", "delete_always"}
 )
-TWF_RUN_WORKSPACE_FORBIDDEN_PATH_MARKERS = (
+OPERATION_FLOW_RUN_WORKSPACE_FORBIDDEN_PATH_MARKERS = (
     ".env",
     ".netrc",
     ".npmrc",
@@ -44,19 +44,19 @@ TWF_RUN_WORKSPACE_FORBIDDEN_PATH_MARKERS = (
 
 
 @dataclass(frozen=True)
-class TwfRunWorkspacePolicyCandidate:
+class OperationFlowRunWorkspacePolicyCandidate:
     """Policy for creating and writing one governed run workspace."""
 
     workspace_root: str
     retention_policy: str = "keep"
     cleanup_policy: str = "manual"
     max_write_bytes: int = 65536
-    allowed_subdirs: tuple[str, ...] = TWF_RUN_WORKSPACE_SUBDIRS
+    allowed_subdirs: tuple[str, ...] = OPERATION_FLOW_RUN_WORKSPACE_SUBDIRS
     metadata: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass(frozen=True)
-class TwfRunWorkspaceStateCandidate:
+class OperationFlowRunWorkspaceStateCandidate:
     """Created run workspace state and refs."""
 
     workspace_ref: str
@@ -78,7 +78,7 @@ class TwfRunWorkspaceStateCandidate:
 
 
 @dataclass(frozen=True)
-class TwfRunWorkspaceWriteCandidate:
+class OperationFlowRunWorkspaceWriteCandidate:
     """One workspace write result."""
 
     ref: str
@@ -93,7 +93,7 @@ class TwfRunWorkspaceWriteCandidate:
 
 
 @dataclass(frozen=True)
-class TwfRunWorkspaceCleanupCandidate:
+class OperationFlowRunWorkspaceCleanupCandidate:
     """Cleanup result for one workspace."""
 
     workspace_ref: str
@@ -105,16 +105,16 @@ class TwfRunWorkspaceCleanupCandidate:
     metadata: dict[str, Any] = field(default_factory=dict)
 
 
-def build_twf_run_workspace_policy(
+def build_operation_flow_run_workspace_policy(
     *,
     workspace_root: str | Path,
     retention_policy: str = "keep",
     cleanup_policy: str = "manual",
     max_write_bytes: int = 65536,
-) -> TwfRunWorkspacePolicyCandidate:
+) -> OperationFlowRunWorkspacePolicyCandidate:
     """Build a run workspace policy without creating files."""
 
-    return TwfRunWorkspacePolicyCandidate(
+    return OperationFlowRunWorkspacePolicyCandidate(
         workspace_root=str(Path(workspace_root).expanduser().resolve()),
         retention_policy=retention_policy,
         cleanup_policy=cleanup_policy,
@@ -122,17 +122,17 @@ def build_twf_run_workspace_policy(
         metadata={
             "candidate_only": False,
             "does_not_access_network": True,
-            "workspace_schema_version": TWF_RUN_WORKSPACE_SCHEMA_VERSION,
+            "workspace_schema_version": OPERATION_FLOW_RUN_WORKSPACE_SCHEMA_VERSION,
         },
     )
 
 
-def create_twf_run_workspace(
+def create_operation_flow_run_workspace(
     *,
-    policy: TwfRunWorkspacePolicyCandidate,
+    policy: OperationFlowRunWorkspacePolicyCandidate,
     workflow_name: str,
     run_id: str,
-) -> TwfRunWorkspaceStateCandidate:
+) -> OperationFlowRunWorkspaceStateCandidate:
     """Create one governed run workspace with standard subdirectories."""
 
     blocking = _validate_policy(policy)
@@ -143,7 +143,7 @@ def create_twf_run_workspace(
     if root not in workspace_path.parents and root != workspace_path:
         blocking.append("workspace_path_outside_root")
     if blocking:
-        return TwfRunWorkspaceStateCandidate(
+        return OperationFlowRunWorkspaceStateCandidate(
             workspace_ref=f"run-workspace://{workflow_slug}/{run_slug}",
             workspace_path=str(workspace_path),
             workflow_name=workflow_slug,
@@ -154,14 +154,14 @@ def create_twf_run_workspace(
             manifest_path=str(workspace_path / "manifest.json"),
             subdirs=tuple(policy.allowed_subdirs),
             blocking_reasons=tuple(_ordered_unique(blocking)),
-            metadata={"workspace_schema_version": TWF_RUN_WORKSPACE_SCHEMA_VERSION},
+            metadata={"workspace_schema_version": OPERATION_FLOW_RUN_WORKSPACE_SCHEMA_VERSION},
         )
 
     workspace_path.mkdir(parents=True, exist_ok=True)
     for subdir in policy.allowed_subdirs:
         (workspace_path / subdir).mkdir(exist_ok=True)
     manifest_path = workspace_path / "manifest.json"
-    state = TwfRunWorkspaceStateCandidate(
+    state = OperationFlowRunWorkspaceStateCandidate(
         workspace_ref=f"run-workspace://{workflow_slug}/{run_slug}",
         workspace_path=str(workspace_path),
         workflow_name=workflow_slug,
@@ -172,7 +172,7 @@ def create_twf_run_workspace(
         manifest_path=str(manifest_path),
         subdirs=tuple(policy.allowed_subdirs),
         metadata={
-            "workspace_schema_version": TWF_RUN_WORKSPACE_SCHEMA_VERSION,
+            "workspace_schema_version": OPERATION_FLOW_RUN_WORKSPACE_SCHEMA_VERSION,
             "workspace_root": str(root),
             "max_write_bytes": policy.max_write_bytes,
         },
@@ -181,18 +181,18 @@ def create_twf_run_workspace(
     return state
 
 
-def write_twf_run_workspace_json(
-    workspace: TwfRunWorkspaceStateCandidate,
+def write_operation_flow_run_workspace_json(
+    workspace: OperationFlowRunWorkspaceStateCandidate,
     *,
     relative_path: str,
     payload: Mapping[str, Any],
     kind: str,
     max_write_bytes: int = 65536,
-) -> tuple[TwfRunWorkspaceStateCandidate, TwfRunWorkspaceWriteCandidate]:
+) -> tuple[OperationFlowRunWorkspaceStateCandidate, OperationFlowRunWorkspaceWriteCandidate]:
     """Write bounded JSON into a workspace and attach the produced ref."""
 
     text = json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True) + "\n"
-    return write_twf_run_workspace_text(
+    return write_operation_flow_run_workspace_text(
         workspace,
         relative_path=relative_path,
         text=text,
@@ -201,14 +201,14 @@ def write_twf_run_workspace_json(
     )
 
 
-def write_twf_run_workspace_text(
-    workspace: TwfRunWorkspaceStateCandidate,
+def write_operation_flow_run_workspace_text(
+    workspace: OperationFlowRunWorkspaceStateCandidate,
     *,
     relative_path: str,
     text: str,
     kind: str,
     max_write_bytes: int = 65536,
-) -> tuple[TwfRunWorkspaceStateCandidate, TwfRunWorkspaceWriteCandidate]:
+) -> tuple[OperationFlowRunWorkspaceStateCandidate, OperationFlowRunWorkspaceWriteCandidate]:
     """Write bounded text into a workspace and attach the produced ref."""
 
     blocking = list(workspace.blocking_reasons)
@@ -226,7 +226,7 @@ def write_twf_run_workspace_text(
         text = encoded.decode("utf-8", errors="ignore")
 
     if blocking:
-        write_result = TwfRunWorkspaceWriteCandidate(
+        write_result = OperationFlowRunWorkspaceWriteCandidate(
             ref=_workspace_ref_for(workspace, kind, relative_path),
             path=str(resolved),
             relative_path=relative_path,
@@ -242,7 +242,7 @@ def write_twf_run_workspace_text(
     resolved.write_text(text, encoding="utf-8")
     ref = _workspace_ref_for(workspace, kind, relative_path)
     workspace = _attach_ref(workspace, kind, ref)
-    write_result = TwfRunWorkspaceWriteCandidate(
+    write_result = OperationFlowRunWorkspaceWriteCandidate(
         ref=ref,
         path=str(resolved),
         relative_path=relative_path,
@@ -250,17 +250,17 @@ def write_twf_run_workspace_text(
         bytes_written=len(encoded),
         status="succeeded",
         warnings=tuple(_ordered_unique(warnings)),
-        metadata={"workspace_schema_version": TWF_RUN_WORKSPACE_SCHEMA_VERSION},
+        metadata={"workspace_schema_version": OPERATION_FLOW_RUN_WORKSPACE_SCHEMA_VERSION},
     )
     return workspace, write_result
 
 
-def finalize_twf_run_workspace(
-    workspace: TwfRunWorkspaceStateCandidate,
+def finalize_operation_flow_run_workspace(
+    workspace: OperationFlowRunWorkspaceStateCandidate,
     *,
     status: str,
     metadata: Mapping[str, Any] | None = None,
-) -> TwfRunWorkspaceStateCandidate:
+) -> OperationFlowRunWorkspaceStateCandidate:
     """Write the final manifest and return the updated workspace state."""
 
     finalized = replace(
@@ -276,18 +276,18 @@ def finalize_twf_run_workspace(
     return finalized
 
 
-def cleanup_twf_run_workspace(
-    workspace: TwfRunWorkspaceStateCandidate,
+def cleanup_operation_flow_run_workspace(
+    workspace: OperationFlowRunWorkspaceStateCandidate,
     *,
     status: str,
-) -> tuple[TwfRunWorkspaceStateCandidate, TwfRunWorkspaceCleanupCandidate]:
+) -> tuple[OperationFlowRunWorkspaceStateCandidate, OperationFlowRunWorkspaceCleanupCandidate]:
     """Apply cleanup policy, deleting only the workspace directory when allowed."""
 
     should_delete = workspace.cleanup_policy == "delete_always" or (
         workspace.cleanup_policy == "delete_on_success" and status == "succeeded"
     )
     if not should_delete:
-        cleanup = TwfRunWorkspaceCleanupCandidate(
+        cleanup = OperationFlowRunWorkspaceCleanupCandidate(
             workspace_ref=workspace.workspace_ref,
             workspace_path=workspace.workspace_path,
             cleanup_performed=False,
@@ -296,7 +296,7 @@ def cleanup_twf_run_workspace(
         )
         return workspace, cleanup
     if not workspace.workspace_created:
-        cleanup = TwfRunWorkspaceCleanupCandidate(
+        cleanup = OperationFlowRunWorkspaceCleanupCandidate(
             workspace_ref=workspace.workspace_ref,
             workspace_path=workspace.workspace_path,
             cleanup_performed=False,
@@ -306,7 +306,7 @@ def cleanup_twf_run_workspace(
         return workspace, cleanup
     shutil.rmtree(workspace.workspace_path)
     cleaned = replace(workspace, cleanup_performed=True)
-    cleanup = TwfRunWorkspaceCleanupCandidate(
+    cleanup = OperationFlowRunWorkspaceCleanupCandidate(
         workspace_ref=workspace.workspace_ref,
         workspace_path=workspace.workspace_path,
         cleanup_performed=True,
@@ -316,8 +316,8 @@ def cleanup_twf_run_workspace(
     return cleaned, cleanup
 
 
-def twf_run_workspace_status_dict(
-    workspace: TwfRunWorkspaceStateCandidate | None,
+def operation_flow_run_workspace_status_dict(
+    workspace: OperationFlowRunWorkspaceStateCandidate | None,
 ) -> dict[str, Any] | None:
     """Return a sanitized workspace status dict."""
 
@@ -340,11 +340,11 @@ def twf_run_workspace_status_dict(
     }
 
 
-def _validate_policy(policy: TwfRunWorkspacePolicyCandidate) -> list[str]:
+def _validate_policy(policy: OperationFlowRunWorkspacePolicyCandidate) -> list[str]:
     blocking: list[str] = []
-    if policy.retention_policy not in TWF_RUN_WORKSPACE_RETENTION_POLICIES:
+    if policy.retention_policy not in OPERATION_FLOW_RUN_WORKSPACE_RETENTION_POLICIES:
         blocking.append("workspace_retention_policy_invalid")
-    if policy.cleanup_policy not in TWF_RUN_WORKSPACE_CLEANUP_POLICIES:
+    if policy.cleanup_policy not in OPERATION_FLOW_RUN_WORKSPACE_CLEANUP_POLICIES:
         blocking.append("workspace_cleanup_policy_invalid")
     if policy.max_write_bytes <= 0:
         blocking.append("workspace_max_write_bytes_invalid")
@@ -357,7 +357,7 @@ def _validate_policy(policy: TwfRunWorkspacePolicyCandidate) -> list[str]:
 
 
 def _resolve_workspace_relative_path(
-    workspace: TwfRunWorkspaceStateCandidate,
+    workspace: OperationFlowRunWorkspaceStateCandidate,
     relative_path: str,
 ) -> Path | None:
     path = Path(relative_path)
@@ -367,7 +367,7 @@ def _resolve_workspace_relative_path(
     if parts[0] not in set(workspace.subdirs):
         return None
     path_text = str(path).lower()
-    if any(marker in path_text for marker in TWF_RUN_WORKSPACE_FORBIDDEN_PATH_MARKERS):
+    if any(marker in path_text for marker in OPERATION_FLOW_RUN_WORKSPACE_FORBIDDEN_PATH_MARKERS):
         return None
     root = Path(workspace.workspace_path).resolve()
     resolved = (root / path).resolve()
@@ -377,13 +377,13 @@ def _resolve_workspace_relative_path(
 
 
 def _write_manifest(
-    workspace: TwfRunWorkspaceStateCandidate,
+    workspace: OperationFlowRunWorkspaceStateCandidate,
     *,
     status: str,
     extra: Mapping[str, Any],
 ) -> None:
     payload = {
-        "schema_version": TWF_RUN_WORKSPACE_SCHEMA_VERSION,
+        "schema_version": OPERATION_FLOW_RUN_WORKSPACE_SCHEMA_VERSION,
         "workspace_ref": workspace.workspace_ref,
         "workspace_path": workspace.workspace_path,
         "workflow_name": workspace.workflow_name,
@@ -405,10 +405,10 @@ def _write_manifest(
 
 
 def _attach_ref(
-    workspace: TwfRunWorkspaceStateCandidate,
+    workspace: OperationFlowRunWorkspaceStateCandidate,
     kind: str,
     ref: str,
-) -> TwfRunWorkspaceStateCandidate:
+) -> OperationFlowRunWorkspaceStateCandidate:
     if kind == "artifact":
         return replace(
             workspace,
@@ -428,7 +428,7 @@ def _attach_ref(
 
 
 def _workspace_ref_for(
-    workspace: TwfRunWorkspaceStateCandidate,
+    workspace: OperationFlowRunWorkspaceStateCandidate,
     kind: str,
     relative_path: str,
 ) -> str:

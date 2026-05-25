@@ -85,11 +85,11 @@ def test_response_summary_projection_merges_refs_and_preserves_order() -> None:
     shared_evidence_ref = ProductGatewayRef(
         ref="evidence://shared",
         kind="sanitized_evidence",
-        purpose="task_workflow_execution",
+        purpose="operation_flow_execution",
         metadata={"source": "output_refs"},
     )
     response = ProductGatewayResponse(
-        request_id="twf/request-1",
+        request_id="operation_flow/request-1",
         entry_kind=ProductGatewayEntryKind.TASK_WORKFLOW_EXECUTION,
         status=ProductGatewayStatus.SUCCESS,
         output_refs=ProductGatewayOutputRefs(
@@ -120,7 +120,7 @@ def test_response_summary_projection_merges_refs_and_preserves_order() -> None:
             ProductGatewayRef(
                 ref="evidence://top-level",
                 kind="sanitized_evidence",
-                purpose="task_workflow_execution",
+                purpose="operation_flow_execution",
             ),
         ],
         audit_refs=[
@@ -166,7 +166,7 @@ def test_response_summary_projection_merges_refs_and_preserves_order() -> None:
 
 def test_response_summary_projection_prefers_response_governance_ref() -> None:
     response = ProductGatewayResponse(
-        request_id="twf/request-2",
+        request_id="operation_flow/request-2",
         entry_kind=ProductGatewayEntryKind.TASK_WORKFLOW_EXECUTION,
         status=ProductGatewayStatus.SUCCESS,
         output_refs=ProductGatewayOutputRefs(

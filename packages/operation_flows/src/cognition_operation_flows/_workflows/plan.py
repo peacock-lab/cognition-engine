@@ -16,37 +16,37 @@ from contract_core.llm_invocation import (
 )
 from contract_core.model_routing import ModelRouteFacts
 from cognition_operation_flows._core.control import (
-    TwfRunContextCandidate,
-    build_twf_run_context,
-    twf_run_context_status_dict,
-    finalize_twf_run_context,
+    OperationFlowRunContextCandidate,
+    build_operation_flow_run_context,
+    operation_flow_run_context_status_dict,
+    finalize_operation_flow_run_context,
 )
 from cognition_operation_flows._tools.reference_reader import (
     REFERENCE_READER_TOOL_NAME,
-    TwfReferenceReadRequestCandidate,
-    read_twf_reference,
+    OperationFlowReferenceReadRequestCandidate,
+    read_operation_flow_reference,
 )
 from cognition_operation_flows._core.run_workspace import (
-    TwfRunWorkspaceStateCandidate,
-    build_twf_run_workspace_policy,
-    cleanup_twf_run_workspace,
-    twf_run_workspace_status_dict,
-    create_twf_run_workspace,
-    finalize_twf_run_workspace,
-    write_twf_run_workspace_json,
-    write_twf_run_workspace_text,
+    OperationFlowRunWorkspaceStateCandidate,
+    build_operation_flow_run_workspace_policy,
+    cleanup_operation_flow_run_workspace,
+    operation_flow_run_workspace_status_dict,
+    create_operation_flow_run_workspace,
+    finalize_operation_flow_run_workspace,
+    write_operation_flow_run_workspace_json,
+    write_operation_flow_run_workspace_text,
 )
 from cognition_operation_flows._tools.loading_validation import (
-    twf_tool_loading_gate_status_dict,
-    validate_twf_tool_loading_gate,
+    operation_flow_tool_loading_gate_status_dict,
+    validate_operation_flow_tool_loading_gate,
 )
 from cognition_operation_flows._tools.exposure_profile import (
-    twf_tool_exposure_profile_status_dict,
-    resolve_twf_tool_exposure_profile,
+    operation_flow_tool_exposure_profile_status_dict,
+    resolve_operation_flow_tool_exposure_profile,
 )
 from cognition_operation_flows._llm.invocation import (
-    TwfLlmInvocationFacade,
-    build_twf_llm_invocation_request,
+    OperationFlowLlmInvocationFacade,
+    build_operation_flow_llm_invocation_request,
 )
 
 
@@ -124,7 +124,7 @@ TOOL_MOUNT_METADATA = {
 
 
 @dataclass(frozen=True)
-class TwfPlanWorkflowRequestCandidate:
+class OperationFlowPlanWorkflowRequestCandidate:
     """Candidate request entering the task plan workflow skeleton."""
 
     user_text: str
@@ -157,7 +157,7 @@ class TwfPlanWorkflowRequestCandidate:
 
 
 @dataclass(frozen=True)
-class TwfPlanRequirementFactsCandidate:
+class OperationFlowPlanRequirementFactsCandidate:
     """Minimal requirement facts extracted before plan generation."""
 
     original_text: str
@@ -172,7 +172,7 @@ class TwfPlanRequirementFactsCandidate:
 
 
 @dataclass(frozen=True)
-class TwfPlanDraftCandidate:
+class OperationFlowPlanDraftCandidate:
     """Plan draft candidate before terminal formatting and local review."""
 
     draft_text: str
@@ -185,7 +185,7 @@ class TwfPlanDraftCandidate:
 
 
 @dataclass(frozen=True)
-class TwfTerminalFormattedPlanCandidate:
+class OperationFlowTerminalFormattedPlanCandidate:
     """Terminal-readable plan candidate."""
 
     formatted_text: str
@@ -196,7 +196,7 @@ class TwfTerminalFormattedPlanCandidate:
 
 
 @dataclass(frozen=True)
-class TwfPlanQualityReviewCandidate:
+class OperationFlowPlanQualityReviewCandidate:
     """Local rule-based review result for the terminal plan candidate."""
 
     entity_coverage_ok: bool
@@ -212,7 +212,7 @@ class TwfPlanQualityReviewCandidate:
 
 
 @dataclass(frozen=True)
-class TwfPlanReferenceContextCandidate:
+class OperationFlowPlanReferenceContextCandidate:
     """Bounded reference context consumed by the task plan workflow."""
 
     status: str
@@ -226,26 +226,26 @@ class TwfPlanReferenceContextCandidate:
 
 
 @dataclass(frozen=True)
-class TwfPlanWorkflowResultCandidate:
+class OperationFlowPlanWorkflowResultCandidate:
     """Final workflow result returned to the product channel entrypoint."""
 
     triggered: bool
     terminal_display_text: str
-    request: TwfPlanWorkflowRequestCandidate
-    requirement_facts: TwfPlanRequirementFactsCandidate
-    draft: TwfPlanDraftCandidate | None
-    formatted_plan: TwfTerminalFormattedPlanCandidate | None
-    quality_review: TwfPlanQualityReviewCandidate | None
+    request: OperationFlowPlanWorkflowRequestCandidate
+    requirement_facts: OperationFlowPlanRequirementFactsCandidate
+    draft: OperationFlowPlanDraftCandidate | None
+    formatted_plan: OperationFlowTerminalFormattedPlanCandidate | None
+    quality_review: OperationFlowPlanQualityReviewCandidate | None
     model_call_count: int = 0
     no_live: bool = False
     fail_safe: bool = False
-    task_run_context: TwfRunContextCandidate | None = None
-    reference_context: TwfPlanReferenceContextCandidate | None = None
-    run_workspace: TwfRunWorkspaceStateCandidate | None = None
+    task_run_context: OperationFlowRunContextCandidate | None = None
+    reference_context: OperationFlowPlanReferenceContextCandidate | None = None
+    run_workspace: OperationFlowRunWorkspaceStateCandidate | None = None
     metadata: dict[str, Any] = field(default_factory=dict)
 
 
-def detect_twf_plan_request(
+def detect_operation_flow_plan_request(
     user_text: str,
     *,
     history: Sequence[Mapping[str, str]] | None = None,
@@ -272,9 +272,9 @@ def detect_twf_plan_request(
     return False
 
 
-def extract_twf_plan_requirements(
-    request: TwfPlanWorkflowRequestCandidate,
-) -> TwfPlanRequirementFactsCandidate:
+def extract_operation_flow_plan_requirements(
+    request: OperationFlowPlanWorkflowRequestCandidate,
+) -> OperationFlowPlanRequirementFactsCandidate:
     """Extract minimal facts while preserving user-provided entities and scales."""
 
     source_text = _requirement_source_text(request)
@@ -283,7 +283,7 @@ def extract_twf_plan_requirements(
     constraints = _ordered_unique(_extract_constraints(source_text))
     format_requests = _ordered_unique(_extract_format_requests(request.user_text))
     request_kind = _plan_request_kind(request)
-    return TwfPlanRequirementFactsCandidate(
+    return OperationFlowPlanRequirementFactsCandidate(
         original_text=request.user_text,
         request_kind=request_kind,
         entities=tuple(entities),
@@ -307,11 +307,11 @@ def extract_twf_plan_requirements(
     )
 
 
-def build_twf_plan_draft_prompt(
-    facts: TwfPlanRequirementFactsCandidate,
+def build_operation_flow_plan_draft_prompt(
+    facts: OperationFlowPlanRequirementFactsCandidate,
     *,
     previous_plan_text: str | None = None,
-    reference_context: TwfPlanReferenceContextCandidate | None = None,
+    reference_context: OperationFlowPlanReferenceContextCandidate | None = None,
 ) -> str:
     """Build the compact prompt preview consumed by the governed LLM boundary."""
 
@@ -341,20 +341,20 @@ def build_twf_plan_draft_prompt(
     return _preview_text("，".join(parts), PLAN_PROMPT_PREVIEW_LIMIT)
 
 
-def build_twf_plan_draft(
-    request: TwfPlanWorkflowRequestCandidate,
-    facts: TwfPlanRequirementFactsCandidate,
-    reference_context: TwfPlanReferenceContextCandidate | None = None,
-) -> TwfPlanDraftCandidate:
+def build_operation_flow_plan_draft(
+    request: OperationFlowPlanWorkflowRequestCandidate,
+    facts: OperationFlowPlanRequirementFactsCandidate,
+    reference_context: OperationFlowPlanReferenceContextCandidate | None = None,
+) -> OperationFlowPlanDraftCandidate:
     """Generate or reuse a draft through the controlled-live LLM boundary."""
 
-    prompt_preview = build_twf_plan_draft_prompt(
+    prompt_preview = build_operation_flow_plan_draft_prompt(
         facts,
         previous_plan_text=request.previous_plan_text,
         reference_context=reference_context,
     )
     if request.previous_plan_text and facts.request_kind == "format_existing_plan":
-        return TwfPlanDraftCandidate(
+        return OperationFlowPlanDraftCandidate(
             draft_text=request.previous_plan_text,
             prompt_preview_sanitized=prompt_preview,
             model_call_count=0,
@@ -372,7 +372,7 @@ def build_twf_plan_draft(
             },
         )
     if not request.live_model_allowed:
-        return TwfPlanDraftCandidate(
+        return OperationFlowPlanDraftCandidate(
             draft_text="",
             prompt_preview_sanitized=None,
             source="no_live_boundary",
@@ -397,7 +397,7 @@ def build_twf_plan_draft(
     )
     model_text = _display_text_from_llm_result(result)
     if not result.success:
-        return TwfPlanDraftCandidate(
+        return OperationFlowPlanDraftCandidate(
             draft_text="",
             prompt_preview_sanitized=prompt_preview,
             model_call_count=1,
@@ -419,7 +419,7 @@ def build_twf_plan_draft(
             },
         )
     if not model_text:
-        return TwfPlanDraftCandidate(
+        return OperationFlowPlanDraftCandidate(
             draft_text=_local_plan_body(facts),
             prompt_preview_sanitized=prompt_preview,
             model_call_count=1,
@@ -438,7 +438,7 @@ def build_twf_plan_draft(
             },
         )
 
-    return TwfPlanDraftCandidate(
+    return OperationFlowPlanDraftCandidate(
         draft_text=_merge_model_and_local_plan_body(model_text, facts),
         prompt_preview_sanitized=prompt_preview,
         model_call_count=1,
@@ -457,13 +457,13 @@ def build_twf_plan_draft(
     )
 
 
-def format_twf_plan_for_terminal(
-    draft: TwfPlanDraftCandidate,
-    facts: TwfPlanRequirementFactsCandidate,
+def format_operation_flow_plan_for_terminal(
+    draft: OperationFlowPlanDraftCandidate,
+    facts: OperationFlowPlanRequirementFactsCandidate,
     *,
     previous_plan_text: str | None = None,
-    reference_context: TwfPlanReferenceContextCandidate | None = None,
-) -> TwfTerminalFormattedPlanCandidate:
+    reference_context: OperationFlowPlanReferenceContextCandidate | None = None,
+) -> OperationFlowTerminalFormattedPlanCandidate:
     """Format plan text for terminal display while preserving line breaks."""
 
     if previous_plan_text and facts.request_kind == "format_existing_plan":
@@ -500,7 +500,7 @@ def format_twf_plan_for_terminal(
             )
             if item is not None
         ).strip()
-    return TwfTerminalFormattedPlanCandidate(
+    return OperationFlowTerminalFormattedPlanCandidate(
         formatted_text=formatted,
         stage_instructions={
             "terminal_formatting": "reserved_for_formatting_skill",
@@ -516,10 +516,10 @@ def format_twf_plan_for_terminal(
     )
 
 
-def review_twf_plan_quality(
-    formatted: TwfTerminalFormattedPlanCandidate,
-    facts: TwfPlanRequirementFactsCandidate,
-) -> TwfPlanQualityReviewCandidate:
+def review_operation_flow_plan_quality(
+    formatted: OperationFlowTerminalFormattedPlanCandidate,
+    facts: OperationFlowPlanRequirementFactsCandidate,
+) -> OperationFlowPlanQualityReviewCandidate:
     """Review the formatted plan with local, deterministic rules."""
 
     text = formatted.formatted_text
@@ -543,7 +543,7 @@ def review_twf_plan_quality(
         "terminal_readable_ok": terminal_readable_ok,
     }
     failure_reasons = tuple(name for name, ok in checks.items() if not ok)
-    return TwfPlanQualityReviewCandidate(
+    return OperationFlowPlanQualityReviewCandidate(
         entity_coverage_ok=entity_coverage_ok,
         scale_coverage_ok=scale_coverage_ok,
         constraint_coverage_ok=constraint_coverage_ok,
@@ -561,9 +561,9 @@ def review_twf_plan_quality(
     )
 
 
-def build_twf_plan_terminal_display(
-    formatted: TwfTerminalFormattedPlanCandidate,
-    review: TwfPlanQualityReviewCandidate,
+def build_operation_flow_plan_terminal_display(
+    formatted: OperationFlowTerminalFormattedPlanCandidate,
+    review: OperationFlowPlanQualityReviewCandidate,
 ) -> str:
     """Build final safe terminal display text."""
 
@@ -577,20 +577,20 @@ def build_twf_plan_terminal_display(
     return formatted.formatted_text
 
 
-def run_twf_plan_workflow(
-    request: TwfPlanWorkflowRequestCandidate,
-) -> TwfPlanWorkflowResultCandidate:
+def run_operation_flow_plan_workflow(
+    request: OperationFlowPlanWorkflowRequestCandidate,
+) -> OperationFlowPlanWorkflowResultCandidate:
     """Run the five-stage task plan workflow skeleton."""
 
-    facts = extract_twf_plan_requirements(request)
+    facts = extract_operation_flow_plan_requirements(request)
     task_context = _build_plan_task_context(request, facts)
     if not task_context.preflight.allowed:
-        task_context = finalize_twf_run_context(
+        task_context = finalize_operation_flow_run_context(
             task_context,
             status="blocked",
             metadata={"blocked_before_model_call": True},
         )
-        return TwfPlanWorkflowResultCandidate(
+        return OperationFlowPlanWorkflowResultCandidate(
             triggered=True,
             terminal_display_text=_preflight_blocked_terminal_display(task_context),
             request=request,
@@ -603,7 +603,7 @@ def run_twf_plan_workflow(
             reference_context=None,
             run_workspace=None,
             metadata={
-                "workflow": "twf_plan_workflow",
+                "workflow": "operation_flow_plan_workflow",
                 "workflow_skeleton": True,
                 **_task_context_metadata(task_context),
                 **TOOL_MOUNT_METADATA,
@@ -621,7 +621,7 @@ def run_twf_plan_workflow(
                 "failure_stage": "run_workspace",
             },
         )
-        return TwfPlanWorkflowResultCandidate(
+        return OperationFlowPlanWorkflowResultCandidate(
             triggered=True,
             terminal_display_text=_workspace_blocked_terminal_display(
                 task_context,
@@ -637,7 +637,7 @@ def run_twf_plan_workflow(
             reference_context=None,
             run_workspace=run_workspace,
             metadata={
-                "workflow": "twf_plan_workflow",
+                "workflow": "operation_flow_plan_workflow",
                 "workflow_skeleton": True,
                 **_task_context_metadata(task_context),
                 **_run_workspace_metadata(run_workspace),
@@ -646,7 +646,7 @@ def run_twf_plan_workflow(
         )
 
     if not request.live_model_allowed:
-        task_context = finalize_twf_run_context(
+        task_context = finalize_operation_flow_run_context(
             task_context,
             status="no_live_boundary",
             metadata={"no_live": True},
@@ -666,7 +666,7 @@ def run_twf_plan_workflow(
                 model_call_count=0,
                 fail_safe=True,
             )
-            task_context = finalize_twf_run_context(
+            task_context = finalize_operation_flow_run_context(
                 task_context,
                 status="blocked",
                 evidence_refs=reference_context.evidence_refs,
@@ -679,13 +679,13 @@ def run_twf_plan_workflow(
                     run_workspace.retention_policy if run_workspace else None
                 ),
                 cleanup_policy=run_workspace.cleanup_policy if run_workspace else None,
-                workspace_metadata=twf_run_workspace_status_dict(run_workspace),
+                workspace_metadata=operation_flow_run_workspace_status_dict(run_workspace),
                 metadata={
                     "blocked_before_model_call": True,
                     "failure_stage": "reference_context",
                 },
             )
-            return TwfPlanWorkflowResultCandidate(
+            return OperationFlowPlanWorkflowResultCandidate(
                 triggered=True,
                 terminal_display_text=display,
                 request=request,
@@ -699,7 +699,7 @@ def run_twf_plan_workflow(
                 reference_context=reference_context,
                 run_workspace=run_workspace,
                 metadata={
-                    "workflow": "twf_plan_workflow",
+                    "workflow": "operation_flow_plan_workflow",
                     "workflow_skeleton": True,
                     **_task_context_metadata(task_context),
                     **_reference_context_metadata(reference_context),
@@ -717,7 +717,7 @@ def run_twf_plan_workflow(
             model_call_count=0,
             fail_safe=False,
         )
-        task_context = finalize_twf_run_context(
+        task_context = finalize_operation_flow_run_context(
             task_context,
             status="no_live_boundary",
             evidence_refs=(
@@ -729,9 +729,9 @@ def run_twf_plan_workflow(
             workspace_created=run_workspace.workspace_created if run_workspace else None,
             retention_policy=run_workspace.retention_policy if run_workspace else None,
             cleanup_policy=run_workspace.cleanup_policy if run_workspace else None,
-            workspace_metadata=twf_run_workspace_status_dict(run_workspace),
+            workspace_metadata=operation_flow_run_workspace_status_dict(run_workspace),
         )
-        return TwfPlanWorkflowResultCandidate(
+        return OperationFlowPlanWorkflowResultCandidate(
             triggered=True,
             terminal_display_text=display,
             request=request,
@@ -744,7 +744,7 @@ def run_twf_plan_workflow(
             reference_context=reference_context,
             run_workspace=run_workspace,
             metadata={
-                "workflow": "twf_plan_workflow",
+                "workflow": "operation_flow_plan_workflow",
                 "workflow_skeleton": True,
                 **_task_context_metadata(task_context),
                 **_reference_context_metadata(reference_context),
@@ -768,7 +768,7 @@ def run_twf_plan_workflow(
             model_call_count=0,
             fail_safe=True,
         )
-        task_context = finalize_twf_run_context(
+        task_context = finalize_operation_flow_run_context(
             task_context,
             status="blocked",
             evidence_refs=(
@@ -780,13 +780,13 @@ def run_twf_plan_workflow(
             workspace_created=run_workspace.workspace_created if run_workspace else None,
             retention_policy=run_workspace.retention_policy if run_workspace else None,
             cleanup_policy=run_workspace.cleanup_policy if run_workspace else None,
-            workspace_metadata=twf_run_workspace_status_dict(run_workspace),
+            workspace_metadata=operation_flow_run_workspace_status_dict(run_workspace),
             metadata={
                 "blocked_before_model_call": True,
                 "failure_stage": "reference_context",
             },
         )
-        return TwfPlanWorkflowResultCandidate(
+        return OperationFlowPlanWorkflowResultCandidate(
             triggered=True,
             terminal_display_text=display,
             request=request,
@@ -800,7 +800,7 @@ def run_twf_plan_workflow(
             reference_context=reference_context,
             run_workspace=run_workspace,
             metadata={
-                "workflow": "twf_plan_workflow",
+                "workflow": "operation_flow_plan_workflow",
                 "workflow_skeleton": True,
                 **_task_context_metadata(task_context),
                 **_reference_context_metadata(reference_context),
@@ -809,7 +809,7 @@ def run_twf_plan_workflow(
             },
         )
 
-    draft = build_twf_plan_draft(request, facts, reference_context)
+    draft = build_operation_flow_plan_draft(request, facts, reference_context)
     if draft.source == "controlled_live_failed":
         display = _failed_terminal_display(facts)
         run_workspace = _finalize_plan_run_workspace(
@@ -821,7 +821,7 @@ def run_twf_plan_workflow(
             model_call_count=draft.model_call_count,
             fail_safe=True,
         )
-        task_context = finalize_twf_run_context(
+        task_context = finalize_operation_flow_run_context(
             task_context,
             status="failed",
             evidence_refs=run_workspace.evidence_refs if run_workspace else (),
@@ -830,10 +830,10 @@ def run_twf_plan_workflow(
             workspace_created=run_workspace.workspace_created if run_workspace else None,
             retention_policy=run_workspace.retention_policy if run_workspace else None,
             cleanup_policy=run_workspace.cleanup_policy if run_workspace else None,
-            workspace_metadata=twf_run_workspace_status_dict(run_workspace),
+            workspace_metadata=operation_flow_run_workspace_status_dict(run_workspace),
             metadata={"failure_stage": "plan_generation"},
         )
-        return TwfPlanWorkflowResultCandidate(
+        return OperationFlowPlanWorkflowResultCandidate(
             triggered=True,
             terminal_display_text=display,
             request=request,
@@ -847,7 +847,7 @@ def run_twf_plan_workflow(
             reference_context=reference_context,
             run_workspace=run_workspace,
             metadata={
-                "workflow": "twf_plan_workflow",
+                "workflow": "operation_flow_plan_workflow",
                 "workflow_skeleton": True,
                 **_task_context_metadata(task_context),
                 **_reference_context_metadata(reference_context),
@@ -856,14 +856,14 @@ def run_twf_plan_workflow(
             },
         )
 
-    formatted = format_twf_plan_for_terminal(
+    formatted = format_operation_flow_plan_for_terminal(
         draft,
         facts,
         previous_plan_text=request.previous_plan_text,
         reference_context=reference_context,
     )
-    review = review_twf_plan_quality(formatted, facts)
-    display = build_twf_plan_terminal_display(formatted, review)
+    review = review_operation_flow_plan_quality(formatted, facts)
+    display = build_operation_flow_plan_terminal_display(formatted, review)
     run_workspace = _finalize_plan_run_workspace(
         run_workspace,
         status="succeeded" if review.passed else "failed",
@@ -873,7 +873,7 @@ def run_twf_plan_workflow(
         model_call_count=draft.model_call_count,
         fail_safe=not review.passed,
     )
-    task_context = finalize_twf_run_context(
+    task_context = finalize_operation_flow_run_context(
         task_context,
         status="succeeded" if review.passed else "failed",
         artifact_refs=(
@@ -888,10 +888,10 @@ def run_twf_plan_workflow(
         workspace_created=run_workspace.workspace_created if run_workspace else None,
         retention_policy=run_workspace.retention_policy if run_workspace else None,
         cleanup_policy=run_workspace.cleanup_policy if run_workspace else None,
-        workspace_metadata=twf_run_workspace_status_dict(run_workspace),
+        workspace_metadata=operation_flow_run_workspace_status_dict(run_workspace),
         metadata={"failure_stage": "quality_review"} if not review.passed else {},
     )
-    return TwfPlanWorkflowResultCandidate(
+    return OperationFlowPlanWorkflowResultCandidate(
         triggered=True,
         terminal_display_text=display,
         request=request,
@@ -905,7 +905,7 @@ def run_twf_plan_workflow(
         reference_context=reference_context,
         run_workspace=run_workspace,
         metadata={
-            "workflow": "twf_plan_workflow",
+            "workflow": "operation_flow_plan_workflow",
             "workflow_skeleton": True,
             "max_model_calls": 2,
             **_task_context_metadata(task_context),
@@ -917,25 +917,25 @@ def run_twf_plan_workflow(
 
 
 def _invoke_plan_llm(
-    request: TwfPlanWorkflowRequestCandidate,
+    request: OperationFlowPlanWorkflowRequestCandidate,
     *,
     prompt_preview: str,
     purpose: str,
-    reference_context: TwfPlanReferenceContextCandidate | None = None,
+    reference_context: OperationFlowPlanReferenceContextCandidate | None = None,
 ) -> LlmInvocationResult:
     service = request.llm_invocation_service
     if service is None:
         raise ValueError("llm_invocation_service is required for controlled-live plan workflow")
-    facade = TwfLlmInvocationFacade(
+    facade = OperationFlowLlmInvocationFacade(
         service=service,
         metadata={
             "source": "cognition_operation_flows._workflows.plan",
-            "workflow": "twf_plan_workflow",
+            "workflow": "operation_flow_plan_workflow",
             "purpose": purpose,
         },
     )
-    invocation_request = build_twf_llm_invocation_request(
-        request_id=f"twf-plan-{request.chat_session_id or 'session'}-{request.turn_index or 0}-{purpose}",
+    invocation_request = build_operation_flow_llm_invocation_request(
+        request_id=f"operation_flow-plan-{request.chat_session_id or 'session'}-{request.turn_index or 0}-{purpose}",
         route_facts=ModelRouteFacts(
             model_name=request.model_name,
             provider="litellm",
@@ -949,7 +949,7 @@ def _invoke_plan_llm(
         ),
         governance_precondition=LlmGovernancePrecondition(
             allowed=True,
-            reason="twf_plan_workflow_controlled_live_allowed",
+            reason="operation_flow_plan_workflow_controlled_live_allowed",
             decision="continue",
             governance_decision_ref=request.approval_ref,
             metadata={
@@ -959,11 +959,11 @@ def _invoke_plan_llm(
                 "output_budget": request.output_budget,
             },
         ),
-        prompt_ref=f"twf-plan-input://{request.chat_session_id or 'session'}/{request.turn_index or 0}",
+        prompt_ref=f"operation_flow-plan-input://{request.chat_session_id or 'session'}/{request.turn_index or 0}",
         prompt_preview_sanitized=prompt_preview,
         metadata={
             "source": "cognition_operation_flows._workflows.plan",
-            "interaction_mode": "twf_plan_workflow",
+            "interaction_mode": "operation_flow_plan_workflow",
             "workflow_stage": purpose,
             "controlled_live": True,
             "live_llm_allowed": True,
@@ -982,11 +982,11 @@ def _invoke_plan_llm(
 
 
 def _build_plan_task_context(
-    request: TwfPlanWorkflowRequestCandidate,
-    facts: TwfPlanRequirementFactsCandidate,
-) -> TwfRunContextCandidate:
-    return build_twf_run_context(
-        workflow_name="twf_plan_workflow",
+    request: OperationFlowPlanWorkflowRequestCandidate,
+    facts: OperationFlowPlanRequirementFactsCandidate,
+) -> OperationFlowRunContextCandidate:
+    return build_operation_flow_run_context(
+        workflow_name="operation_flow_plan_workflow",
         task_kind=facts.request_kind,
         session_id=request.chat_session_id,
         turn_index=request.turn_index,
@@ -1007,27 +1007,27 @@ def _build_plan_task_context(
 
 
 def _task_context_metadata(
-    task_context: TwfRunContextCandidate,
+    task_context: OperationFlowRunContextCandidate,
 ) -> dict[str, Any]:
     return {
-        "task_control": twf_run_context_status_dict(task_context),
+        "operation_control": operation_flow_run_context_status_dict(task_context),
     }
 
 
 def _create_plan_run_workspace(
-    request: TwfPlanWorkflowRequestCandidate,
-    task_context: TwfRunContextCandidate,
-) -> TwfRunWorkspaceStateCandidate | None:
+    request: OperationFlowPlanWorkflowRequestCandidate,
+    task_context: OperationFlowRunContextCandidate,
+) -> OperationFlowRunWorkspaceStateCandidate | None:
     if not request.run_workspace_enabled and not request.run_workspace_root:
         return None
     workspace_root = request.run_workspace_root or ".cognition-runs"
-    policy = build_twf_run_workspace_policy(
+    policy = build_operation_flow_run_workspace_policy(
         workspace_root=workspace_root,
         retention_policy=request.run_workspace_retention_policy,
         cleanup_policy=request.run_workspace_cleanup_policy,
         max_write_bytes=request.run_workspace_max_write_bytes,
     )
-    return create_twf_run_workspace(
+    return create_operation_flow_run_workspace(
         policy=policy,
         workflow_name=task_context.workflow_name,
         run_id=task_context.run_id,
@@ -1035,20 +1035,20 @@ def _create_plan_run_workspace(
 
 
 def _finalize_plan_run_workspace(
-    run_workspace: TwfRunWorkspaceStateCandidate | None,
+    run_workspace: OperationFlowRunWorkspaceStateCandidate | None,
     *,
     status: str,
     terminal_display_text: str,
-    facts: TwfPlanRequirementFactsCandidate,
-    reference_context: TwfPlanReferenceContextCandidate | None,
+    facts: OperationFlowPlanRequirementFactsCandidate,
+    reference_context: OperationFlowPlanReferenceContextCandidate | None,
     model_call_count: int,
     fail_safe: bool,
-) -> TwfRunWorkspaceStateCandidate | None:
+) -> OperationFlowRunWorkspaceStateCandidate | None:
     if run_workspace is None or not run_workspace.workspace_created:
         return run_workspace
     max_write_bytes = int(run_workspace.metadata.get("max_write_bytes") or 65536)
     if reference_context is not None and reference_context.status != "not_requested":
-        run_workspace, _ = write_twf_run_workspace_json(
+        run_workspace, _ = write_operation_flow_run_workspace_json(
             run_workspace,
             relative_path="evidence/reference_context.json",
             payload=_reference_context_workspace_payload(reference_context),
@@ -1056,25 +1056,25 @@ def _finalize_plan_run_workspace(
             max_write_bytes=max_write_bytes,
         )
         for index, excerpt in enumerate(reference_context.reference_excerpts, start=1):
-            run_workspace, _ = write_twf_run_workspace_text(
+            run_workspace, _ = write_operation_flow_run_workspace_text(
                 run_workspace,
                 relative_path=f"references/reference-{index:03d}.txt",
                 text=excerpt,
                 kind="reference",
                 max_write_bytes=max_write_bytes,
             )
-    run_workspace, _ = write_twf_run_workspace_text(
+    run_workspace, _ = write_operation_flow_run_workspace_text(
         run_workspace,
         relative_path="artifacts/terminal_display.txt",
         text=terminal_display_text + "\n",
         kind="artifact",
         max_write_bytes=max_write_bytes,
     )
-    run_workspace, _ = write_twf_run_workspace_json(
+    run_workspace, _ = write_operation_flow_run_workspace_json(
         run_workspace,
         relative_path="results/workflow_result.json",
         payload={
-            "workflow": "twf_plan_workflow",
+            "workflow": "operation_flow_plan_workflow",
             "status": status,
             "request_kind": facts.request_kind,
             "entities": list(facts.entities),
@@ -1092,27 +1092,27 @@ def _finalize_plan_run_workspace(
         kind="result",
         max_write_bytes=max_write_bytes,
     )
-    run_workspace = finalize_twf_run_workspace(
+    run_workspace = finalize_operation_flow_run_workspace(
         run_workspace,
         status=status,
         metadata={
-            "workflow": "twf_plan_workflow",
+            "workflow": "operation_flow_plan_workflow",
             "model_call_count": model_call_count,
             "fail_safe": fail_safe,
         },
     )
-    run_workspace, _ = cleanup_twf_run_workspace(run_workspace, status=status)
+    run_workspace, _ = cleanup_operation_flow_run_workspace(run_workspace, status=status)
     return run_workspace
 
 
 def _finalize_task_context_with_run_workspace(
-    task_context: TwfRunContextCandidate,
+    task_context: OperationFlowRunContextCandidate,
     *,
     status: str,
-    run_workspace: TwfRunWorkspaceStateCandidate | None,
+    run_workspace: OperationFlowRunWorkspaceStateCandidate | None,
     metadata: Mapping[str, Any] | None = None,
-) -> TwfRunContextCandidate:
-    return finalize_twf_run_context(
+) -> OperationFlowRunContextCandidate:
+    return finalize_operation_flow_run_context(
         task_context,
         status=status,
         artifact_refs=_run_workspace_artifact_and_result_refs(run_workspace),
@@ -1121,20 +1121,20 @@ def _finalize_task_context_with_run_workspace(
         workspace_created=run_workspace.workspace_created if run_workspace else None,
         retention_policy=run_workspace.retention_policy if run_workspace else None,
         cleanup_policy=run_workspace.cleanup_policy if run_workspace else None,
-        workspace_metadata=twf_run_workspace_status_dict(run_workspace),
+        workspace_metadata=operation_flow_run_workspace_status_dict(run_workspace),
         metadata=metadata,
     )
 
 
 def _run_workspace_metadata(
-    run_workspace: TwfRunWorkspaceStateCandidate | None,
+    run_workspace: OperationFlowRunWorkspaceStateCandidate | None,
 ) -> dict[str, Any]:
-    status = twf_run_workspace_status_dict(run_workspace)
+    status = operation_flow_run_workspace_status_dict(run_workspace)
     return {"run_workspace": status} if status is not None else {}
 
 
 def _run_workspace_artifact_and_result_refs(
-    run_workspace: TwfRunWorkspaceStateCandidate | None,
+    run_workspace: OperationFlowRunWorkspaceStateCandidate | None,
 ) -> tuple[str, ...]:
     if run_workspace is None:
         return ()
@@ -1142,7 +1142,7 @@ def _run_workspace_artifact_and_result_refs(
 
 
 def _reference_context_workspace_payload(
-    reference_context: TwfPlanReferenceContextCandidate,
+    reference_context: OperationFlowPlanReferenceContextCandidate,
 ) -> dict[str, Any]:
     return {
         "status": reference_context.status,
@@ -1160,8 +1160,8 @@ def _reference_context_workspace_payload(
 
 
 def _workspace_blocked_terminal_display(
-    task_context: TwfRunContextCandidate,
-    run_workspace: TwfRunWorkspaceStateCandidate,
+    task_context: OperationFlowRunContextCandidate,
+    run_workspace: OperationFlowRunWorkspaceStateCandidate,
 ) -> str:
     reasons = ", ".join(run_workspace.blocking_reasons)
     return "\n".join(
@@ -1175,12 +1175,12 @@ def _workspace_blocked_terminal_display(
 
 
 def _build_plan_reference_context(
-    request: TwfPlanWorkflowRequestCandidate,
-    task_context: TwfRunContextCandidate,
-) -> TwfPlanReferenceContextCandidate:
+    request: OperationFlowPlanWorkflowRequestCandidate,
+    task_context: OperationFlowRunContextCandidate,
+) -> OperationFlowPlanReferenceContextCandidate:
     requested_references = tuple(_ordered_unique(request.reference_paths))
     if not requested_references:
-        return TwfPlanReferenceContextCandidate(
+        return OperationFlowPlanReferenceContextCandidate(
             status="not_requested",
             metadata={
                 "workflow_stage": "reference_context",
@@ -1189,20 +1189,20 @@ def _build_plan_reference_context(
         )
 
     repo_root = Path(request.reference_repo_root or Path.cwd()).expanduser().resolve()
-    exposure = resolve_twf_tool_exposure_profile(
+    exposure = resolve_operation_flow_tool_exposure_profile(
         profile_name=request.reference_profile_name,
         profile_config=request.reference_profile_config,
         repo_root=repo_root,
         session_args=request.reference_session_args,
         entrypoint_explicit_args=request.reference_entrypoint_explicit_args,
     )
-    exposure_status = twf_tool_exposure_profile_status_dict(exposure)
-    loading_gate = validate_twf_tool_loading_gate(
+    exposure_status = operation_flow_tool_exposure_profile_status_dict(exposure)
+    loading_gate = validate_operation_flow_tool_loading_gate(
         exposure,
         operator_approved=bool(request.approval_ref),
         approval_ref=request.approval_ref,
     )
-    loading_gate_status = twf_tool_loading_gate_status_dict(loading_gate)
+    loading_gate_status = operation_flow_tool_loading_gate_status_dict(loading_gate)
     blocking: list[str] = list(exposure.blocking_reasons)
     warnings: list[str] = list(exposure.warnings)
     if exposure.status != "resolved":
@@ -1227,11 +1227,11 @@ def _build_plan_reference_context(
     reference_labels: list[str] = []
     if not blocking and exposure.reference_reader_policy is not None:
         for reference in requested_references:
-            read_result = read_twf_reference(
-                TwfReferenceReadRequestCandidate(
+            read_result = read_operation_flow_reference(
+                OperationFlowReferenceReadRequestCandidate(
                     reference=reference,
                     policy=exposure.reference_reader_policy,
-                    purpose="twf_plan_reference_context",
+                    purpose="operation_flow_plan_reference_context",
                     task_run_id=task_context.run_id,
                 )
             )
@@ -1255,7 +1255,7 @@ def _build_plan_reference_context(
 
     bounded_excerpts = tuple(_bounded_reference_excerpts(reference_excerpts))
     status = "blocked" if blocking else "succeeded"
-    return TwfPlanReferenceContextCandidate(
+    return OperationFlowPlanReferenceContextCandidate(
         status=status,
         requested_references=requested_references,
         consumed_reference_count=0 if blocking else len(bounded_excerpts),
@@ -1292,7 +1292,7 @@ def _build_plan_reference_context(
 
 
 def _reference_context_metadata(
-    reference_context: TwfPlanReferenceContextCandidate | None,
+    reference_context: OperationFlowPlanReferenceContextCandidate | None,
 ) -> dict[str, Any]:
     if reference_context is None:
         return {}
@@ -1312,8 +1312,8 @@ def _reference_context_metadata(
 
 
 def _reference_blocked_terminal_display(
-    task_context: TwfRunContextCandidate,
-    reference_context: TwfPlanReferenceContextCandidate,
+    task_context: OperationFlowRunContextCandidate,
+    reference_context: OperationFlowPlanReferenceContextCandidate,
 ) -> str:
     reasons = ", ".join(reference_context.blocking_reasons)
     return "\n".join(
@@ -1327,7 +1327,7 @@ def _reference_blocked_terminal_display(
 
 
 def _reference_block(
-    reference_context: TwfPlanReferenceContextCandidate | None,
+    reference_context: OperationFlowPlanReferenceContextCandidate | None,
 ) -> str | None:
     if (
         reference_context is None
@@ -1430,7 +1430,7 @@ def _display_text_from_llm_result(result: LlmInvocationResult) -> str:
     return ""
 
 
-def _no_live_terminal_display(facts: TwfPlanRequirementFactsCandidate) -> str:
+def _no_live_terminal_display(facts: OperationFlowPlanRequirementFactsCandidate) -> str:
     lines = [
         PLAN_WORKFLOW_NO_LIVE_MESSAGE,
         "",
@@ -1445,7 +1445,7 @@ def _no_live_terminal_display(facts: TwfPlanRequirementFactsCandidate) -> str:
     return "\n".join(lines)
 
 
-def _failed_terminal_display(facts: TwfPlanRequirementFactsCandidate) -> str:
+def _failed_terminal_display(facts: OperationFlowPlanRequirementFactsCandidate) -> str:
     return "\n".join(
         [
             PLAN_WORKFLOW_FAIL_SAFE_MESSAGE,
@@ -1459,12 +1459,12 @@ def _failed_terminal_display(facts: TwfPlanRequirementFactsCandidate) -> str:
 
 
 def _preflight_blocked_terminal_display(
-    task_context: TwfRunContextCandidate,
+    task_context: OperationFlowRunContextCandidate,
 ) -> str:
     reasons = ", ".join(task_context.preflight.blocking_reasons)
     return "\n".join(
         [
-            "task workflow preflight 已阻止本轮执行。",
+            "operation flow preflight 已阻止本轮执行。",
             f"run_id: {task_context.run_id}",
             f"blocking_reasons: {reasons or 'unknown'}",
             "未调用模型，未执行外部工具。",
@@ -1472,14 +1472,14 @@ def _preflight_blocked_terminal_display(
     )
 
 
-def _requirement_source_text(request: TwfPlanWorkflowRequestCandidate) -> str:
+def _requirement_source_text(request: OperationFlowPlanWorkflowRequestCandidate) -> str:
     parts = [request.user_text]
     if request.previous_plan_text:
         parts.append(request.previous_plan_text)
     return "\n".join(parts)
 
 
-def _plan_request_kind(request: TwfPlanWorkflowRequestCandidate) -> str:
+def _plan_request_kind(request: OperationFlowPlanWorkflowRequestCandidate) -> str:
     if not request.previous_plan_text:
         return "new_plan"
     normalized = _compact_text(request.user_text)
@@ -1518,7 +1518,7 @@ def _extract_format_requests(text: str) -> list[str]:
 
 def _merge_model_and_local_plan_body(
     model_text: str,
-    facts: TwfPlanRequirementFactsCandidate,
+    facts: OperationFlowPlanRequirementFactsCandidate,
 ) -> str:
     local_body = _local_plan_body(facts)
     clean_model_text = _normalize_terminal_lines(model_text)
@@ -1529,7 +1529,7 @@ def _merge_model_and_local_plan_body(
     return "\n\n".join([local_body, "模型补充", clean_model_text])
 
 
-def _local_plan_body(facts: TwfPlanRequirementFactsCandidate) -> str:
+def _local_plan_body(facts: OperationFlowPlanRequirementFactsCandidate) -> str:
     sections = _domain_specific_sections(facts.entities)
     entity = _join_or_default(facts.entities, "项目")
     scale = _join_or_default(facts.scales, "规模未明确")
@@ -1546,7 +1546,7 @@ def _local_plan_body(facts: TwfPlanRequirementFactsCandidate) -> str:
 
 def _looks_like_local_plan_body(
     text: str,
-    facts: TwfPlanRequirementFactsCandidate,
+    facts: OperationFlowPlanRequirementFactsCandidate,
 ) -> bool:
     compact = _compact_text(text)
     return (
@@ -1583,7 +1583,7 @@ def _section_action_text(section: str, scale: str, constraint: str) -> str:
     return actions.get(section, "明确责任、材料、步骤、验收点和日常维护要求。")
 
 
-def _facts_block(facts: TwfPlanRequirementFactsCandidate) -> str:
+def _facts_block(facts: OperationFlowPlanRequirementFactsCandidate) -> str:
     return "\n".join(
         [
             "需求事实",
@@ -1594,7 +1594,7 @@ def _facts_block(facts: TwfPlanRequirementFactsCandidate) -> str:
     )
 
 
-def _domain_block(facts: TwfPlanRequirementFactsCandidate) -> str:
+def _domain_block(facts: OperationFlowPlanRequirementFactsCandidate) -> str:
     sections = _domain_specific_sections(facts.entities)
     return "\n".join(
         [
@@ -1604,7 +1604,7 @@ def _domain_block(facts: TwfPlanRequirementFactsCandidate) -> str:
     )
 
 
-def _plan_title(facts: TwfPlanRequirementFactsCandidate) -> str:
+def _plan_title(facts: OperationFlowPlanRequirementFactsCandidate) -> str:
     entity = facts.entities[0] if facts.entities else "项目"
     return f"{entity}建设方案"
 

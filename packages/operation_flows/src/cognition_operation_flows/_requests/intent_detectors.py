@@ -1,4 +1,4 @@
-"""Local intent detectors for task workflow routing candidates."""
+"""Local intent detectors for operation flow routing candidates."""
 
 from __future__ import annotations
 
@@ -42,8 +42,8 @@ PLAN_CONTINUATION_KEYWORDS = (
     "全面展开",
 )
 
-TWF_REFERENCE_REVIEW_WORKFLOW_NAME = "twf_reference_review_workflow"
-TWF_REFERENCE_REVIEW_TASK_KIND = "reference_review"
+OPERATION_FLOW_REFERENCE_REVIEW_WORKFLOW_NAME = "operation_flow_reference_review_workflow"
+OPERATION_FLOW_REFERENCE_REVIEW_TASK_KIND = "reference_review"
 REFERENCE_REVIEW_KEYWORDS = (
     "查",
     "查看",
@@ -101,8 +101,8 @@ REFERENCE_REVIEW_STRONG_KEYWORDS = (
     "是否需要更新",
 )
 
-TWF_CONFIG_PROFILE_EXPLAIN_WORKFLOW_NAME = "twf_config_profile_explain_workflow"
-TWF_CONFIG_PROFILE_EXPLAIN_TASK_KIND = "config_profile_explain"
+OPERATION_FLOW_CONFIG_PROFILE_EXPLAIN_WORKFLOW_NAME = "operation_flow_config_profile_explain_workflow"
+OPERATION_FLOW_CONFIG_PROFILE_EXPLAIN_TASK_KIND = "config_profile_explain"
 CONFIG_PROFILE_EXPLAIN_DISPLAY_PREVIEW_LIMIT = 4000
 CONFIG_PROFILE_EXPLAIN_KEYWORDS = (
     "解释配置",
@@ -139,10 +139,10 @@ CONFIG_PROFILE_MUTATION_MARKERS = (
 RUNTIME_OPEN_MARKERS = ("打开", "开启", "启用", "接入", "集成", "上线")
 PROTECTED_RUNTIME_TERMS = ("Agent runtime", "Skills runtime", "ADK SkillRegistry")
 
-TWF_RUN_WORKSPACE_EVIDENCE_AUDIT_WORKFLOW_NAME = (
-    "twf_run_workspace_evidence_audit_workflow"
+OPERATION_FLOW_RUN_WORKSPACE_EVIDENCE_AUDIT_WORKFLOW_NAME = (
+    "operation_flow_run_workspace_evidence_audit_workflow"
 )
-TWF_RUN_WORKSPACE_EVIDENCE_AUDIT_TASK_KIND = "run_workspace_evidence_audit"
+OPERATION_FLOW_RUN_WORKSPACE_EVIDENCE_AUDIT_TASK_KIND = "run_workspace_evidence_audit"
 RUN_WORKSPACE_EVIDENCE_AUDIT_DISPLAY_PREVIEW_LIMIT = 4000
 AUDIT_WORKSPACE_KEYWORDS = (
     "审计 run workspace",
@@ -159,7 +159,7 @@ AUDIT_WORKSPACE_KEYWORDS = (
 )
 
 
-def detect_twf_plan_request(
+def detect_operation_flow_plan_request(
     user_text: str,
     *,
     history: Sequence[Mapping[str, str]] | None = None,
@@ -186,7 +186,7 @@ def detect_twf_plan_request(
     return False
 
 
-def detect_twf_reference_review_request(
+def detect_operation_flow_reference_review_request(
     user_text: str,
     *,
     reference_paths: Sequence[str] = (),
@@ -210,12 +210,12 @@ def detect_twf_reference_review_request(
     has_strong_review_intent = any(
         keyword.lower() in lowered for keyword in REFERENCE_REVIEW_STRONG_KEYWORDS
     )
-    if detect_twf_plan_request(user_text) and not has_strong_review_intent:
+    if detect_operation_flow_plan_request(user_text) and not has_strong_review_intent:
         return False
     return True
 
 
-def detect_twf_config_profile_explain_request(user_text: str) -> bool:
+def detect_operation_flow_config_profile_explain_request(user_text: str) -> bool:
     """Return whether a turn should route into config profile explain."""
 
     normalized = _compact_with_spaces(user_text)
@@ -229,7 +229,7 @@ def detect_twf_config_profile_explain_request(user_text: str) -> bool:
     return any(keyword.lower() in lowered for keyword in CONFIG_PROFILE_EXPLAIN_KEYWORDS)
 
 
-def detect_twf_run_workspace_evidence_audit_request(
+def detect_operation_flow_run_workspace_evidence_audit_request(
     user_text: str,
     *,
     audit_target_requested: bool = False,

@@ -26,14 +26,14 @@ def test_runtime_container_llm_invocation_provider_service_builds_factory(
     )
 
     factory = build_runtime_container_llm_invocation_service_factory(
-        metadata={"request_kind": "twf"}
+        metadata={"request_kind": "operation_flow"}
     )
 
     assert factory is fake_factory
     assert captured["metadata"] == {
         "source": RUNTIME_CONTAINER_LLM_INVOCATION_PROVIDER_SERVICE_SOURCE,
         "runtime_container_llm_invocation_provider_service": True,
-        "request_kind": "twf",
+        "request_kind": "operation_flow",
     }
 
 

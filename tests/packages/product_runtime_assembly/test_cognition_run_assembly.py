@@ -7,11 +7,11 @@ from product_runtime_assembly.cognition_run import (
     DEFAULT_COGNITION_RUN_RUNTIME_SERVICE_REF,
     execute_cognition_run_with_default_runtime,
 )
-from product_runtime_assembly.external_readonly_answer_provider_factory import (
-    ProductRuntimeAssemblyExternalReadonlyAnswerLlmInvocationServiceFactory,
+from product_runtime_assembly.external_readonly_ask_provider_factory import (
+    ProductRuntimeAssemblyExternalReadonlyAskLlmInvocationServiceFactory,
 )
-from product_runtime_assembly.twf_provider_factory import (
-    ProductRuntimeAssemblyTwfLlmInvocationServiceFactory,
+from product_runtime_assembly.operation_flow_provider_factory import (
+    ProductRuntimeAssemblyOperationFlowLlmInvocationServiceFactory,
 )
 from schemas.controlled_execution import (
     ControlledExecutionRequestSchema,
@@ -105,10 +105,10 @@ def test_product_runtime_entrypoint_injects_default_executor(monkeypatch) -> Non
         execute_cognition_run_with_default_runtime
     )
     assert isinstance(
-        captured["kwargs"]["twf_llm_invocation_service_factory"],
-        ProductRuntimeAssemblyTwfLlmInvocationServiceFactory,
+        captured["kwargs"]["operation_flow_llm_invocation_service_factory"],
+        ProductRuntimeAssemblyOperationFlowLlmInvocationServiceFactory,
     )
     assert isinstance(
         captured["kwargs"]["external_readonly_ask_llm_invocation_service_factory"],
-        ProductRuntimeAssemblyExternalReadonlyAnswerLlmInvocationServiceFactory,
+        ProductRuntimeAssemblyExternalReadonlyAskLlmInvocationServiceFactory,
     )

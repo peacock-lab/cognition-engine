@@ -1,4 +1,4 @@
-"""Channel-neutral request draft candidates for task workflows."""
+"""Channel-neutral request draft candidates for operation flows."""
 
 from __future__ import annotations
 
@@ -7,25 +7,25 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from cognition_operation_flows._core.boundaries import (
-    validate_task_workflow_metadata_boundary,
+    validate_operation_flow_metadata_boundary,
 )
 from cognition_operation_flows._core.control import MANAGED_GOVERNANCE_PARAMETERS
 from cognition_operation_flows._requests.intent_detectors import (
-    TWF_CONFIG_PROFILE_EXPLAIN_TASK_KIND,
-    TWF_CONFIG_PROFILE_EXPLAIN_WORKFLOW_NAME,
-    TWF_REFERENCE_REVIEW_TASK_KIND,
-    TWF_REFERENCE_REVIEW_WORKFLOW_NAME,
-    TWF_RUN_WORKSPACE_EVIDENCE_AUDIT_TASK_KIND,
-    TWF_RUN_WORKSPACE_EVIDENCE_AUDIT_WORKFLOW_NAME,
+    OPERATION_FLOW_CONFIG_PROFILE_EXPLAIN_TASK_KIND,
+    OPERATION_FLOW_CONFIG_PROFILE_EXPLAIN_WORKFLOW_NAME,
+    OPERATION_FLOW_REFERENCE_REVIEW_TASK_KIND,
+    OPERATION_FLOW_REFERENCE_REVIEW_WORKFLOW_NAME,
+    OPERATION_FLOW_RUN_WORKSPACE_EVIDENCE_AUDIT_TASK_KIND,
+    OPERATION_FLOW_RUN_WORKSPACE_EVIDENCE_AUDIT_WORKFLOW_NAME,
 )
 from cognition_operation_flows._requests.registry import (
-    TWF_PLAN_TASK_KIND,
-    TWF_PLAN_WORKFLOW_NAME,
+    OPERATION_FLOW_PLAN_TASK_KIND,
+    OPERATION_FLOW_PLAN_WORKFLOW_NAME,
 )
 
 
-TWF_REQUEST_DRAFT_SCHEMA_VERSION = "v0.7.0-candidate"
-TWF_REQUEST_DRAFT_FORBIDDEN_INPUT_KEYS = frozenset(
+OPERATION_FLOW_REQUEST_DRAFT_SCHEMA_VERSION = "v0.7.0-candidate"
+OPERATION_FLOW_REQUEST_DRAFT_FORBIDDEN_INPUT_KEYS = frozenset(
     {
         "argparse_namespace",
         "cli_args",
@@ -39,18 +39,18 @@ TWF_REQUEST_DRAFT_FORBIDDEN_INPUT_KEYS = frozenset(
     }
 )
 _WORKFLOW_TASK_KINDS = {
-    TWF_PLAN_WORKFLOW_NAME: TWF_PLAN_TASK_KIND,
-    TWF_REFERENCE_REVIEW_WORKFLOW_NAME: TWF_REFERENCE_REVIEW_TASK_KIND,
-    TWF_CONFIG_PROFILE_EXPLAIN_WORKFLOW_NAME: TWF_CONFIG_PROFILE_EXPLAIN_TASK_KIND,
-    TWF_RUN_WORKSPACE_EVIDENCE_AUDIT_WORKFLOW_NAME: (
-        TWF_RUN_WORKSPACE_EVIDENCE_AUDIT_TASK_KIND
+    OPERATION_FLOW_PLAN_WORKFLOW_NAME: OPERATION_FLOW_PLAN_TASK_KIND,
+    OPERATION_FLOW_REFERENCE_REVIEW_WORKFLOW_NAME: OPERATION_FLOW_REFERENCE_REVIEW_TASK_KIND,
+    OPERATION_FLOW_CONFIG_PROFILE_EXPLAIN_WORKFLOW_NAME: OPERATION_FLOW_CONFIG_PROFILE_EXPLAIN_TASK_KIND,
+    OPERATION_FLOW_RUN_WORKSPACE_EVIDENCE_AUDIT_WORKFLOW_NAME: (
+        OPERATION_FLOW_RUN_WORKSPACE_EVIDENCE_AUDIT_TASK_KIND
     ),
 }
 
 
 @dataclass(frozen=True)
-class TwfChatTurnInputCandidate:
-    """Sanitized channel input facts for one task workflow turn."""
+class OperationFlowChatTurnInputCandidate:
+    """Sanitized channel input facts for one operation flow turn."""
 
     sanitized_user_text: str
     chat_session_id: str | None = None
@@ -63,7 +63,7 @@ class TwfChatTurnInputCandidate:
         if not self.sanitized_user_text.strip():
             raise ValueError("sanitized_user_text must not be empty.")
         _validate_history(self.sanitized_history)
-        validate_task_workflow_metadata_boundary(self.metadata)
+        validate_operation_flow_metadata_boundary(self.metadata)
         _validate_no_forbidden_runtime_objects(
             self.metadata,
             field_name="turn_input.metadata",
@@ -71,7 +71,7 @@ class TwfChatTurnInputCandidate:
 
 
 @dataclass(frozen=True)
-class TwfGovernanceRefsCandidate:
+class OperationFlowGovernanceRefsCandidate:
     """Governance references carried as refs, not raw governance payloads."""
 
     approval_ref: str | None = None
@@ -82,7 +82,7 @@ class TwfGovernanceRefsCandidate:
     metadata: dict[str, Any] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
-        validate_task_workflow_metadata_boundary(self.metadata)
+        validate_operation_flow_metadata_boundary(self.metadata)
         _validate_no_forbidden_runtime_objects(
             self.metadata,
             field_name="governance_refs.metadata",
@@ -90,7 +90,7 @@ class TwfGovernanceRefsCandidate:
 
 
 @dataclass(frozen=True)
-class TwfReferenceWorkspaceControlsCandidate:
+class OperationFlowReferenceWorkspaceControlsCandidate:
     """Reference, tool-profile and workspace controls for a request draft."""
 
     reference_paths: tuple[str, ...] = ()
@@ -122,7 +122,7 @@ class TwfReferenceWorkspaceControlsCandidate:
             and self.run_workspace_max_write_bytes <= 0
         ):
             raise ValueError("run_workspace_max_write_bytes must be positive.")
-        validate_task_workflow_metadata_boundary(self.metadata)
+        validate_operation_flow_metadata_boundary(self.metadata)
         _validate_no_forbidden_runtime_objects(
             self.metadata,
             field_name="controls.metadata",
@@ -130,17 +130,17 @@ class TwfReferenceWorkspaceControlsCandidate:
 
 
 @dataclass(frozen=True)
-class TwfWorkflowRequestDraftCandidate:
+class OperationFlowWorkflowRequestDraftCandidate:
     """Channel-neutral draft used before any runtime request adapter."""
 
     workflow_name: str
     task_kind: str
-    turn_input: TwfChatTurnInputCandidate
-    governance_refs: TwfGovernanceRefsCandidate = field(
-        default_factory=TwfGovernanceRefsCandidate
+    turn_input: OperationFlowChatTurnInputCandidate
+    governance_refs: OperationFlowGovernanceRefsCandidate = field(
+        default_factory=OperationFlowGovernanceRefsCandidate
     )
-    controls: TwfReferenceWorkspaceControlsCandidate = field(
-        default_factory=TwfReferenceWorkspaceControlsCandidate
+    controls: OperationFlowReferenceWorkspaceControlsCandidate = field(
+        default_factory=OperationFlowReferenceWorkspaceControlsCandidate
     )
     route_summary: dict[str, Any] = field(default_factory=dict)
     entrypoint_explicit_args: dict[str, Any] = field(default_factory=dict)
@@ -153,7 +153,7 @@ class TwfWorkflowRequestDraftCandidate:
     allow_ollama: bool = False
     live_llm_timeout_seconds: int | None = None
     live_model_allowed: bool = False
-    schema_version: str = TWF_REQUEST_DRAFT_SCHEMA_VERSION
+    schema_version: str = OPERATION_FLOW_REQUEST_DRAFT_SCHEMA_VERSION
     candidate_only: bool = True
     channel_neutral: bool = True
     product_gateway_entry_required: bool = True
@@ -173,7 +173,7 @@ class TwfWorkflowRequestDraftCandidate:
             raise ValueError(
                 f"task_kind must be {expected_task_kind} for {self.workflow_name}."
             )
-        if self.schema_version != TWF_REQUEST_DRAFT_SCHEMA_VERSION:
+        if self.schema_version != OPERATION_FLOW_REQUEST_DRAFT_SCHEMA_VERSION:
             raise ValueError("schema_version must remain the candidate schema version.")
         if self.candidate_only is not True:
             raise ValueError("candidate_only must remain true.")
@@ -218,22 +218,22 @@ class TwfWorkflowRequestDraftCandidate:
             field_name="user_passthrough_parameters",
             allow_managed_parameters=False,
         )
-        validate_task_workflow_metadata_boundary(self.metadata)
+        validate_operation_flow_metadata_boundary(self.metadata)
         _validate_no_forbidden_runtime_objects(
             self.metadata,
             field_name="metadata",
         )
 
 
-def build_twf_plan_request_draft(
+def build_operation_flow_plan_request_draft(
     *,
     sanitized_user_text: str,
     chat_session_id: str | None = None,
     turn_index: int | None = None,
     sanitized_history: Sequence[Mapping[str, str]] = (),
     sanitized_previous_display_text: str | None = None,
-    governance_refs: TwfGovernanceRefsCandidate | Mapping[str, Any] | None = None,
-    controls: TwfReferenceWorkspaceControlsCandidate | Mapping[str, Any] | None = None,
+    governance_refs: OperationFlowGovernanceRefsCandidate | Mapping[str, Any] | None = None,
+    controls: OperationFlowReferenceWorkspaceControlsCandidate | Mapping[str, Any] | None = None,
     route_summary: Mapping[str, Any] | None = None,
     entrypoint_explicit_args: Mapping[str, Any] | None = None,
     session_args: Mapping[str, Any] | None = None,
@@ -246,12 +246,12 @@ def build_twf_plan_request_draft(
     live_llm_timeout_seconds: int | None = None,
     live_model_allowed: bool = False,
     metadata: Mapping[str, Any] | None = None,
-) -> TwfWorkflowRequestDraftCandidate:
+) -> OperationFlowWorkflowRequestDraftCandidate:
     """Build a channel-neutral plan workflow request draft."""
 
-    return _build_twf_workflow_request_draft(
-        workflow_name=TWF_PLAN_WORKFLOW_NAME,
-        task_kind=TWF_PLAN_TASK_KIND,
+    return _build_operation_flow_workflow_request_draft(
+        workflow_name=OPERATION_FLOW_PLAN_WORKFLOW_NAME,
+        task_kind=OPERATION_FLOW_PLAN_TASK_KIND,
         sanitized_user_text=sanitized_user_text,
         chat_session_id=chat_session_id,
         turn_index=turn_index,
@@ -274,14 +274,14 @@ def build_twf_plan_request_draft(
     )
 
 
-def build_twf_reference_review_request_draft(
+def build_operation_flow_reference_review_request_draft(
     *,
     sanitized_user_text: str,
     chat_session_id: str | None = None,
     turn_index: int | None = None,
     sanitized_history: Sequence[Mapping[str, str]] = (),
-    governance_refs: TwfGovernanceRefsCandidate | Mapping[str, Any] | None = None,
-    controls: TwfReferenceWorkspaceControlsCandidate | Mapping[str, Any] | None = None,
+    governance_refs: OperationFlowGovernanceRefsCandidate | Mapping[str, Any] | None = None,
+    controls: OperationFlowReferenceWorkspaceControlsCandidate | Mapping[str, Any] | None = None,
     route_summary: Mapping[str, Any] | None = None,
     entrypoint_explicit_args: Mapping[str, Any] | None = None,
     session_args: Mapping[str, Any] | None = None,
@@ -294,12 +294,12 @@ def build_twf_reference_review_request_draft(
     live_llm_timeout_seconds: int | None = None,
     live_model_allowed: bool = False,
     metadata: Mapping[str, Any] | None = None,
-) -> TwfWorkflowRequestDraftCandidate:
+) -> OperationFlowWorkflowRequestDraftCandidate:
     """Build a channel-neutral reference review workflow request draft."""
 
-    return _build_twf_workflow_request_draft(
-        workflow_name=TWF_REFERENCE_REVIEW_WORKFLOW_NAME,
-        task_kind=TWF_REFERENCE_REVIEW_TASK_KIND,
+    return _build_operation_flow_workflow_request_draft(
+        workflow_name=OPERATION_FLOW_REFERENCE_REVIEW_WORKFLOW_NAME,
+        task_kind=OPERATION_FLOW_REFERENCE_REVIEW_TASK_KIND,
         sanitized_user_text=sanitized_user_text,
         chat_session_id=chat_session_id,
         turn_index=turn_index,
@@ -321,14 +321,14 @@ def build_twf_reference_review_request_draft(
     )
 
 
-def build_twf_config_profile_explain_request_draft(
+def build_operation_flow_config_profile_explain_request_draft(
     *,
     sanitized_user_text: str,
     chat_session_id: str | None = None,
     turn_index: int | None = None,
     sanitized_history: Sequence[Mapping[str, str]] = (),
-    governance_refs: TwfGovernanceRefsCandidate | Mapping[str, Any] | None = None,
-    controls: TwfReferenceWorkspaceControlsCandidate | Mapping[str, Any] | None = None,
+    governance_refs: OperationFlowGovernanceRefsCandidate | Mapping[str, Any] | None = None,
+    controls: OperationFlowReferenceWorkspaceControlsCandidate | Mapping[str, Any] | None = None,
     route_summary: Mapping[str, Any] | None = None,
     entrypoint_explicit_args: Mapping[str, Any] | None = None,
     session_args: Mapping[str, Any] | None = None,
@@ -341,12 +341,12 @@ def build_twf_config_profile_explain_request_draft(
     live_llm_timeout_seconds: int | None = None,
     live_model_allowed: bool = False,
     metadata: Mapping[str, Any] | None = None,
-) -> TwfWorkflowRequestDraftCandidate:
+) -> OperationFlowWorkflowRequestDraftCandidate:
     """Build a channel-neutral config profile explain request draft."""
 
-    return _build_twf_workflow_request_draft(
-        workflow_name=TWF_CONFIG_PROFILE_EXPLAIN_WORKFLOW_NAME,
-        task_kind=TWF_CONFIG_PROFILE_EXPLAIN_TASK_KIND,
+    return _build_operation_flow_workflow_request_draft(
+        workflow_name=OPERATION_FLOW_CONFIG_PROFILE_EXPLAIN_WORKFLOW_NAME,
+        task_kind=OPERATION_FLOW_CONFIG_PROFILE_EXPLAIN_TASK_KIND,
         sanitized_user_text=sanitized_user_text,
         chat_session_id=chat_session_id,
         turn_index=turn_index,
@@ -368,14 +368,14 @@ def build_twf_config_profile_explain_request_draft(
     )
 
 
-def build_twf_run_workspace_evidence_audit_request_draft(
+def build_operation_flow_run_workspace_evidence_audit_request_draft(
     *,
     sanitized_user_text: str,
     chat_session_id: str | None = None,
     turn_index: int | None = None,
     sanitized_history: Sequence[Mapping[str, str]] = (),
-    governance_refs: TwfGovernanceRefsCandidate | Mapping[str, Any] | None = None,
-    controls: TwfReferenceWorkspaceControlsCandidate | Mapping[str, Any] | None = None,
+    governance_refs: OperationFlowGovernanceRefsCandidate | Mapping[str, Any] | None = None,
+    controls: OperationFlowReferenceWorkspaceControlsCandidate | Mapping[str, Any] | None = None,
     route_summary: Mapping[str, Any] | None = None,
     entrypoint_explicit_args: Mapping[str, Any] | None = None,
     session_args: Mapping[str, Any] | None = None,
@@ -388,12 +388,12 @@ def build_twf_run_workspace_evidence_audit_request_draft(
     live_llm_timeout_seconds: int | None = None,
     live_model_allowed: bool = False,
     metadata: Mapping[str, Any] | None = None,
-) -> TwfWorkflowRequestDraftCandidate:
+) -> OperationFlowWorkflowRequestDraftCandidate:
     """Build a channel-neutral run workspace evidence audit request draft."""
 
-    return _build_twf_workflow_request_draft(
-        workflow_name=TWF_RUN_WORKSPACE_EVIDENCE_AUDIT_WORKFLOW_NAME,
-        task_kind=TWF_RUN_WORKSPACE_EVIDENCE_AUDIT_TASK_KIND,
+    return _build_operation_flow_workflow_request_draft(
+        workflow_name=OPERATION_FLOW_RUN_WORKSPACE_EVIDENCE_AUDIT_WORKFLOW_NAME,
+        task_kind=OPERATION_FLOW_RUN_WORKSPACE_EVIDENCE_AUDIT_TASK_KIND,
         sanitized_user_text=sanitized_user_text,
         chat_session_id=chat_session_id,
         turn_index=turn_index,
@@ -415,8 +415,8 @@ def build_twf_run_workspace_evidence_audit_request_draft(
     )
 
 
-def twf_workflow_request_draft_status_dict(
-    draft: TwfWorkflowRequestDraftCandidate,
+def operation_flow_workflow_request_draft_status_dict(
+    draft: OperationFlowWorkflowRequestDraftCandidate,
 ) -> dict[str, Any]:
     """Return a JSON-ready low-sensitivity summary for a request draft."""
 
@@ -490,7 +490,7 @@ def twf_workflow_request_draft_status_dict(
     }
 
 
-def _build_twf_workflow_request_draft(
+def _build_operation_flow_workflow_request_draft(
     *,
     workflow_name: str,
     task_kind: str,
@@ -499,8 +499,8 @@ def _build_twf_workflow_request_draft(
     turn_index: int | None,
     sanitized_history: Sequence[Mapping[str, str]],
     sanitized_previous_display_text: str | None = None,
-    governance_refs: TwfGovernanceRefsCandidate | Mapping[str, Any] | None = None,
-    controls: TwfReferenceWorkspaceControlsCandidate | Mapping[str, Any] | None = None,
+    governance_refs: OperationFlowGovernanceRefsCandidate | Mapping[str, Any] | None = None,
+    controls: OperationFlowReferenceWorkspaceControlsCandidate | Mapping[str, Any] | None = None,
     route_summary: Mapping[str, Any] | None = None,
     entrypoint_explicit_args: Mapping[str, Any] | None = None,
     session_args: Mapping[str, Any] | None = None,
@@ -513,8 +513,8 @@ def _build_twf_workflow_request_draft(
     live_llm_timeout_seconds: int | None = None,
     live_model_allowed: bool = False,
     metadata: Mapping[str, Any] | None = None,
-) -> TwfWorkflowRequestDraftCandidate:
-    turn_input = TwfChatTurnInputCandidate(
+) -> OperationFlowWorkflowRequestDraftCandidate:
+    turn_input = OperationFlowChatTurnInputCandidate(
         sanitized_user_text=sanitized_user_text,
         chat_session_id=chat_session_id,
         turn_index=turn_index,
@@ -525,7 +525,7 @@ def _build_twf_workflow_request_draft(
             "input_stage": "channel_sanitized",
         },
     )
-    return TwfWorkflowRequestDraftCandidate(
+    return OperationFlowWorkflowRequestDraftCandidate(
         workflow_name=workflow_name,
         task_kind=task_kind,
         turn_input=turn_input,
@@ -552,17 +552,17 @@ def _build_twf_workflow_request_draft(
 
 
 def _coerce_governance_refs(
-    governance_refs: TwfGovernanceRefsCandidate | Mapping[str, Any] | None,
-) -> TwfGovernanceRefsCandidate:
-    if isinstance(governance_refs, TwfGovernanceRefsCandidate):
+    governance_refs: OperationFlowGovernanceRefsCandidate | Mapping[str, Any] | None,
+) -> OperationFlowGovernanceRefsCandidate:
+    if isinstance(governance_refs, OperationFlowGovernanceRefsCandidate):
         return governance_refs
-    return TwfGovernanceRefsCandidate(**dict(governance_refs or {}))
+    return OperationFlowGovernanceRefsCandidate(**dict(governance_refs or {}))
 
 
 def _coerce_controls(
-    controls: TwfReferenceWorkspaceControlsCandidate | Mapping[str, Any] | None,
-) -> TwfReferenceWorkspaceControlsCandidate:
-    if isinstance(controls, TwfReferenceWorkspaceControlsCandidate):
+    controls: OperationFlowReferenceWorkspaceControlsCandidate | Mapping[str, Any] | None,
+) -> OperationFlowReferenceWorkspaceControlsCandidate:
+    if isinstance(controls, OperationFlowReferenceWorkspaceControlsCandidate):
         return controls
     payload = dict(controls or {})
     for tuple_key in (
@@ -572,7 +572,7 @@ def _coerce_controls(
     ):
         if tuple_key in payload:
             payload[tuple_key] = tuple(str(item) for item in payload[tuple_key])
-    return TwfReferenceWorkspaceControlsCandidate(**payload)
+    return OperationFlowReferenceWorkspaceControlsCandidate(**payload)
 
 
 def _validate_history(history: Sequence[Mapping[str, str]]) -> None:
@@ -598,7 +598,7 @@ def _validate_mapping_boundary(
     forbidden_keys = tuple(
         key
         for key in value
-        if str(key).lower() in TWF_REQUEST_DRAFT_FORBIDDEN_INPUT_KEYS
+        if str(key).lower() in OPERATION_FLOW_REQUEST_DRAFT_FORBIDDEN_INPUT_KEYS
     )
     if forbidden_keys:
         joined = ", ".join(sorted(str(key) for key in forbidden_keys))
@@ -610,7 +610,7 @@ def _validate_mapping_boundary(
         if managed_conflicts:
             joined = ", ".join(sorted(str(key) for key in managed_conflicts))
             raise ValueError(f"{field_name} contains managed governance keys: {joined}.")
-    validate_task_workflow_metadata_boundary(value, field_name=field_name)
+    validate_operation_flow_metadata_boundary(value, field_name=field_name)
     _validate_no_forbidden_runtime_objects(value, field_name=field_name)
 
 

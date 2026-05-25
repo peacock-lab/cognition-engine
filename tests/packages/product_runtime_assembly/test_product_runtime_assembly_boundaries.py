@@ -33,9 +33,12 @@ def test_product_runtime_assembly_pyproject_declares_expected_distribution() -> 
     project = _pyproject()["project"]
 
     assert project["name"] == "cognition-system-product-runtime-assembly"
-    assert project["version"] == "0.8.0"
+    assert project["version"] == "0.8.1"
     assert project["scripts"] == {
         "cognition": "product_runtime_assembly.entrypoints.cognition:main",
+        "cognition-console": (
+            "product_runtime_assembly.entrypoints.cognition_console:main"
+        ),
     }
 
 
@@ -47,13 +50,14 @@ def test_product_runtime_assembly_pyproject_uses_only_allowed_internal_dependenc
     )
 
     assert dependencies == (
-        "cognition-system-behavior-contracts==0.8.0",
-        "cognition-system-cli==0.8.0",
-        "cognition-system-config-contexts==0.8.0",
-        "cognition-system-contract-core==0.8.0",
-        "cognition-system-product-gateway==0.8.0",
-        "cognition-system-runtime-container==0.8.0",
-        "cognition-system-schemas==0.8.0",
+        "cognition-system-behavior-contracts==0.8.1",
+        "cognition-system-cli==0.8.1",
+        "cognition-system-config-contexts==0.8.1",
+        "cognition-system-contract-core==0.8.1",
+        "cognition-system-product-console==0.8.1",
+        "cognition-system-product-gateway==0.8.1",
+        "cognition-system-runtime-container==0.8.1",
+        "cognition-system-schemas==0.8.1",
     )
     dependency_names = tuple(
         dependency.split("==", maxsplit=1)[0] for dependency in dependencies

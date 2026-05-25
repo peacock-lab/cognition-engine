@@ -6,7 +6,7 @@ from pathlib import Path
 from behavior_contracts.product_gateway_cli import (
     ProductGatewayCliSurfaceNoRawPayloadGuard,
     ProductGatewayCliSurfaceNoRuntimeLeakageGuard,
-    ProductGatewayCliTaskWorkflowHeaderGuard,
+    ProductGatewayCliOperationFlowHeaderGuard,
     validate_product_gateway_cli_surface_guards,
 )
 
@@ -20,7 +20,7 @@ BEHAVIOR_SOURCE_ROOT = (
 def test_product_gateway_cli_surface_guards_accept_safe_contract() -> None:
     result = validate_product_gateway_cli_surface_guards(
         {
-            "workflow_name": "twf_plan_workflow",
+            "workflow_name": "operation_flow_plan_workflow",
             "sanitized_user_text": "做一个方案",
             "metadata": {"source": "test"},
         }
@@ -49,21 +49,21 @@ def test_product_gateway_cli_surface_guards_reject_runtime_leakage() -> None:
 
 
 def test_product_gateway_cli_surface_header_guard_rejects_unknown_workflow() -> None:
-    result = ProductGatewayCliTaskWorkflowHeaderGuard().validate(
+    result = ProductGatewayCliOperationFlowHeaderGuard().validate(
         {"workflow_name": "unknown_workflow"}
     )
 
     assert result.passed is False
-    assert "unsupported task workflow name" in result.violations[0]
+    assert "unsupported operation flow name" in result.violations[0]
 
 
 def test_product_gateway_cli_surface_header_guard_checks_execution_input() -> None:
-    result = ProductGatewayCliTaskWorkflowHeaderGuard().validate(
+    result = ProductGatewayCliOperationFlowHeaderGuard().validate(
         {"request_draft_input": {"workflow_name": "unknown_workflow"}}
     )
 
     assert result.passed is False
-    assert "unsupported task workflow name" in result.violations[0]
+    assert "unsupported operation flow name" in result.violations[0]
 
 
 def test_product_gateway_cli_surface_guards_have_no_execution_layer_imports() -> None:

@@ -9,6 +9,13 @@ from dataclasses import asdict, dataclass, field, is_dataclass
 from typing import TYPE_CHECKING, Any, Protocol
 
 from behavior_contracts.governance_candidate import CandidateGuardResult
+from cognition_evaluation.evidence_summary_answer import (
+    answer_matches_requested_output_language as evaluation_answer_matches_requested_output_language,
+    answer_matches_requested_output_length as evaluation_answer_matches_requested_output_length,
+    cjk_char_count as evaluation_cjk_char_count,
+    requested_output_chars as evaluation_requested_output_chars,
+    requested_output_language as evaluation_requested_output_language,
+)
 from schemas.evidence_summary_answer import (
     EVIDENCE_SUMMARY_ANSWER_ARTIFACT_PAYLOAD_TYPE,
     EVIDENCE_SUMMARY_ANSWER_ARTIFACT_REF_PREFIX,
@@ -18,10 +25,21 @@ from schemas.evidence_summary_answer import (
     EVIDENCE_SUMMARY_ANSWER_FOLLOW_UP_REF_PREFIX,
     EVIDENCE_SUMMARY_ANSWER_FOLLOW_UP_SEED_PAYLOAD_TYPE,
     EVIDENCE_SUMMARY_ANSWER_FOLLOW_UP_SEED_VERSION,
+    EVIDENCE_SUMMARY_ANSWER_OBSERVABILITY_SUMMARY_PAYLOAD_TYPE,
+    EVIDENCE_SUMMARY_ANSWER_OBSERVABILITY_SUMMARY_REF_PREFIX,
+    EVIDENCE_SUMMARY_ANSWER_OBSERVABILITY_SUMMARY_VERSION,
     EVIDENCE_SUMMARY_ANSWER_PRODUCT,
     EVIDENCE_SUMMARY_ANSWER_RESULT_PAYLOAD_TYPE,
     EVIDENCE_SUMMARY_ANSWER_RESULT_STATUSES,
     EVIDENCE_SUMMARY_ANSWER_RESULT_VERSION,
+    EVIDENCE_SUMMARY_ANSWER_RUN_PAYLOAD_TYPE,
+    EVIDENCE_SUMMARY_ANSWER_RUN_REF_PREFIX,
+    EVIDENCE_SUMMARY_ANSWER_RUN_STATUSES,
+    EVIDENCE_SUMMARY_ANSWER_RUN_VERSION,
+    EVIDENCE_SUMMARY_ANSWER_TRACE_INSPECT_PAYLOAD_TYPE,
+    EVIDENCE_SUMMARY_ANSWER_TRACE_INSPECT_REF_PREFIX,
+    EVIDENCE_SUMMARY_ANSWER_TRACE_INSPECT_STATUSES,
+    EVIDENCE_SUMMARY_ANSWER_TRACE_INSPECT_VERSION,
     EVIDENCE_SUMMARY_ANSWER_TRACE_PAYLOAD_TYPE,
     EVIDENCE_SUMMARY_ANSWER_TRACE_REF_PREFIX,
     EVIDENCE_SUMMARY_ANSWER_TRACE_VERSION,
@@ -61,6 +79,13 @@ EVIDENCE_SUMMARY_ANSWER_PAYLOAD_VERSIONS = {
     EVIDENCE_SUMMARY_ANSWER_ARTIFACT_PAYLOAD_TYPE: (
         EVIDENCE_SUMMARY_ANSWER_ARTIFACT_VERSION
     ),
+    EVIDENCE_SUMMARY_ANSWER_OBSERVABILITY_SUMMARY_PAYLOAD_TYPE: (
+        EVIDENCE_SUMMARY_ANSWER_OBSERVABILITY_SUMMARY_VERSION
+    ),
+    EVIDENCE_SUMMARY_ANSWER_TRACE_INSPECT_PAYLOAD_TYPE: (
+        EVIDENCE_SUMMARY_ANSWER_TRACE_INSPECT_VERSION
+    ),
+    EVIDENCE_SUMMARY_ANSWER_RUN_PAYLOAD_TYPE: EVIDENCE_SUMMARY_ANSWER_RUN_VERSION,
 }
 
 EVIDENCE_SUMMARY_ANSWER_PAYLOAD_TYPES = frozenset(
@@ -183,6 +208,21 @@ EVIDENCE_SUMMARY_ANSWER_REQUEST_DEFLECTION_RE = re.compile(
 
 EVIDENCE_SUMMARY_ANSWER_ENGLISH_REQUEST_RE = re.compile(
     r"(?:英文|英语|翻译成英文|translate\s+(?:it|this|the\s+summary)?.{0,20}english)",
+    re.IGNORECASE,
+)
+
+EVIDENCE_SUMMARY_ANSWER_KOREAN_REQUEST_RE = re.compile(
+    r"(?:韩语|韩文|韩国语|한국어|korean)",
+    re.IGNORECASE,
+)
+
+EVIDENCE_SUMMARY_ANSWER_JAPANESE_REQUEST_RE = re.compile(
+    r"(?:日语|日本语|日本語|japanese)",
+    re.IGNORECASE,
+)
+
+EVIDENCE_SUMMARY_ANSWER_CHINESE_REQUEST_RE = re.compile(
+    r"(?:中文|汉语|chinese)",
     re.IGNORECASE,
 )
 
@@ -517,6 +557,49 @@ class EvidenceSummaryAnswerHeaderGuard:
                 and status not in EVIDENCE_SUMMARY_ANSWER_RESULT_STATUSES
             ):
                 violations.append(f"unsupported answer artifact status: {status}.")
+        elif (
+            payload_type
+            == EVIDENCE_SUMMARY_ANSWER_OBSERVABILITY_SUMMARY_PAYLOAD_TYPE
+        ):
+            _require_string_fields(
+                payload,
+                (
+                    "summary_id",
+                    "summary_ref",
+                    "request_id",
+                    "status",
+                    "reason",
+                    "user_explanation",
+                ),
+                violations,
+            )
+            status = payload.get("status")
+            if (
+                isinstance(status, str)
+                and status not in EVIDENCE_SUMMARY_ANSWER_RESULT_STATUSES
+            ):
+                violations.append(
+                    f"unsupported observability summary status: {status}."
+                )
+        elif payload_type == EVIDENCE_SUMMARY_ANSWER_TRACE_INSPECT_PAYLOAD_TYPE:
+            _require_string_fields(
+                payload,
+                (
+                    "trace_inspect_id",
+                    "trace_inspect_ref",
+                    "request_id",
+                    "inspect_status",
+                    "inspect_reason",
+                    "user_explanation",
+                ),
+                violations,
+            )
+            status = payload.get("inspect_status")
+            if (
+                isinstance(status, str)
+                and status not in EVIDENCE_SUMMARY_ANSWER_TRACE_INSPECT_STATUSES
+            ):
+                violations.append(f"unsupported trace inspect status: {status}.")
         return _result(violations)
 
 
@@ -1175,6 +1258,341 @@ class EvidenceSummaryAnswerArtifactGuard:
         return _result(violations)
 
 
+class EvidenceSummaryAnswerObservabilitySummaryGuard:
+    """Validate product-safe observability summary constraints."""
+
+    guard_name = "evidence_summary_answer_observability_summary_guard"
+
+    def validate(self, payload: Mapping[str, Any]) -> CandidateGuardResult:
+        if (
+            payload.get("payload_type")
+            != EVIDENCE_SUMMARY_ANSWER_OBSERVABILITY_SUMMARY_PAYLOAD_TYPE
+        ):
+            return _result([])
+
+        violations: list[str] = []
+        summary_ref = payload.get("summary_ref")
+        if not isinstance(summary_ref, str) or not summary_ref.startswith(
+            EVIDENCE_SUMMARY_ANSWER_OBSERVABILITY_SUMMARY_REF_PREFIX
+        ):
+            violations.append(
+                "summary_ref must start with "
+                f"{EVIDENCE_SUMMARY_ANSWER_OBSERVABILITY_SUMMARY_REF_PREFIX}."
+            )
+
+        status = payload.get("status")
+        if isinstance(status, str) and (
+            status not in EVIDENCE_SUMMARY_ANSWER_RESULT_STATUSES
+        ):
+            violations.append(f"unsupported observability summary status: {status}.")
+
+        if not _is_nonempty_string(payload.get("reason")):
+            violations.append("observability summaries require reason.")
+        if not _is_nonempty_string(payload.get("user_explanation")):
+            violations.append("observability summaries require user_explanation.")
+
+        hints = payload.get("recovery_hints")
+        if hints is not None and not isinstance(hints, (list, tuple)):
+            violations.append("recovery_hints must be a list.")
+        elif isinstance(hints, (list, tuple)):
+            for index, hint in enumerate(hints):
+                if not isinstance(hint, str) or not hint.strip():
+                    violations.append(f"recovery_hints[{index}] cannot be blank.")
+
+        refs = payload.get("refs")
+        if refs is not None and not isinstance(refs, (list, tuple)):
+            violations.append("refs must be a list.")
+        elif isinstance(refs, (list, tuple)):
+            for index, ref in enumerate(refs):
+                if not isinstance(ref, Mapping):
+                    violations.append(f"refs[{index}] must be a mapping.")
+                    continue
+                if not _is_nonempty_string(ref.get("ref")):
+                    violations.append(f"refs[{index}].ref is required.")
+                if not _is_nonempty_string(ref.get("kind")):
+                    violations.append(f"refs[{index}].kind is required.")
+
+        boundary = payload.get("raw_boundary_summary")
+        if not isinstance(boundary, Mapping):
+            violations.append("raw_boundary_summary must be a mapping.")
+        else:
+            if boundary.get("restricted_payload_absent") is not True:
+                violations.append("restricted payload must remain absent.")
+            if boundary.get("restricted_boundary_intact") is not True:
+                violations.append("restricted boundary must remain intact.")
+
+        for field_name in ("evaluation_findings_summary", "metadata"):
+            value = payload.get(field_name, {})
+            if not isinstance(value, Mapping):
+                violations.append(f"{field_name} must be a mapping.")
+                continue
+            for key, item in value.items():
+                if not isinstance(key, str) or not key:
+                    violations.append(f"{field_name} keys must be strings.")
+                if item is not None and not isinstance(item, bool | int | float | str):
+                    violations.append(f"{field_name}.{key} must be scalar.")
+
+        if payload.get("task_compatible") is not True:
+            violations.append("observability summaries must remain Task-compatible.")
+        if payload.get("workflow_compatible") is not True:
+            violations.append(
+                "observability summaries must remain Workflow-compatible."
+            )
+        if payload.get("runtime_backed") is not False:
+            violations.append("observability summaries must not be runtime-backed.")
+        if payload.get("backed_by_adk_task_runtime") is not False:
+            violations.append(
+                "observability summaries must not be backed by ADK Task runtime."
+            )
+        if payload.get("backed_by_adk_workflow_runtime") is not False:
+            violations.append(
+                "observability summaries must not be backed by ADK Workflow Runtime."
+            )
+        if payload.get("durable_session") is not False:
+            violations.append(
+                "observability summaries must not use durable session state."
+            )
+        if payload.get("memory_enabled") is not False:
+            violations.append(
+                "observability summaries must not use Memory runtime state."
+            )
+        return _result(violations)
+
+
+class EvidenceSummaryAnswerTraceInspectGuard:
+    """Validate product-level trace inspect constraints."""
+
+    guard_name = "evidence_summary_answer_trace_inspect_guard"
+
+    def validate(self, payload: Mapping[str, Any]) -> CandidateGuardResult:
+        if payload.get("payload_type") != EVIDENCE_SUMMARY_ANSWER_TRACE_INSPECT_PAYLOAD_TYPE:
+            return _result([])
+
+        violations: list[str] = []
+        inspect_ref = payload.get("trace_inspect_ref")
+        if not isinstance(inspect_ref, str) or not inspect_ref.startswith(
+            EVIDENCE_SUMMARY_ANSWER_TRACE_INSPECT_REF_PREFIX
+        ):
+            violations.append(
+                "trace_inspect_ref must start with "
+                f"{EVIDENCE_SUMMARY_ANSWER_TRACE_INSPECT_REF_PREFIX}."
+            )
+
+        status = payload.get("inspect_status")
+        if isinstance(status, str) and (
+            status not in EVIDENCE_SUMMARY_ANSWER_TRACE_INSPECT_STATUSES
+        ):
+            violations.append(f"unsupported trace inspect status: {status}.")
+        if status == "unavailable" and not _is_nonempty_string(
+            payload.get("unavailable_reason")
+        ):
+            violations.append("unavailable trace inspect views require reason.")
+
+        if not _is_nonempty_string(payload.get("inspect_reason")):
+            violations.append("trace inspect views require inspect_reason.")
+        if not _is_nonempty_string(payload.get("user_explanation")):
+            violations.append("trace inspect views require user_explanation.")
+
+        for field_name in (
+            "developer_facts_summary",
+            "refs_summary",
+            "event_facts_summary",
+            "artifact_handoff_summary",
+            "evaluation_summary",
+            "governance_summary",
+            "metadata",
+        ):
+            value = payload.get(field_name, {})
+            if not isinstance(value, Mapping):
+                violations.append(f"{field_name} must be a mapping.")
+                continue
+            for key, item in value.items():
+                if not isinstance(key, str) or not key:
+                    violations.append(f"{field_name} keys must be strings.")
+                if item is not None and not isinstance(item, bool | int | float | str):
+                    violations.append(f"{field_name}.{key} must be scalar.")
+
+        boundary = payload.get("raw_boundary_summary")
+        if not isinstance(boundary, Mapping):
+            violations.append("raw_boundary_summary must be a mapping.")
+        else:
+            if boundary.get("restricted_payload_absent") is not True:
+                violations.append("restricted payload must remain absent.")
+            if boundary.get("restricted_boundary_intact") is not True:
+                violations.append("restricted boundary must remain intact.")
+
+        hints = payload.get("recovery_hints")
+        if hints is not None and not isinstance(hints, (list, tuple)):
+            violations.append("recovery_hints must be a list.")
+        elif isinstance(hints, (list, tuple)):
+            for index, hint in enumerate(hints):
+                if not isinstance(hint, str) or not hint.strip():
+                    violations.append(f"recovery_hints[{index}] cannot be blank.")
+
+        if payload.get("task_compatible") is not True:
+            violations.append("trace inspect views must remain Task-compatible.")
+        if payload.get("workflow_compatible") is not True:
+            violations.append("trace inspect views must remain Workflow-compatible.")
+        if payload.get("runtime_backed") is not False:
+            violations.append("trace inspect views must not be runtime-backed.")
+        if payload.get("backed_by_adk_task_runtime") is not False:
+            violations.append(
+                "trace inspect views must not be backed by ADK Task runtime."
+            )
+        if payload.get("backed_by_adk_workflow_runtime") is not False:
+            violations.append(
+                "trace inspect views must not be backed by ADK Workflow Runtime."
+            )
+        if payload.get("durable_session") is not False:
+            violations.append(
+                "trace inspect views must not use durable session state."
+            )
+        if payload.get("memory_enabled") is not False:
+            violations.append(
+                "trace inspect views must not use Memory runtime state."
+            )
+        return _result(violations)
+
+
+class EvidenceSummaryAnswerRunGuard:
+    """Validate product-level answer run aggregate refs."""
+
+    guard_name = "evidence_summary_answer_run_guard"
+
+    def validate(self, payload: Mapping[str, Any]) -> CandidateGuardResult:
+        if payload.get("payload_type") != EVIDENCE_SUMMARY_ANSWER_RUN_PAYLOAD_TYPE:
+            return _result([])
+
+        violations: list[str] = []
+        run_ref = payload.get("answer_run_ref")
+        if not _is_ref_with_prefix(run_ref, EVIDENCE_SUMMARY_ANSWER_RUN_REF_PREFIX):
+            violations.append(
+                "answer_run_ref must start with "
+                f"{EVIDENCE_SUMMARY_ANSWER_RUN_REF_PREFIX}."
+            )
+
+        parent_ref = payload.get("parent_answer_run_ref")
+        if parent_ref is not None and not _is_ref_with_prefix(
+            parent_ref,
+            EVIDENCE_SUMMARY_ANSWER_RUN_REF_PREFIX,
+        ):
+            violations.append(
+                "parent_answer_run_ref must start with "
+                f"{EVIDENCE_SUMMARY_ANSWER_RUN_REF_PREFIX}."
+            )
+
+        answer_run_status = payload.get("answer_run_status")
+        if isinstance(answer_run_status, str) and (
+            answer_run_status not in EVIDENCE_SUMMARY_ANSWER_RUN_STATUSES
+        ):
+            violations.append(f"unsupported answer run status: {answer_run_status}.")
+
+        answer_status = payload.get("answer_status")
+        if isinstance(answer_status, str) and (
+            answer_status not in EVIDENCE_SUMMARY_ANSWER_RESULT_STATUSES
+        ):
+            violations.append(f"unsupported answer status: {answer_status}.")
+
+        if answer_run_status == "success":
+            if answer_status != "success":
+                violations.append(
+                    "successful answer runs require successful answer_status."
+                )
+            if not _is_ref_with_prefix(
+                payload.get("answer_trace_ref"),
+                EVIDENCE_SUMMARY_ANSWER_TRACE_REF_PREFIX,
+            ):
+                violations.append("successful answer runs require answer_trace_ref.")
+            if not _is_ref_with_prefix(
+                payload.get("answer_artifact_ref"),
+                EVIDENCE_SUMMARY_ANSWER_ARTIFACT_REF_PREFIX,
+            ):
+                violations.append("successful answer runs require answer_artifact_ref.")
+            if not _has_mapping_item(payload.get("evidence_refs")):
+                violations.append("successful answer runs require evidence_refs.")
+        if answer_run_status == "blocked" and not _has_nonempty_string_item(
+            payload.get("blocking_reasons")
+        ):
+            violations.append("blocked answer runs require blocking_reasons.")
+        if answer_run_status in {"insufficient_evidence", "failed"} and not (
+            _is_nonempty_string(payload.get("unavailable_reason"))
+            or _has_nonempty_string_item(payload.get("blocking_reasons"))
+        ):
+            violations.append(
+                "non-success answer runs require unavailable reason or blockers."
+            )
+        if answer_run_status == "unavailable" and not _is_nonempty_string(
+            payload.get("unavailable_reason")
+        ):
+            violations.append("unavailable answer runs require unavailable_reason.")
+
+        if payload.get("answer_trace_ref") is not None and not _is_ref_with_prefix(
+            payload.get("answer_trace_ref"),
+            EVIDENCE_SUMMARY_ANSWER_TRACE_REF_PREFIX,
+        ):
+            violations.append("answer_trace_ref must be an answer trace ref.")
+        if payload.get("answer_artifact_ref") is not None and not _is_ref_with_prefix(
+            payload.get("answer_artifact_ref"),
+            EVIDENCE_SUMMARY_ANSWER_ARTIFACT_REF_PREFIX,
+        ):
+            violations.append("answer_artifact_ref must be an answer artifact ref.")
+        if payload.get("observability_summary_ref") is not None and not (
+            _is_ref_with_prefix(
+                payload.get("observability_summary_ref"),
+                EVIDENCE_SUMMARY_ANSWER_OBSERVABILITY_SUMMARY_REF_PREFIX,
+            )
+        ):
+            violations.append(
+                "observability_summary_ref must be an observability summary ref."
+            )
+        if payload.get("trace_inspect_ref") is not None and not _is_ref_with_prefix(
+            payload.get("trace_inspect_ref"),
+            EVIDENCE_SUMMARY_ANSWER_TRACE_INSPECT_REF_PREFIX,
+        ):
+            violations.append("trace_inspect_ref must be a trace inspect ref.")
+        if payload.get("follow_up_seed_ref") is not None and not _is_ref_with_prefix(
+            payload.get("follow_up_seed_ref"),
+            EVIDENCE_SUMMARY_ANSWER_FOLLOW_UP_REF_PREFIX,
+        ):
+            violations.append("follow_up_seed_ref must be a follow-up seed ref.")
+
+        if payload.get("follow_up") is True and not isinstance(
+            payload.get("follow_up_turn_index"), int
+        ):
+            violations.append("follow-up answer runs require follow_up_turn_index.")
+        if payload.get("task_compatible") is not True:
+            violations.append("answer runs must remain Task-compatible.")
+        if payload.get("workflow_compatible") is not True:
+            violations.append("answer runs must remain Workflow-compatible.")
+        if payload.get("runtime_backed") is not False:
+            violations.append("answer runs must not be runtime-backed.")
+        if payload.get("backed_by_adk_task_runtime") is not False:
+            violations.append("answer runs must not be backed by ADK Task runtime.")
+        if payload.get("backed_by_adk_workflow_runtime") is not False:
+            violations.append(
+                "answer runs must not be backed by ADK Workflow Runtime."
+            )
+        if payload.get("backed_by_adk_artifact_service") is not False:
+            violations.append("answer runs must not be backed by ADK ArtifactService.")
+        if payload.get("backed_by_adk_event_stream") is not False:
+            violations.append("answer runs must not be backed by ADK Event stream.")
+        if payload.get("durable_session") is not False:
+            violations.append("answer runs must not use durable session state.")
+        if payload.get("memory_enabled") is not False:
+            violations.append("answer runs must not use Memory runtime state.")
+
+        boundary = payload.get("raw_boundary_summary")
+        if not isinstance(boundary, Mapping):
+            violations.append("raw_boundary_summary must be a mapping.")
+        else:
+            if boundary.get("restricted_payload_absent") is not True:
+                violations.append("restricted payload must remain absent.")
+            if boundary.get("restricted_boundary_intact") is not True:
+                violations.append("restricted boundary must remain intact.")
+
+        return _result(violations)
+
+
 class EvidenceSummaryAnswerResultMappingGuard:
     """Validate generation-specific answer result mapping constraints."""
 
@@ -1236,6 +1654,9 @@ DEFAULT_EVIDENCE_SUMMARY_ANSWER_GUARDS = (
     EvidenceSummaryAnswerResultQualityGuard(),
     EvidenceSummaryAnswerTraceGuard(),
     EvidenceSummaryAnswerArtifactGuard(),
+    EvidenceSummaryAnswerObservabilitySummaryGuard(),
+    EvidenceSummaryAnswerTraceInspectGuard(),
+    EvidenceSummaryAnswerRunGuard(),
 )
 
 
@@ -1251,7 +1672,10 @@ def validate_evidence_summary_answer_guards(
         | EvidenceSummaryAnswerResultRuntimeFlagsGuard
         | EvidenceSummaryAnswerResultQualityGuard
         | EvidenceSummaryAnswerTraceGuard
-        | EvidenceSummaryAnswerArtifactGuard,
+        | EvidenceSummaryAnswerArtifactGuard
+        | EvidenceSummaryAnswerObservabilitySummaryGuard
+        | EvidenceSummaryAnswerTraceInspectGuard
+        | EvidenceSummaryAnswerRunGuard,
         ...,
     ] = DEFAULT_EVIDENCE_SUMMARY_ANSWER_GUARDS,
 ) -> CandidateGuardResult:
@@ -2412,6 +2836,10 @@ def _has_mapping_item(value: Any) -> bool:
     )
 
 
+def _is_ref_with_prefix(value: Any, prefix: str) -> bool:
+    return isinstance(value, str) and value.startswith(prefix)
+
+
 def _require_string_fields(
     payload: Mapping[str, Any],
     fields: tuple[str, ...],
@@ -2487,6 +2915,16 @@ def _question_answer_quality_violations(answer: Any, user_question: Any) -> list
             "that is already in the governed context."
         )
 
+    requested_language = _requested_output_language(question)
+    if not _answer_matches_requested_output_language(text, requested_language):
+        violations.append(
+            "successful answer must use the explicitly requested output language."
+        )
+    if not _answer_matches_requested_output_length(text, question):
+        violations.append(
+            "successful answer must respect the requested concise output length."
+        )
+
     if _question_expects_cjk_answer(question) and _cjk_char_count(text) < 2:
         violations.append(
             "successful answer must use Chinese when the question asks in Chinese."
@@ -2494,6 +2932,8 @@ def _question_answer_quality_violations(answer: Any, user_question: Any) -> list
 
     requested_chars = _requested_chinese_chars(question)
     if (
+        not EVIDENCE_SUMMARY_ANSWER_ENGLISH_REQUEST_RE.search(question)
+        and
         requested_chars is not None
         and requested_chars >= 300
         and _cjk_char_count(text) < max(120, requested_chars // 4)
@@ -2508,28 +2948,40 @@ def _question_answer_quality_violations(answer: Any, user_question: Any) -> list
 
 
 def _question_expects_cjk_answer(question: str) -> bool:
-    if EVIDENCE_SUMMARY_ANSWER_ENGLISH_REQUEST_RE.search(question):
+    if _requested_output_language(question) in {"english", "korean", "japanese"}:
         return False
     return _cjk_char_count(question) > 0
 
 
+def _requested_output_language(question: str) -> str | None:
+    return evaluation_requested_output_language(question)
+
+
+def _answer_matches_requested_output_language(
+    answer: str,
+    requested_language: str | None,
+) -> bool:
+    if requested_language is None:
+        return True
+    return evaluation_answer_matches_requested_output_language(
+        answer,
+        requested_language=requested_language,
+    )
+
+
+def _answer_matches_requested_output_length(answer: str, question: str) -> bool:
+    return evaluation_answer_matches_requested_output_length(
+        answer,
+        question=question,
+    )
+
+
 def _requested_chinese_chars(question: str) -> int | None:
-    matches = EVIDENCE_SUMMARY_ANSWER_CHINESE_LENGTH_REQUEST_RE.findall(question)
-    if not matches:
-        matches = EVIDENCE_SUMMARY_ANSWER_CHINESE_SUMMARY_LENGTH_HINT_RE.findall(
-            question
-        )
-    if not matches:
-        matches = EVIDENCE_SUMMARY_ANSWER_CHINESE_CONTENT_LENGTH_HINT_RE.findall(
-            question
-        )
-    if not matches:
-        return None
-    return max(int(item) for item in matches)
+    return evaluation_requested_output_chars(question)
 
 
 def _cjk_char_count(value: str) -> int:
-    return sum(1 for char in value if "\u4e00" <= char <= "\u9fff")
+    return evaluation_cjk_char_count(value)
 
 
 def _looks_like_jsonish_wrapper(value: str) -> bool:
@@ -2591,26 +3043,31 @@ def _is_visible_reasoning_key(value: Any) -> bool:
 
 def _looks_like_forbidden_marker(value: str) -> bool:
     lowered = value.lower()
+    phrase_markers = (
+        "config context value",
+        "full productgatewayresponse",
+        "raw html",
+        "raw payload",
+        "raw provider response",
+    )
+    if any(marker in lowered for marker in phrase_markers):
+        return True
+    token_markers = (
+        "api_key",
+        "config_context",
+        "full_product_gateway_response",
+        "observability_candidate_body",
+        "prompt_or_messages",
+        "raw_payload",
+        "raw_provider_response",
+        "response_headers",
+        "response_text",
+        "sanitized_excerpt_preview",
+        "system_prompt",
+    )
     return any(
-        marker in lowered
-        for marker in (
-            "api_key",
-            "config_context",
-            "config context value",
-            "full productgatewayresponse",
-            "full_product_gateway_response",
-            "observability_candidate_body",
-            "prompt_or_messages",
-            "raw html",
-            "raw payload",
-            "raw provider response",
-            "raw_payload",
-            "raw_provider_response",
-            "response_headers",
-            "response_text",
-            "sanitized_excerpt_preview",
-            "system_prompt",
-        )
+        re.search(rf"(?<![a-z0-9_]){re.escape(marker)}(?![a-z0-9_])", lowered)
+        for marker in token_markers
     )
 
 
@@ -2626,6 +3083,9 @@ __all__ = [
     "EVIDENCE_SUMMARY_ANSWER_GENERATION_PROFILES",
     "EVIDENCE_SUMMARY_ANSWER_GENERATION_RESULT_METADATA_KEYS",
     "EVIDENCE_SUMMARY_ANSWER_LLM_REQUEST_METADATA_KEYS",
+    "EVIDENCE_SUMMARY_ANSWER_OBSERVABILITY_SUMMARY_PAYLOAD_TYPE",
+    "EVIDENCE_SUMMARY_ANSWER_OBSERVABILITY_SUMMARY_REF_PREFIX",
+    "EVIDENCE_SUMMARY_ANSWER_OBSERVABILITY_SUMMARY_VERSION",
     "EVIDENCE_SUMMARY_ANSWER_OUTCOME_OBSERVATION_READONLY_PUBLIC_REFS_PAYLOAD_TYPE",
     "EVIDENCE_SUMMARY_ANSWER_OUTCOME_OBSERVATION_READONLY_PUBLIC_REFS_STATUSES",
     "EVIDENCE_SUMMARY_ANSWER_OUTCOME_OBSERVATION_READONLY_PUBLIC_REFS_VERSION",
@@ -2633,6 +3093,14 @@ __all__ = [
     "EVIDENCE_SUMMARY_ANSWER_PAYLOAD_TYPES",
     "EVIDENCE_SUMMARY_ANSWER_PAYLOAD_VERSIONS",
     "EVIDENCE_SUMMARY_ANSWER_QUALITY_BLOCKING_REASON",
+    "EVIDENCE_SUMMARY_ANSWER_RUN_PAYLOAD_TYPE",
+    "EVIDENCE_SUMMARY_ANSWER_RUN_REF_PREFIX",
+    "EVIDENCE_SUMMARY_ANSWER_RUN_STATUSES",
+    "EVIDENCE_SUMMARY_ANSWER_RUN_VERSION",
+    "EVIDENCE_SUMMARY_ANSWER_TRACE_INSPECT_PAYLOAD_TYPE",
+    "EVIDENCE_SUMMARY_ANSWER_TRACE_INSPECT_REF_PREFIX",
+    "EVIDENCE_SUMMARY_ANSWER_TRACE_INSPECT_STATUSES",
+    "EVIDENCE_SUMMARY_ANSWER_TRACE_INSPECT_VERSION",
     "EVIDENCE_SUMMARY_ANSWER_TRACE_PAYLOAD_TYPE",
     "EVIDENCE_SUMMARY_ANSWER_TRACE_REF_PREFIX",
     "EVIDENCE_SUMMARY_ANSWER_TRACE_VERSION",
@@ -2646,12 +3114,15 @@ __all__ = [
     "EvidenceSummaryAnswerHeaderGuard",
     "EvidenceSummaryAnswerLlmRequestBoundaryGuard",
     "EvidenceSummaryAnswerNoRawBoundaryGuard",
+    "EvidenceSummaryAnswerObservabilitySummaryGuard",
     "EvidenceSummaryAnswerOutcomeObservationReadonlyFacts",
     "EvidenceSummaryAnswerOutcomeObservationReadonlyPublicRefs",
     "EvidenceSummaryAnswerResultCitationGuard",
     "EvidenceSummaryAnswerResultMappingGuard",
     "EvidenceSummaryAnswerResultQualityGuard",
     "EvidenceSummaryAnswerResultRuntimeFlagsGuard",
+    "EvidenceSummaryAnswerRunGuard",
+    "EvidenceSummaryAnswerTraceInspectGuard",
     "EvidenceSummaryAnswerTraceGuard",
     "build_evidence_summary_answer_answerability_preflight_facts",
     "build_evidence_summary_answer_outcome_observation_readonly_facts",

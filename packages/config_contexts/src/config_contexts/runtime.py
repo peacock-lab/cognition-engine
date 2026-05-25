@@ -436,7 +436,7 @@ class RuntimeLiveLlmConfigView(RuntimeConfigBaseModel):
     default_model_profile_ref: str = "gemma4_pro_local"
     model_profiles: dict[str, RuntimeLlmModelProfileConfigView] = Field(
         default_factory=lambda: {
-            "gemma4_pro_local": RuntimeLlmModelProfileConfigView(max_tokens=256),
+            "gemma4_pro_local": RuntimeLlmModelProfileConfigView(max_tokens=800),
             "deepseek_v4_flash_external": RuntimeLlmModelProfileConfigView(
                 provider_profile_ref="deepseek_gated",
                 model_name="deepseek/deepseek-v4-flash",

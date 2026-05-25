@@ -7,25 +7,25 @@ from pathlib import Path
 from typing import Any
 
 from cognition_operation_flows._core.run_workspace import (
-    TwfRunWorkspaceStateCandidate,
-    build_twf_run_workspace_policy,
-    create_twf_run_workspace,
-    finalize_twf_run_workspace,
-    write_twf_run_workspace_json,
-    write_twf_run_workspace_text,
+    OperationFlowRunWorkspaceStateCandidate,
+    build_operation_flow_run_workspace_policy,
+    create_operation_flow_run_workspace,
+    finalize_operation_flow_run_workspace,
+    write_operation_flow_run_workspace_json,
+    write_operation_flow_run_workspace_text,
 )
 
 
-def build_twf_product_entry_run_workspace_policy(
+def build_operation_flow_product_entry_run_workspace_policy(
     *,
     workspace_root: str | Path,
     retention_policy: str,
     cleanup_policy: str,
     max_write_bytes: int,
 ) -> Any:
-    """Build a governed TWF run workspace policy."""
+    """Build a governed operation flow run workspace policy."""
 
-    return build_twf_run_workspace_policy(
+    return build_operation_flow_run_workspace_policy(
         workspace_root=workspace_root,
         retention_policy=retention_policy,
         cleanup_policy=cleanup_policy,
@@ -33,22 +33,22 @@ def build_twf_product_entry_run_workspace_policy(
     )
 
 
-def create_twf_product_entry_run_workspace(
+def create_operation_flow_product_entry_run_workspace(
     *,
     policy: Any,
     workflow_name: str,
     run_id: str,
 ) -> Any:
-    """Create a governed TWF run workspace."""
+    """Create a governed operation flow run workspace."""
 
-    return create_twf_run_workspace(
+    return create_operation_flow_run_workspace(
         policy=policy,
         workflow_name=workflow_name,
         run_id=run_id,
     )
 
 
-def write_twf_product_entry_run_workspace_json(
+def write_operation_flow_product_entry_run_workspace_json(
     workspace: Any,
     *,
     relative_path: str,
@@ -56,9 +56,9 @@ def write_twf_product_entry_run_workspace_json(
     kind: str,
     max_write_bytes: int,
 ) -> tuple[Any, Any]:
-    """Write a governed JSON artifact to a TWF run workspace."""
+    """Write a governed JSON artifact to an operation flow run workspace."""
 
-    return write_twf_run_workspace_json(
+    return write_operation_flow_run_workspace_json(
         workspace,
         relative_path=relative_path,
         payload=payload,
@@ -67,7 +67,7 @@ def write_twf_product_entry_run_workspace_json(
     )
 
 
-def write_twf_product_entry_run_workspace_text(
+def write_operation_flow_product_entry_run_workspace_text(
     workspace: Any,
     *,
     relative_path: str,
@@ -75,9 +75,9 @@ def write_twf_product_entry_run_workspace_text(
     kind: str,
     max_write_bytes: int | None = None,
 ) -> tuple[Any, Any]:
-    """Write a governed text artifact to a TWF run workspace."""
+    """Write a governed text artifact to an operation flow run workspace."""
 
-    return write_twf_run_workspace_text(
+    return write_operation_flow_run_workspace_text(
         workspace,
         relative_path=relative_path,
         text=text,
@@ -86,27 +86,27 @@ def write_twf_product_entry_run_workspace_text(
     )
 
 
-def finalize_twf_product_entry_run_workspace(
+def finalize_operation_flow_product_entry_run_workspace(
     workspace: Any,
     *,
     status: str,
     metadata: Mapping[str, Any] | None = None,
 ) -> Any:
-    """Finalize a governed TWF run workspace."""
+    """Finalize a governed operation flow run workspace."""
 
-    return finalize_twf_run_workspace(
+    return finalize_operation_flow_run_workspace(
         workspace,
         status=status,
         metadata=metadata,
     )
 
 
-def restore_twf_product_entry_run_workspace_snapshot(
+def restore_operation_flow_product_entry_run_workspace_snapshot(
     snapshot: Mapping[str, Any],
 ) -> Any:
-    """Restore a governed TWF run workspace state from a snapshot."""
+    """Restore a governed operation flow run workspace state from a snapshot."""
 
-    return TwfRunWorkspaceStateCandidate(
+    return OperationFlowRunWorkspaceStateCandidate(
         workspace_ref=str(snapshot.get("workspace_ref") or ""),
         workspace_path=str(snapshot.get("workspace_path") or ""),
         workflow_name=str(snapshot.get("workflow_name") or ""),
@@ -133,10 +133,10 @@ def restore_twf_product_entry_run_workspace_snapshot(
 
 
 __all__ = [
-    "build_twf_product_entry_run_workspace_policy",
-    "create_twf_product_entry_run_workspace",
-    "finalize_twf_product_entry_run_workspace",
-    "restore_twf_product_entry_run_workspace_snapshot",
-    "write_twf_product_entry_run_workspace_json",
-    "write_twf_product_entry_run_workspace_text",
+    "build_operation_flow_product_entry_run_workspace_policy",
+    "create_operation_flow_product_entry_run_workspace",
+    "finalize_operation_flow_product_entry_run_workspace",
+    "restore_operation_flow_product_entry_run_workspace_snapshot",
+    "write_operation_flow_product_entry_run_workspace_json",
+    "write_operation_flow_product_entry_run_workspace_text",
 ]

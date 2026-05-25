@@ -16,6 +16,7 @@ from cognition_evaluation.models import (
 
 
 RequestedOutputLanguage = Literal["chinese", "english", "korean", "japanese"]
+RequestedOutputFormat = Literal["three_point_list", "list", "structured"]
 
 _KOREAN_REQUEST_RE = re.compile(r"(?:韩语|韩文|韩国语|한국어|korean)", re.IGNORECASE)
 _JAPANESE_REQUEST_RE = re.compile(r"(?:日语|日本语|日本語|japanese)", re.IGNORECASE)
@@ -30,6 +31,15 @@ _CHINESE_SUMMARY_LENGTH_HINT_RE = re.compile(
 )
 _CHINESE_CONTENT_LENGTH_HINT_RE = re.compile(
     r"(\d{3,5})\s*(?:[dD]\s*)?(?:的)?\s*(?:中文?)?\s*(?:摘要|内容|扩写|改写)"
+)
+_THREE_POINT_FORMAT_RE = re.compile(
+    r"(?:三|3)\s*(?:点式|点|条|个)?(?:摘要|总结|要点|内容)?|"
+    r"(?:摘要|总结|要点).{0,8}(?:三|3)\s*(?:点|条|个)"
+)
+_LIST_FORMAT_RE = re.compile(r"(?:列表|分点|分条|逐条|要点)")
+_STRUCTURED_FORMAT_RE = re.compile(r"(?:排版|格式化|格式|美化|分段)")
+_LIST_MARKER_RE = re.compile(
+    r"(?m)^\s*(?:[-*•]\s+|\d+[.、)]\s*|[一二三四五六七八九十]+[、.]\s*)"
 )
 
 
@@ -62,6 +72,21 @@ def requested_output_chars(question: str | None) -> int | None:
     if not matches:
         return None
     return max(int(item) for item in matches)
+
+
+def requested_output_format(question: str | None) -> RequestedOutputFormat | None:
+    """Return the explicitly requested output structure when present."""
+
+    normalized = "".join((question or "").strip().split())
+    if not normalized:
+        return None
+    if _THREE_POINT_FORMAT_RE.search(normalized):
+        return "three_point_list"
+    if _LIST_FORMAT_RE.search(normalized):
+        return "list"
+    if _STRUCTURED_FORMAT_RE.search(normalized):
+        return "structured"
+    return None
 
 
 def answer_matches_requested_output_language(
@@ -104,6 +129,24 @@ def answer_matches_requested_output_length(
     return True
 
 
+def answer_matches_requested_output_format(
+    answer: str,
+    *,
+    question: str | None,
+) -> bool:
+    """Return whether answer satisfies explicitly requested structure."""
+
+    requested_format = requested_output_format(question)
+    if requested_format is None:
+        return True
+    marker_count = len(_LIST_MARKER_RE.findall(answer))
+    if requested_format == "three_point_list":
+        return marker_count >= 3
+    if requested_format == "list":
+        return marker_count >= 2
+    return _looks_structured(answer, marker_count=marker_count)
+
+
 def evaluate_requested_output_constraints(
     *,
     answer: str,
@@ -138,6 +181,17 @@ def evaluate_requested_output_constraints(
                 metadata={"requested_chars": requested_chars},
             )
         )
+    requested_format = requested_output_format(question)
+    if not answer_matches_requested_output_format(answer, question=question):
+        findings.append(
+            EvaluationFinding(
+                criterion="requested_output_format",
+                status="failed",
+                severity="blocking",
+                message="Answer does not satisfy the explicitly requested output format.",
+                metadata={"requested_format": requested_format},
+            )
+        )
     return EvaluationResult(
         evaluation_id=evaluation_id,
         status="failed" if findings else "passed",
@@ -155,6 +209,7 @@ def evaluate_requested_output_constraints(
         metadata={
             "requested_language": language,
             "requested_chars": requested_chars,
+            "requested_format": requested_format,
             "evaluation_scope": "product_level",
         },
     )
@@ -178,6 +233,7 @@ def evaluation_input_for_answer(
         criteria=[
             EvaluationCriterion(name="requested_output_language"),
             EvaluationCriterion(name="requested_output_length"),
+            EvaluationCriterion(name="requested_output_format"),
         ],
     )
 
@@ -186,3 +242,16 @@ def cjk_char_count(value: str) -> int:
     """Count CJK unified ideographs in a string."""
 
     return sum(1 for char in value if "\u4e00" <= char <= "\u9fff")
+
+
+def _looks_structured(answer: str, *, marker_count: int) -> bool:
+    if marker_count >= 1:
+        return True
+    stripped = answer.strip()
+    if re.search(r"(?m)^\s{0,3}#{1,6}\s+\S+", stripped):
+        return True
+    paragraphs = [item for item in re.split(r"\n\s*\n", stripped) if item.strip()]
+    if len(paragraphs) >= 2:
+        return True
+    lines = [item for item in stripped.splitlines() if item.strip()]
+    return len(lines) >= 3

@@ -1,15 +1,15 @@
 [project]
 name = "cognition-system-product-gateway"
-version = "0.8.0"
+version = "0.8.1"
 description = "Product gateway package for Cognition System product request and response contracts."
-readme = { text = "Cognition System v0.8.0 public package. See the version-specific public README in the release repository for usage and boundary notes.", content-type = "text/markdown" }
+readme = { text = "Cognition System v0.8.1 public package. See the version-specific public README in the release repository for usage and boundary notes.", content-type = "text/markdown" }
 requires-python = ">=3.14"
 dependencies = [
-  "cognition-system-contract-core==0.8.0",
-  "cognition-system-config-contexts==0.8.0",
-  "cognition-system-external-readonly==0.8.0",
-  "cognition-system-schemas==0.8.0",
-  "cognition-system-operation-flows==0.8.0",
+  "cognition-system-contract-core==0.8.1",
+  "cognition-system-config-contexts==0.8.1",
+  "cognition-system-external-readonly==0.8.1",
+  "cognition-system-schemas==0.8.1",
+  "cognition-system-operation-flows==0.8.1",
   "pydantic>=2.13.0",
 ]
 
@@ -34,7 +34,7 @@ package = "product_gateway"
 source_root = "src/product_gateway"
 runtime_internal_execution_enabled = false
 runtime_service_entry_enabled = true
-task_workflow_execution_entry_enabled = true
+operation_flow_execution_entry_enabled = true
 config_source_owner = false
-task_workflow_body_owner = false
+operation_flow_body_owner = false
 workspace_member = true

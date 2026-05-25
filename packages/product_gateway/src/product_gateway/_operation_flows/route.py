@@ -1,4 +1,4 @@
-"""Product gateway read-only projection for Twf task workflow routing."""
+"""Product gateway read-only projection for OperationFlow operation flow routing."""
 
 from __future__ import annotations
 
@@ -17,11 +17,11 @@ from product_gateway.contracts import (
 )
 
 
-INTERNAL_TWF_ROUTE_SOURCE = "product_gateway._operation_flows.route"
+INTERNAL_OPERATION_FLOW_ROUTE_SOURCE = "product_gateway._operation_flows.route"
 
 
-class InternalTwfRouteInput(BaseModel):
-    """Product-entry facts used to route a task workflow without executing it."""
+class InternalOperationFlowRouteInput(BaseModel):
+    """Product-entry facts used to route a operation flow without executing it."""
 
     model_config = ConfigDict(extra="forbid")
 
@@ -39,9 +39,9 @@ class InternalTwfRouteInput(BaseModel):
     metadata: dict[str, Any] = Field(default_factory=dict)
 
     @model_validator(mode="after")
-    def validate_product_gateway_twf_route_input(
+    def validate_product_gateway_operation_flow_route_input(
         self,
-    ) -> "InternalTwfRouteInput":
+    ) -> "InternalOperationFlowRouteInput":
         if any(not item for item in self.reference_paths):
             raise ValueError("reference_paths must not contain empty values.")
         if any(not item for item in self.external_readonly_evidence_paths):
@@ -51,8 +51,8 @@ class InternalTwfRouteInput(BaseModel):
         return self
 
 
-class InternalTwfRouteProjection(BaseModel):
-    """Product-level read-only projection for a Twf route decision."""
+class InternalOperationFlowRouteProjection(BaseModel):
+    """Product-level read-only projection for a OperationFlow route decision."""
 
     model_config = ConfigDict(extra="forbid")
 
@@ -78,10 +78,10 @@ class InternalTwfRouteProjection(BaseModel):
     metadata: dict[str, Any] = Field(default_factory=dict)
 
 
-def build_internal_twf_route_request(
-    route_input: InternalTwfRouteInput | Mapping[str, Any],
+def build_internal_operation_flow_route_request(
+    route_input: InternalOperationFlowRouteInput | Mapping[str, Any],
 ) -> ProductGatewayRequest:
-    """Build a product-level request for read-only Twf routing."""
+    """Build a product-level request for read-only OperationFlow routing."""
 
     normalized_input = _coerce_route_input(route_input)
     return ProductGatewayRequest(
@@ -100,7 +100,7 @@ def build_internal_twf_route_request(
             ),
         },
         metadata={
-            "source": INTERNAL_TWF_ROUTE_SOURCE,
+            "source": INTERNAL_OPERATION_FLOW_ROUTE_SOURCE,
             "route_only": True,
             "workflow_execution_enabled": False,
             **normalized_input.metadata,
@@ -108,13 +108,13 @@ def build_internal_twf_route_request(
     )
 
 
-def build_internal_twf_route_projection(
-    route_input: InternalTwfRouteInput | Mapping[str, Any],
-) -> InternalTwfRouteProjection:
+def build_internal_operation_flow_route_projection(
+    route_input: InternalOperationFlowRouteInput | Mapping[str, Any],
+) -> InternalOperationFlowRouteProjection:
     """Route a product-entry task request without executing a workflow."""
 
     normalized_input = _coerce_route_input(route_input)
-    gateway_request = build_internal_twf_route_request(normalized_input)
+    gateway_request = build_internal_operation_flow_route_request(normalized_input)
     route_result = route_operation_flow_product_entry_turn(
         sanitized_user_text=normalized_input.sanitized_user_text,
         chat_session_id=normalized_input.chat_session_id,
@@ -132,12 +132,12 @@ def build_internal_twf_route_projection(
         audit_run_workspace_requested=(
             normalized_input.audit_run_workspace_requested
         ),
-        source=INTERNAL_TWF_ROUTE_SOURCE,
+        source=INTERNAL_OPERATION_FLOW_ROUTE_SOURCE,
         metadata=normalized_input.metadata,
     )
     route = route_result.route
 
-    return InternalTwfRouteProjection(
+    return InternalOperationFlowRouteProjection(
         request_id=gateway_request.request_id,
         entry_kind=gateway_request.entry_kind.value,
         execution_mode=gateway_request.execution_mode.value,
@@ -158,7 +158,7 @@ def build_internal_twf_route_projection(
         registry_workflow_count=route_result.registry_workflow_count,
         registry_workflow_names=route_result.registry_workflow_names,
         metadata={
-            "source": INTERNAL_TWF_ROUTE_SOURCE,
+            "source": INTERNAL_OPERATION_FLOW_ROUTE_SOURCE,
             "route_status": route_result.route_status,
             "route_metadata": {
                 "detector": route.metadata.get("detector"),
@@ -178,17 +178,17 @@ def build_internal_twf_route_projection(
 
 
 def _coerce_route_input(
-    route_input: InternalTwfRouteInput | Mapping[str, Any],
-) -> InternalTwfRouteInput:
-    if isinstance(route_input, InternalTwfRouteInput):
+    route_input: InternalOperationFlowRouteInput | Mapping[str, Any],
+) -> InternalOperationFlowRouteInput:
+    if isinstance(route_input, InternalOperationFlowRouteInput):
         return route_input
-    return InternalTwfRouteInput.model_validate(dict(route_input))
+    return InternalOperationFlowRouteInput.model_validate(dict(route_input))
 
 
 __all__ = [
-    "INTERNAL_TWF_ROUTE_SOURCE",
-    "InternalTwfRouteInput",
-    "InternalTwfRouteProjection",
-    "build_internal_twf_route_projection",
-    "build_internal_twf_route_request",
+    "INTERNAL_OPERATION_FLOW_ROUTE_SOURCE",
+    "InternalOperationFlowRouteInput",
+    "InternalOperationFlowRouteProjection",
+    "build_internal_operation_flow_route_projection",
+    "build_internal_operation_flow_route_request",
 ]

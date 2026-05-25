@@ -13,9 +13,10 @@ from cognition_cli.constants import (
 from cognition_cli.services.runtime import (
     EntryRunner,
     ExternalReadonlyAskLlmInvocationServiceFactory,
+    ExternalReadonlyAskProviderCredentialStoreFactory,
     RequestBuilder,
     RunGatewayExecutor,
-    TwfLlmInvocationServiceFactory,
+    OperationFlowLlmInvocationServiceFactory,
 )
 from cognition_cli.chat.output import (
     _chat_banner,
@@ -37,11 +38,13 @@ from cognition_cli.chat.references import (
     clear_reference_paths,
     reference_list_text,
 )
-from cognition_cli.chat.task_dispatch import (
+from cognition_cli.chat.operation_dispatch import (
     _dispatch_chat_input_turn,
 )
 from cognition_cli.chat.external_readonly_bridge import (
     ChatExternalReadonlyBridgeState,
+    ChatExternalReadonlyFollowUpAskRunner,
+    ChatExternalReadonlyInitialAskRunner,
 )
 
 
@@ -52,11 +55,20 @@ def _chat_command(
     request_builder: RequestBuilder | None,
     use_gateway_entry: bool = False,
     run_gateway_executor: RunGatewayExecutor | None = None,
-    twf_llm_invocation_service_factory: (
-        TwfLlmInvocationServiceFactory | None
+    operation_flow_llm_invocation_service_factory: (
+        OperationFlowLlmInvocationServiceFactory | None
     ) = None,
     external_readonly_ask_llm_invocation_service_factory: (
         ExternalReadonlyAskLlmInvocationServiceFactory | None
+    ) = None,
+    external_readonly_ask_provider_credential_store_factory: (
+        ExternalReadonlyAskProviderCredentialStoreFactory | None
+    ) = None,
+    external_readonly_ask_initial_runner: (
+        ChatExternalReadonlyInitialAskRunner | None
+    ) = None,
+    external_readonly_ask_follow_up_runner: (
+        ChatExternalReadonlyFollowUpAskRunner | None
     ) = None,
 ) -> int:
     usage_error = _chat_usage_error(args)
@@ -141,8 +153,8 @@ def _chat_command(
                 request_builder=request_builder,
                 use_gateway_entry=use_gateway_entry,
                 run_gateway_executor=run_gateway_executor,
-                twf_llm_invocation_service_factory=(
-                    twf_llm_invocation_service_factory
+                operation_flow_llm_invocation_service_factory=(
+                    operation_flow_llm_invocation_service_factory
                 ),
                 latest_plan_display_text=latest_plan_display_text,
                 latest_plan_snapshot=latest_plan_snapshot,
@@ -150,6 +162,15 @@ def _chat_command(
                 external_readonly_bridge_state=external_readonly_bridge_state,
                 external_readonly_ask_llm_invocation_service_factory=(
                     external_readonly_ask_llm_invocation_service_factory
+                ),
+                external_readonly_ask_provider_credential_store_factory=(
+                    external_readonly_ask_provider_credential_store_factory
+                ),
+                external_readonly_ask_initial_runner=(
+                    external_readonly_ask_initial_runner
+                ),
+                external_readonly_ask_follow_up_runner=(
+                    external_readonly_ask_follow_up_runner
                 ),
             )
             latest_plan_display_text = turn_result.latest_plan_display_text

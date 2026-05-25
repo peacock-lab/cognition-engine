@@ -12,11 +12,11 @@ from typing import Any
 from urllib.parse import urlparse
 
 from cognition_operation_flows._external_readonly.network_gate import (
-    TwfExternalReadonlyNetworkGateCandidate,
+    OperationFlowExternalReadonlyNetworkGateCandidate,
 )
 
 
-TWF_EXTERNAL_READONLY_EVIDENCE_STAGES = (
+OPERATION_FLOW_EXTERNAL_READONLY_EVIDENCE_STAGES = (
     "network_gate_binding",
     "source_boundary_review",
     "sanitized_excerpt_review",
@@ -24,13 +24,13 @@ TWF_EXTERNAL_READONLY_EVIDENCE_STAGES = (
     "model_context_projection",
     "sanitized_envelope_summary",
 )
-TWF_EXTERNAL_READONLY_EVIDENCE_REF_PREFIX = "evidence://external-readonly/"
-TWF_EXTERNAL_READONLY_ALLOWED_ITEM_TYPES = frozenset(
+OPERATION_FLOW_EXTERNAL_READONLY_EVIDENCE_REF_PREFIX = "evidence://external-readonly/"
+OPERATION_FLOW_EXTERNAL_READONLY_ALLOWED_ITEM_TYPES = frozenset(
     {"search_result", "url_context_excerpt", "fetched_excerpt"}
 )
-TWF_EXTERNAL_READONLY_MAX_EXCERPT_CHARS = 2_000
-TWF_EXTERNAL_READONLY_MAX_TOTAL_EXCERPT_CHARS = 8_000
-TWF_EXTERNAL_READONLY_SECRET_KEY_MARKERS = (
+OPERATION_FLOW_EXTERNAL_READONLY_MAX_EXCERPT_CHARS = 2_000
+OPERATION_FLOW_EXTERNAL_READONLY_MAX_TOTAL_EXCERPT_CHARS = 8_000
+OPERATION_FLOW_EXTERNAL_READONLY_SECRET_KEY_MARKERS = (
     "access_token",
     "api_key",
     "authorization",
@@ -43,7 +43,7 @@ TWF_EXTERNAL_READONLY_SECRET_KEY_MARKERS = (
     "session",
     "token",
 )
-TWF_EXTERNAL_READONLY_EXCERPT_FORBIDDEN_MARKERS = (
+OPERATION_FLOW_EXTERNAL_READONLY_EXCERPT_FORBIDDEN_MARKERS = (
     "api_key=",
     "authorization:",
     "begin private key",
@@ -55,7 +55,7 @@ TWF_EXTERNAL_READONLY_EXCERPT_FORBIDDEN_MARKERS = (
 
 
 @dataclass(frozen=True)
-class TwfExternalReadonlyEvidenceItemCandidate:
+class OperationFlowExternalReadonlyEvidenceItemCandidate:
     """One sanitized external reference item eligible for model context."""
 
     evidence_ref: str
@@ -83,7 +83,7 @@ class TwfExternalReadonlyEvidenceItemCandidate:
 
 
 @dataclass(frozen=True)
-class TwfExternalReadonlyEvidenceItemReviewCandidate:
+class OperationFlowExternalReadonlyEvidenceItemReviewCandidate:
     """Sanitized validation result for one external-readonly evidence item."""
 
     evidence_ref: str
@@ -100,14 +100,14 @@ class TwfExternalReadonlyEvidenceItemReviewCandidate:
 
 
 @dataclass(frozen=True)
-class TwfExternalReadonlyEvidenceEnvelopeCandidate:
+class OperationFlowExternalReadonlyEvidenceEnvelopeCandidate:
     """Sanitized envelope passed from external retrieval into model context."""
 
     envelope_ref: str
     request_ref: str
     status: str
     allowed_for_model_context: bool
-    item_reviews: tuple[TwfExternalReadonlyEvidenceItemReviewCandidate, ...]
+    item_reviews: tuple[OperationFlowExternalReadonlyEvidenceItemReviewCandidate, ...]
     model_context_items: tuple[dict[str, Any], ...]
     evidence_refs: tuple[str, ...]
     source_urls: tuple[str, ...]
@@ -117,9 +117,9 @@ class TwfExternalReadonlyEvidenceEnvelopeCandidate:
     metadata: dict[str, Any] = field(default_factory=dict)
 
 
-def review_twf_external_readonly_evidence_item(
-    item: TwfExternalReadonlyEvidenceItemCandidate,
-) -> TwfExternalReadonlyEvidenceItemReviewCandidate:
+def review_operation_flow_external_readonly_evidence_item(
+    item: OperationFlowExternalReadonlyEvidenceItemCandidate,
+) -> OperationFlowExternalReadonlyEvidenceItemReviewCandidate:
     """Review one sanitized external evidence item without fetching content."""
 
     normalized_type = _normalize_token(item.item_type)
@@ -130,7 +130,7 @@ def review_twf_external_readonly_evidence_item(
 
     if not _evidence_ref_allowed(item.evidence_ref):
         blocking.append("evidence_ref_not_external_readonly")
-    if normalized_type not in TWF_EXTERNAL_READONLY_ALLOWED_ITEM_TYPES:
+    if normalized_type not in OPERATION_FLOW_EXTERNAL_READONLY_ALLOWED_ITEM_TYPES:
         blocking.append("item_type_not_allowed")
     if not _external_https_url_allowed(item.source_url):
         blocking.append("source_url_not_external_https")
@@ -140,7 +140,7 @@ def review_twf_external_readonly_evidence_item(
         blocking.append("citation_index_invalid")
     if not excerpt:
         blocking.append("sanitized_excerpt_required")
-    if len(excerpt) > TWF_EXTERNAL_READONLY_MAX_EXCERPT_CHARS:
+    if len(excerpt) > OPERATION_FLOW_EXTERNAL_READONLY_MAX_EXCERPT_CHARS:
         blocking.append("sanitized_excerpt_too_large")
     if _excerpt_contains_forbidden_marker(excerpt):
         blocking.append("sanitized_excerpt_contains_secret_marker")
@@ -169,7 +169,7 @@ def review_twf_external_readonly_evidence_item(
     if _raw_secret_keys(item.metadata):
         blocking.append("raw_credential_material_forbidden")
 
-    return TwfExternalReadonlyEvidenceItemReviewCandidate(
+    return OperationFlowExternalReadonlyEvidenceItemReviewCandidate(
         evidence_ref=item.evidence_ref,
         source_url=item.source_url,
         citation_index=item.citation_index,
@@ -192,17 +192,17 @@ def review_twf_external_readonly_evidence_item(
     )
 
 
-def build_twf_external_readonly_evidence_envelope(
+def build_operation_flow_external_readonly_evidence_envelope(
     *,
-    gate: TwfExternalReadonlyNetworkGateCandidate,
-    items: Sequence[TwfExternalReadonlyEvidenceItemCandidate],
+    gate: OperationFlowExternalReadonlyNetworkGateCandidate,
+    items: Sequence[OperationFlowExternalReadonlyEvidenceItemCandidate],
     envelope_ref: str,
-    max_total_excerpt_chars: int = TWF_EXTERNAL_READONLY_MAX_TOTAL_EXCERPT_CHARS,
-) -> TwfExternalReadonlyEvidenceEnvelopeCandidate:
+    max_total_excerpt_chars: int = OPERATION_FLOW_EXTERNAL_READONLY_MAX_TOTAL_EXCERPT_CHARS,
+) -> OperationFlowExternalReadonlyEvidenceEnvelopeCandidate:
     """Build a sanitized evidence envelope without network I/O or file writes."""
 
     item_reviews = tuple(
-        review_twf_external_readonly_evidence_item(item) for item in items
+        review_operation_flow_external_readonly_evidence_item(item) for item in items
     )
     blocking: list[str] = []
     warnings: list[str] = []
@@ -238,7 +238,7 @@ def build_twf_external_readonly_evidence_envelope(
         if allowed
         else ()
     )
-    return TwfExternalReadonlyEvidenceEnvelopeCandidate(
+    return OperationFlowExternalReadonlyEvidenceEnvelopeCandidate(
         envelope_ref=envelope_ref,
         request_ref=gate.request_ref,
         status="valid" if allowed else "blocked",
@@ -253,7 +253,7 @@ def build_twf_external_readonly_evidence_envelope(
         metadata={
             "candidate_only": True,
             "reference_only": True,
-            "stages": list(TWF_EXTERNAL_READONLY_EVIDENCE_STAGES),
+            "stages": list(OPERATION_FLOW_EXTERNAL_READONLY_EVIDENCE_STAGES),
             "network_gate_status": gate.status,
             "network_gate_open": gate.network_gate_open,
             "network_gate_ref_present": bool(
@@ -276,8 +276,8 @@ def build_twf_external_readonly_evidence_envelope(
     )
 
 
-def twf_external_readonly_evidence_item_review_status_dict(
-    review: TwfExternalReadonlyEvidenceItemReviewCandidate,
+def operation_flow_external_readonly_evidence_item_review_status_dict(
+    review: OperationFlowExternalReadonlyEvidenceItemReviewCandidate,
 ) -> dict[str, Any]:
     """Return a JSON-ready sanitized item review summary."""
 
@@ -296,8 +296,8 @@ def twf_external_readonly_evidence_item_review_status_dict(
     }
 
 
-def twf_external_readonly_evidence_envelope_status_dict(
-    envelope: TwfExternalReadonlyEvidenceEnvelopeCandidate,
+def operation_flow_external_readonly_evidence_envelope_status_dict(
+    envelope: OperationFlowExternalReadonlyEvidenceEnvelopeCandidate,
 ) -> dict[str, Any]:
     """Return a JSON-ready sanitized evidence envelope summary."""
 
@@ -312,7 +312,7 @@ def twf_external_readonly_evidence_envelope_status_dict(
         "blocking_reasons": list(envelope.blocking_reasons),
         "warnings": list(envelope.warnings),
         "item_reviews": [
-            twf_external_readonly_evidence_item_review_status_dict(review)
+            operation_flow_external_readonly_evidence_item_review_status_dict(review)
             for review in envelope.item_reviews
         ],
         "model_context_items": [dict(item) for item in envelope.model_context_items],
@@ -321,8 +321,8 @@ def twf_external_readonly_evidence_envelope_status_dict(
 
 
 def _model_context_item(
-    item: TwfExternalReadonlyEvidenceItemCandidate,
-    review: TwfExternalReadonlyEvidenceItemReviewCandidate,
+    item: OperationFlowExternalReadonlyEvidenceItemCandidate,
+    review: OperationFlowExternalReadonlyEvidenceItemReviewCandidate,
 ) -> dict[str, Any]:
     return {
         "citation_index": item.citation_index,
@@ -338,8 +338,8 @@ def _model_context_item(
 
 def _evidence_ref_allowed(value: str | None) -> bool:
     return _present(value) and str(value).strip().startswith(
-        TWF_EXTERNAL_READONLY_EVIDENCE_REF_PREFIX
-    ) and len(str(value).strip()) > len(TWF_EXTERNAL_READONLY_EVIDENCE_REF_PREFIX)
+        OPERATION_FLOW_EXTERNAL_READONLY_EVIDENCE_REF_PREFIX
+    ) and len(str(value).strip()) > len(OPERATION_FLOW_EXTERNAL_READONLY_EVIDENCE_REF_PREFIX)
 
 
 def _external_https_url_allowed(value: str) -> bool:
@@ -382,7 +382,7 @@ def _sha256_text(value: str) -> str:
 def _excerpt_contains_forbidden_marker(value: str) -> bool:
     lower = value.lower()
     return any(
-        marker in lower for marker in TWF_EXTERNAL_READONLY_EXCERPT_FORBIDDEN_MARKERS
+        marker in lower for marker in OPERATION_FLOW_EXTERNAL_READONLY_EXCERPT_FORBIDDEN_MARKERS
     )
 
 
@@ -392,7 +392,7 @@ def _raw_secret_keys(raw_config: Mapping[str, Any]) -> tuple[str, ...]:
         key_text = str(key).lower()
         if any(
             marker in key_text
-            for marker in TWF_EXTERNAL_READONLY_SECRET_KEY_MARKERS
+            for marker in OPERATION_FLOW_EXTERNAL_READONLY_SECRET_KEY_MARKERS
         ):
             if value:
                 keys.append(str(key))

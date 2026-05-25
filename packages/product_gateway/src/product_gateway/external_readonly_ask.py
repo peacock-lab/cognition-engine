@@ -10,6 +10,9 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 from schemas.evidence_summary_answer import (
     EVIDENCE_SUMMARY_ANSWER_ARTIFACT_REF_PREFIX,
     EVIDENCE_SUMMARY_ANSWER_FOLLOW_UP_REF_PREFIX,
+    EVIDENCE_SUMMARY_ANSWER_OBSERVABILITY_SUMMARY_REF_PREFIX,
+    EVIDENCE_SUMMARY_ANSWER_RUN_REF_PREFIX,
+    EVIDENCE_SUMMARY_ANSWER_TRACE_INSPECT_REF_PREFIX,
     EVIDENCE_SUMMARY_ANSWER_TRACE_REF_PREFIX,
 )
 
@@ -109,6 +112,18 @@ class ExternalReadonlyAskGatewayInput(BaseModel):
     answer_artifact_ref: str | None = None
     answer_artifact_status: str | None = None
     answer_artifact_summary: dict[str, Any] = Field(default_factory=dict)
+    observability_summary_ref: str | None = None
+    observability_summary_status: str | None = None
+    safe_observability_summary: dict[str, Any] = Field(default_factory=dict)
+    trace_inspect_ref: str | None = None
+    trace_inspect_status: str | None = None
+    trace_inspect_summary: dict[str, Any] = Field(default_factory=dict)
+    trace_inspect_unavailable_reason: str | None = None
+    answer_run_ref: str | None = None
+    answer_run_status: str | None = None
+    answer_run_summary: dict[str, Any] = Field(default_factory=dict)
+    answer_run_unavailable_reason: str | None = None
+    parent_answer_run_ref: str | None = None
     durable_session: bool = False
     memory_enabled: bool = False
     metadata: dict[str, Any] = Field(default_factory=dict)
@@ -122,6 +137,9 @@ class ExternalReadonlyAskGatewayInput(BaseModel):
                 "additional_refs": self.additional_refs,
                 "answer_trace_summary": self.answer_trace_summary,
                 "answer_artifact_summary": self.answer_artifact_summary,
+                "safe_observability_summary": self.safe_observability_summary,
+                "trace_inspect_summary": self.trace_inspect_summary,
+                "answer_run_summary": self.answer_run_summary,
             },
             field_name="external_readonly_ask_gateway_input",
         )
@@ -150,6 +168,34 @@ class ExternalReadonlyAskGatewayInput(BaseModel):
         ):
             raise ValueError(
                 "answer_artifact_ref must be an evidence summary answer artifact ref."
+            )
+        if self.observability_summary_ref is not None and not (
+            self.observability_summary_ref.startswith(
+                EVIDENCE_SUMMARY_ANSWER_OBSERVABILITY_SUMMARY_REF_PREFIX
+            )
+        ):
+            raise ValueError(
+                "observability_summary_ref must be an evidence summary answer "
+                "observability summary ref."
+            )
+        if self.trace_inspect_ref is not None and not (
+            self.trace_inspect_ref.startswith(
+                EVIDENCE_SUMMARY_ANSWER_TRACE_INSPECT_REF_PREFIX
+            )
+        ):
+            raise ValueError(
+                "trace_inspect_ref must be an evidence summary answer "
+                "trace inspect ref."
+            )
+        if self.answer_run_ref is not None and not self.answer_run_ref.startswith(
+            EVIDENCE_SUMMARY_ANSWER_RUN_REF_PREFIX
+        ):
+            raise ValueError("answer_run_ref must be an evidence summary answer run ref.")
+        if self.parent_answer_run_ref is not None and not (
+            self.parent_answer_run_ref.startswith(EVIDENCE_SUMMARY_ANSWER_RUN_REF_PREFIX)
+        ):
+            raise ValueError(
+                "parent_answer_run_ref must be an evidence summary answer run ref."
             )
         return self
 
@@ -199,6 +245,21 @@ def build_external_readonly_ask_gateway_request(
             "answer_trace_status": normalized_input.answer_trace_status,
             "answer_artifact_ref": normalized_input.answer_artifact_ref,
             "answer_artifact_status": normalized_input.answer_artifact_status,
+            "observability_summary_ref": normalized_input.observability_summary_ref,
+            "observability_summary_status": (
+                normalized_input.observability_summary_status
+            ),
+            "trace_inspect_ref": normalized_input.trace_inspect_ref,
+            "trace_inspect_status": normalized_input.trace_inspect_status,
+            "trace_inspect_unavailable_reason": (
+                normalized_input.trace_inspect_unavailable_reason
+            ),
+            "answer_run_ref": normalized_input.answer_run_ref,
+            "answer_run_status": normalized_input.answer_run_status,
+            "answer_run_unavailable_reason": (
+                normalized_input.answer_run_unavailable_reason
+            ),
+            "parent_answer_run_ref": normalized_input.parent_answer_run_ref,
             "durable_session": normalized_input.durable_session,
             "memory_enabled": normalized_input.memory_enabled,
         },
@@ -365,6 +426,26 @@ def _response_metadata(gateway_input: ExternalReadonlyAskGatewayInput) -> dict[s
         "answer_artifact_summary": _safe_trace_summary(
             gateway_input.answer_artifact_summary
         ),
+        "observability_summary_ref": gateway_input.observability_summary_ref,
+        "observability_summary_status": gateway_input.observability_summary_status,
+        "safe_observability_summary": _safe_observability_summary(
+            gateway_input.safe_observability_summary
+        ),
+        "trace_inspect_ref": gateway_input.trace_inspect_ref,
+        "trace_inspect_status": gateway_input.trace_inspect_status,
+        "trace_inspect_summary": _safe_trace_inspect_summary(
+            gateway_input.trace_inspect_summary
+        ),
+        "trace_inspect_unavailable_reason": (
+            gateway_input.trace_inspect_unavailable_reason
+        ),
+        "answer_run_ref": gateway_input.answer_run_ref,
+        "answer_run_status": gateway_input.answer_run_status,
+        "answer_run_summary": _safe_answer_run_summary(
+            gateway_input.answer_run_summary
+        ),
+        "answer_run_unavailable_reason": gateway_input.answer_run_unavailable_reason,
+        "parent_answer_run_ref": gateway_input.parent_answer_run_ref,
         "durable_session": gateway_input.durable_session,
         "memory_enabled": gateway_input.memory_enabled,
         **_safe_metadata(gateway_input.metadata),
@@ -402,6 +483,180 @@ def _safe_trace_summary(value: Any) -> dict[str, Any]:
             continue
         summary[key] = item
     return summary
+
+
+def _safe_observability_summary(value: Any) -> dict[str, Any]:
+    if not isinstance(value, Mapping):
+        return {}
+    summary: dict[str, Any] = {}
+    for key in (
+        "summary_ref",
+        "summary_status",
+        "reason",
+        "user_explanation",
+        "ref_count",
+        "task_compatible",
+        "workflow_compatible",
+        "runtime_backed",
+        "backed_by_adk_task_runtime",
+        "backed_by_adk_workflow_runtime",
+        "durable_session",
+        "memory_enabled",
+    ):
+        item = value.get(key)
+        if isinstance(item, bool | int | float | str) and not (
+            isinstance(item, str) and _sensitive_text(item)
+        ):
+            summary[key] = item
+    hints = value.get("recovery_hints")
+    if isinstance(hints, (list, tuple)):
+        safe_hints = [
+            item
+            for item in hints
+            if isinstance(item, str) and item and not _sensitive_text(item)
+        ]
+        if safe_hints:
+            summary["recovery_hints"] = safe_hints[:5]
+    boundary = value.get("raw_boundary_summary")
+    if isinstance(boundary, Mapping):
+        summary["raw_boundary_summary"] = {
+            "restricted_payload_absent": (
+                boundary.get("restricted_payload_absent") is True
+            ),
+            "restricted_boundary_intact": (
+                boundary.get("restricted_boundary_intact") is True
+            ),
+            "blocked_field_count": _safe_nonnegative_int(
+                boundary.get("blocked_field_count")
+            ),
+        }
+    evaluation = value.get("evaluation_findings_summary")
+    if isinstance(evaluation, Mapping):
+        summary["evaluation_findings_summary"] = {
+            str(key): item
+            for key, item in evaluation.items()
+            if isinstance(key, str)
+            and not _sensitive_text(key)
+            and isinstance(item, bool | int | float | str)
+            and not (isinstance(item, str) and _sensitive_text(item))
+        }
+    return summary
+
+
+def _safe_trace_inspect_summary(value: Any) -> dict[str, Any]:
+    if not isinstance(value, Mapping):
+        return {}
+    summary: dict[str, Any] = {}
+    for key in (
+        "trace_inspect_ref",
+        "trace_inspect_status",
+        "inspect_reason",
+        "user_explanation",
+        "unavailable_reason",
+        "task_compatible",
+        "workflow_compatible",
+        "runtime_backed",
+        "backed_by_adk_task_runtime",
+        "backed_by_adk_workflow_runtime",
+        "durable_session",
+        "memory_enabled",
+    ):
+        item = value.get(key)
+        if isinstance(item, bool | int | float | str) and not (
+            isinstance(item, str) and _sensitive_text(item)
+        ):
+            summary[key] = item
+    hints = value.get("recovery_hints")
+    if isinstance(hints, (list, tuple)):
+        safe_hints = [
+            item
+            for item in hints
+            if isinstance(item, str) and item and not _sensitive_text(item)
+        ]
+        if safe_hints:
+            summary["recovery_hints"] = safe_hints[:5]
+    for nested_name in (
+        "developer_facts_summary",
+        "refs_summary",
+        "event_facts_summary",
+        "artifact_handoff_summary",
+        "evaluation_summary",
+        "governance_summary",
+    ):
+        nested = value.get(nested_name)
+        if isinstance(nested, Mapping):
+            summary[nested_name] = {
+                str(key): item
+                for key, item in nested.items()
+                if isinstance(key, str)
+                and not _sensitive_text(key)
+                and isinstance(item, bool | int | float | str)
+                and not (isinstance(item, str) and _sensitive_text(item))
+            }
+    boundary = value.get("raw_boundary_summary")
+    if isinstance(boundary, Mapping):
+        summary["raw_boundary_summary"] = {
+            "restricted_payload_absent": (
+                boundary.get("restricted_payload_absent") is True
+            ),
+            "restricted_boundary_intact": (
+                boundary.get("restricted_boundary_intact") is True
+            ),
+            "blocked_field_count": _safe_nonnegative_int(
+                boundary.get("blocked_field_count")
+            ),
+        }
+    return summary
+
+
+def _safe_answer_run_summary(value: Any) -> dict[str, Any]:
+    if not isinstance(value, Mapping):
+        return {}
+    summary: dict[str, Any] = {}
+    for key in (
+        "answer_run_ref",
+        "answer_run_status",
+        "request_id",
+        "source_request_id",
+        "parent_answer_run_ref",
+        "answer_status",
+        "readonly_refs_status",
+        "answer_trace_ref",
+        "answer_artifact_ref",
+        "observability_summary_ref",
+        "trace_inspect_ref",
+        "follow_up_seed_ref",
+        "evidence_ref_count",
+        "additional_ref_count",
+        "blocking_reason_count",
+        "warning_count",
+        "recovery_hint_count",
+        "unavailable_reason",
+        "follow_up",
+        "follow_up_turn_index",
+        "answer_scoped_transformation",
+        "task_compatible",
+        "workflow_compatible",
+        "runtime_backed",
+        "backed_by_adk_task_runtime",
+        "backed_by_adk_workflow_runtime",
+        "backed_by_adk_artifact_service",
+        "backed_by_adk_event_stream",
+        "durable_session",
+        "memory_enabled",
+    ):
+        item = value.get(key)
+        if isinstance(item, bool | int | float | str) and not (
+            isinstance(item, str) and _sensitive_text(item)
+        ):
+            summary[key] = item
+    return summary
+
+
+def _safe_nonnegative_int(value: Any) -> int:
+    if isinstance(value, bool) or not isinstance(value, int):
+        return 0
+    return value if value >= 0 else 0
 
 
 def _raise_if_forbidden_ask_payload_found(

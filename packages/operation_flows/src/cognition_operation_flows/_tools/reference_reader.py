@@ -1,4 +1,4 @@
-"""Candidate-only local reference reader for readonly task workflow tools."""
+"""Candidate-only local reference reader for readonly operation flow tools."""
 
 from __future__ import annotations
 
@@ -9,12 +9,12 @@ from pathlib import Path
 from typing import Any
 
 from cognition_operation_flows._tools.toolset_admission import (
-    TwfToolOperationFactsCandidate,
-    TwfToolRiskReviewCandidate,
-    TwfToolsetInventoryCandidate,
-    build_twf_toolset_inventory,
-    evaluate_twf_toolset_admission,
-    review_twf_tool_operation_risk,
+    OperationFlowToolOperationFactsCandidate,
+    OperationFlowToolRiskReviewCandidate,
+    OperationFlowToolsetInventoryCandidate,
+    build_operation_flow_toolset_inventory,
+    evaluate_operation_flow_toolset_admission,
+    review_operation_flow_tool_operation_risk,
 )
 
 
@@ -78,7 +78,7 @@ REFERENCE_READER_SENSITIVE_LINE_MARKERS = (
 
 
 @dataclass(frozen=True)
-class TwfReferenceReaderPolicyCandidate:
+class OperationFlowReferenceReaderPolicyCandidate:
     """Candidate policy for a local, readonly reference reader."""
 
     allowed_roots: tuple[str, ...]
@@ -96,11 +96,11 @@ class TwfReferenceReaderPolicyCandidate:
 
 
 @dataclass(frozen=True)
-class TwfReferenceReadRequestCandidate:
+class OperationFlowReferenceReadRequestCandidate:
     """Candidate request for reading one local reference."""
 
     reference: str
-    policy: TwfReferenceReaderPolicyCandidate
+    policy: OperationFlowReferenceReaderPolicyCandidate
     purpose: str = "reference_reader"
     task_run_id: str | None = None
     evidence_ref: str | None = None
@@ -108,7 +108,7 @@ class TwfReferenceReadRequestCandidate:
 
 
 @dataclass(frozen=True)
-class TwfReferenceReadResultCandidate:
+class OperationFlowReferenceReadResultCandidate:
     """Sanitized result for a bounded local reference read."""
 
     reference: str
@@ -124,9 +124,9 @@ class TwfReferenceReadResultCandidate:
     truncated: bool = False
     redacted_line_count: int = 0
     evidence_ref: str | None = None
-    operation_facts: TwfToolOperationFactsCandidate | None = None
-    risk_review: TwfToolRiskReviewCandidate | None = None
-    toolset_inventory: TwfToolsetInventoryCandidate | None = None
+    operation_facts: OperationFlowToolOperationFactsCandidate | None = None
+    risk_review: OperationFlowToolRiskReviewCandidate | None = None
+    toolset_inventory: OperationFlowToolsetInventoryCandidate | None = None
     metadata: dict[str, Any] = field(default_factory=dict)
 
 
@@ -139,7 +139,7 @@ def build_default_reference_reader_policy(
     max_bytes: int = 32768,
     max_chars: int = 6000,
     max_excerpt_lines: int = 80,
-) -> TwfReferenceReaderPolicyCandidate:
+) -> OperationFlowReferenceReaderPolicyCandidate:
     """Build a default bounded local-reference policy."""
 
     roots = allowed_roots
@@ -153,7 +153,7 @@ def build_default_reference_reader_policy(
         for file in (allowed_files or ())
         if str(file).strip()
     )
-    return TwfReferenceReaderPolicyCandidate(
+    return OperationFlowReferenceReaderPolicyCandidate(
         allowed_roots=normalized_roots,
         allowed_files=normalized_files,
         allowed_suffixes=tuple(_normalize_suffix(suffix) for suffix in allowed_suffixes),
@@ -168,10 +168,10 @@ def build_default_reference_reader_policy(
     )
 
 
-def build_reference_reader_operation_facts() -> TwfToolOperationFactsCandidate:
+def build_reference_reader_operation_facts() -> OperationFlowToolOperationFactsCandidate:
     """Return operation facts for the local reference reader."""
 
-    return TwfToolOperationFactsCandidate(
+    return OperationFlowToolOperationFactsCandidate(
         tool_name=REFERENCE_READER_TOOL_NAME,
         toolset_name=REFERENCE_READER_TOOLSET_NAME,
         toolset_kind=REFERENCE_READER_TOOLSET_KIND,
@@ -190,10 +190,10 @@ def build_reference_reader_operation_facts() -> TwfToolOperationFactsCandidate:
     )
 
 
-def build_reference_reader_toolset_inventory() -> TwfToolsetInventoryCandidate:
+def build_reference_reader_toolset_inventory() -> OperationFlowToolsetInventoryCandidate:
     """Build the admission and readonly inventory for the reference reader."""
 
-    admission = evaluate_twf_toolset_admission(
+    admission = evaluate_operation_flow_toolset_admission(
         toolset_name=REFERENCE_READER_TOOLSET_NAME,
         toolset_kind=REFERENCE_READER_TOOLSET_KIND,
         source_ref=REFERENCE_READER_SOURCE_REF,
@@ -203,19 +203,19 @@ def build_reference_reader_toolset_inventory() -> TwfToolsetInventoryCandidate:
         execution_credential_ref="credential://not-required",
         dynamic_toolset=True,
     )
-    return build_twf_toolset_inventory(
+    return build_operation_flow_toolset_inventory(
         admission,
         (build_reference_reader_operation_facts(),),
     )
 
 
-def read_twf_reference(
-    request: TwfReferenceReadRequestCandidate,
-) -> TwfReferenceReadResultCandidate:
+def read_operation_flow_reference(
+    request: OperationFlowReferenceReadRequestCandidate,
+) -> OperationFlowReferenceReadResultCandidate:
     """Read one local reference with path, size, redaction, and evidence guards."""
 
     operation_facts = build_reference_reader_operation_facts()
-    risk_review = review_twf_tool_operation_risk(operation_facts)
+    risk_review = review_operation_flow_tool_operation_risk(operation_facts)
     inventory = build_reference_reader_toolset_inventory()
     blocking: list[str] = []
     warnings: list[str] = []
@@ -297,7 +297,7 @@ def read_twf_reference(
         request.evidence_ref
         or (f"evidence://reference-reader/{digest[:16]}" if digest else None)
     )
-    return TwfReferenceReadResultCandidate(
+    return OperationFlowReferenceReadResultCandidate(
         reference=reference,
         allowed=not blocking,
         status=status,
@@ -332,8 +332,8 @@ def read_twf_reference(
     )
 
 
-def twf_reference_read_status_dict(
-    result: TwfReferenceReadResultCandidate,
+def operation_flow_reference_read_status_dict(
+    result: OperationFlowReferenceReadResultCandidate,
 ) -> dict[str, Any]:
     """Return a sanitized status dict for evidence/result packages."""
 

@@ -11,28 +11,28 @@ from contract_core.llm_invocation import (
     LlmInvocationResult,
 )
 from schemas.product_gateway_cli import (
-    PRODUCT_GATEWAY_CLI_TWF_PLAN_WORKFLOW_NAME,
-    ProductGatewayCliTwfExecutionInputSchema,
-    ProductGatewayCliTwfExecutionResultSchema,
-    ProductGatewayCliTwfGovernanceRefsSchema,
-    ProductGatewayCliTwfLatestPlanSnapshotSchema,
-    ProductGatewayCliTwfReferenceWorkspaceControlsSchema,
-    ProductGatewayCliTwfRequestDraftInputSchema,
-    ProductGatewayCliTwfRunWorkspaceSnapshotSchema,
-    ProductGatewayCliTwfRouteInputSchema,
+    PRODUCT_GATEWAY_CLI_OPERATION_FLOW_PLAN_WORKFLOW_NAME,
+    ProductGatewayCliOperationFlowExecutionInputSchema,
+    ProductGatewayCliOperationFlowExecutionResultSchema,
+    ProductGatewayCliOperationFlowGovernanceRefsSchema,
+    ProductGatewayCliOperationFlowLatestPlanSnapshotSchema,
+    ProductGatewayCliOperationFlowReferenceWorkspaceControlsSchema,
+    ProductGatewayCliOperationFlowRequestDraftInputSchema,
+    ProductGatewayCliOperationFlowRunWorkspaceSnapshotSchema,
+    ProductGatewayCliOperationFlowRouteInputSchema,
 )
 from schemas.product_gateway_response_summary import (
     validate_product_gateway_response_summary,
 )
 
 from product_gateway.cli_surface import (
-    build_cli_twf_latest_plan_status,
-    build_cli_twf_run_workspace_policy,
-    build_cli_twf_route_projection,
-    create_cli_twf_run_workspace,
-    execute_cli_twf_workflow,
-    persist_cli_twf_status_summary,
-    resolve_cli_twf_tool_exposure_profile,
+    build_cli_operation_flow_latest_plan_status,
+    build_cli_operation_flow_run_workspace_policy,
+    build_cli_operation_flow_route_projection,
+    create_cli_operation_flow_run_workspace,
+    execute_cli_operation_flow_workflow,
+    persist_cli_operation_flow_status_summary,
+    resolve_cli_operation_flow_tool_exposure_profile,
 )
 
 
@@ -88,8 +88,8 @@ class FakeCliSurfaceLlmServiceFactory:
 
 
 def test_cli_surface_builds_route_projection_from_contract_schema() -> None:
-    projection = build_cli_twf_route_projection(
-        ProductGatewayCliTwfRouteInputSchema(
+    projection = build_cli_operation_flow_route_projection(
+        ProductGatewayCliOperationFlowRouteInputSchema(
             request_id="cli-surface-route/turn-001",
             sanitized_user_text="我要建一个鱼塘，帮我设计方案",
             chat_session_id="cli-surface-route",
@@ -98,44 +98,44 @@ def test_cli_surface_builds_route_projection_from_contract_schema() -> None:
     )
 
     assert projection.request_id == "cli-surface-route/turn-001"
-    assert projection.entry_kind == "task_workflow_route"
+    assert projection.entry_kind == "operation_flow_route"
     assert projection.matched is True
-    assert projection.workflow_name == PRODUCT_GATEWAY_CLI_TWF_PLAN_WORKFLOW_NAME
+    assert projection.workflow_name == PRODUCT_GATEWAY_CLI_OPERATION_FLOW_PLAN_WORKFLOW_NAME
 
 
 def test_cli_surface_executes_request_from_contract_input() -> None:
-    projection = build_cli_twf_route_projection(
-        ProductGatewayCliTwfRouteInputSchema(
+    projection = build_cli_operation_flow_route_projection(
+        ProductGatewayCliOperationFlowRouteInputSchema(
             request_id="cli-surface-execute/turn-001",
             sanitized_user_text="我要建一个鱼塘，帮我设计方案",
             chat_session_id="cli-surface-execute",
             turn_index=1,
         )
     )
-    result = execute_cli_twf_workflow(
-        execution_input=ProductGatewayCliTwfExecutionInputSchema(
+    result = execute_cli_operation_flow_workflow(
+        execution_input=ProductGatewayCliOperationFlowExecutionInputSchema(
             request_id="cli-surface-execute/turn-001",
             route_projection=projection,
-            request_draft_input=ProductGatewayCliTwfRequestDraftInputSchema(
-                workflow_name=PRODUCT_GATEWAY_CLI_TWF_PLAN_WORKFLOW_NAME,
+            request_draft_input=ProductGatewayCliOperationFlowRequestDraftInputSchema(
+                workflow_name=PRODUCT_GATEWAY_CLI_OPERATION_FLOW_PLAN_WORKFLOW_NAME,
                 sanitized_user_text="我要建一个鱼塘，帮我设计方案",
                 chat_session_id="cli-surface-execute",
                 turn_index=1,
-                governance_refs=ProductGatewayCliTwfGovernanceRefsSchema(
+                governance_refs=ProductGatewayCliOperationFlowGovernanceRefsSchema(
                     approval_ref="approval://cli-surface",
                     audit_ref="audit://cli-surface",
                 ),
-                controls=ProductGatewayCliTwfReferenceWorkspaceControlsSchema(),
+                controls=ProductGatewayCliOperationFlowReferenceWorkspaceControlsSchema(),
             ),
         )
     )
 
     assert result.handled is True
-    assert isinstance(result, ProductGatewayCliTwfExecutionResultSchema)
+    assert isinstance(result, ProductGatewayCliOperationFlowExecutionResultSchema)
     assert result.product_response_summary["request_id"] == (
         "cli-surface-execute/turn-001"
     )
-    assert result.product_response_summary["entry_kind"] == "task_workflow_execution"
+    assert result.product_response_summary["entry_kind"] == "operation_flow_execution"
     assert result.product_response_summary["payload_type"] == (
         "product_gateway_response_summary"
     )
@@ -153,13 +153,13 @@ def test_cli_surface_executes_request_from_contract_input() -> None:
     validate_product_gateway_response_summary(result.product_response_summary)
     assert result.latest_plan_snapshot is not None
     assert result.latest_plan_snapshot.metadata["workflow_name"] == (
-        PRODUCT_GATEWAY_CLI_TWF_PLAN_WORKFLOW_NAME
+        PRODUCT_GATEWAY_CLI_OPERATION_FLOW_PLAN_WORKFLOW_NAME
     )
 
 
-def test_cli_surface_blocks_live_twf_without_injected_factory() -> None:
-    projection = build_cli_twf_route_projection(
-        ProductGatewayCliTwfRouteInputSchema(
+def test_cli_surface_blocks_live_operation_flow_without_injected_factory() -> None:
+    projection = build_cli_operation_flow_route_projection(
+        ProductGatewayCliOperationFlowRouteInputSchema(
             request_id="cli-surface-live/turn-001",
             sanitized_user_text="我要建一个鱼塘，帮我设计方案",
             chat_session_id="cli-surface-live",
@@ -167,21 +167,21 @@ def test_cli_surface_blocks_live_twf_without_injected_factory() -> None:
             live_model_requested=True,
         )
     )
-    result = execute_cli_twf_workflow(
-        execution_input=ProductGatewayCliTwfExecutionInputSchema(
+    result = execute_cli_operation_flow_workflow(
+        execution_input=ProductGatewayCliOperationFlowExecutionInputSchema(
             request_id="cli-surface-live/turn-001",
             route_projection=projection,
-            request_draft_input=ProductGatewayCliTwfRequestDraftInputSchema(
-                workflow_name=PRODUCT_GATEWAY_CLI_TWF_PLAN_WORKFLOW_NAME,
+            request_draft_input=ProductGatewayCliOperationFlowRequestDraftInputSchema(
+                workflow_name=PRODUCT_GATEWAY_CLI_OPERATION_FLOW_PLAN_WORKFLOW_NAME,
                 sanitized_user_text="我要建一个鱼塘，帮我设计方案",
                 chat_session_id="cli-surface-live",
                 turn_index=1,
-                governance_refs=ProductGatewayCliTwfGovernanceRefsSchema(
+                governance_refs=ProductGatewayCliOperationFlowGovernanceRefsSchema(
                     approval_ref="approval://cli-surface-live",
                     audit_ref="audit://cli-surface-live",
                     live_llm_approval_ref="approval://cli-surface-live/llm",
                 ),
-                controls=ProductGatewayCliTwfReferenceWorkspaceControlsSchema(),
+                controls=ProductGatewayCliOperationFlowReferenceWorkspaceControlsSchema(),
                 operator_approved=True,
                 request_live_llm=True,
                 request_ollama=True,
@@ -191,7 +191,7 @@ def test_cli_surface_blocks_live_twf_without_injected_factory() -> None:
                 live_model_allowed=True,
             ),
             execution_options={
-                "config_root": "config/twf",
+                "config_root": "config/operation_flow",
                 "environment": "local",
                 "profile": "dev",
                 "ollama_api_base": "http://127.0.0.1:11434",
@@ -201,8 +201,8 @@ def test_cli_surface_blocks_live_twf_without_injected_factory() -> None:
     )
 
     assert result.product_response_summary["status"] == "blocked"
-    assert result.blocking_reasons == ("twf_live_llm_provider_not_injected",)
-    assert result.warnings == ("twf_live_llm_provider_required",)
+    assert result.blocking_reasons == ("operation_flow_live_llm_provider_not_injected",)
+    assert result.warnings == ("operation_flow_live_llm_provider_required",)
     assert result.terminal_display_text is None
 
 
@@ -210,8 +210,8 @@ def test_cli_surface_uses_explicit_factory() -> None:
     service = FakeCliSurfaceLlmService("显式 factory 输出")
     factory = FakeCliSurfaceLlmServiceFactory(service)
 
-    projection = build_cli_twf_route_projection(
-        ProductGatewayCliTwfRouteInputSchema(
+    projection = build_cli_operation_flow_route_projection(
+        ProductGatewayCliOperationFlowRouteInputSchema(
             request_id="cli-surface-explicit-live/turn-001",
             sanitized_user_text="我要建一个鱼塘，帮我设计方案",
             chat_session_id="cli-surface-explicit-live",
@@ -219,14 +219,14 @@ def test_cli_surface_uses_explicit_factory() -> None:
             live_model_requested=True,
         )
     )
-    result = execute_cli_twf_workflow(
-        execution_input=ProductGatewayCliTwfExecutionInputSchema(
+    result = execute_cli_operation_flow_workflow(
+        execution_input=ProductGatewayCliOperationFlowExecutionInputSchema(
             request_id="cli-surface-explicit-live/turn-001",
             route_projection=projection,
-            request_draft_input=ProductGatewayCliTwfRequestDraftInputSchema(
-                workflow_name=PRODUCT_GATEWAY_CLI_TWF_PLAN_WORKFLOW_NAME,
+            request_draft_input=ProductGatewayCliOperationFlowRequestDraftInputSchema(
+                workflow_name=PRODUCT_GATEWAY_CLI_OPERATION_FLOW_PLAN_WORKFLOW_NAME,
                 sanitized_user_text="我要建一个鱼塘，帮我设计方案",
-                governance_refs=ProductGatewayCliTwfGovernanceRefsSchema(
+                governance_refs=ProductGatewayCliOperationFlowGovernanceRefsSchema(
                     approval_ref="approval://cli-surface-explicit-live",
                     audit_ref="audit://cli-surface-explicit-live",
                     live_llm_approval_ref=(
@@ -249,12 +249,12 @@ def test_cli_surface_uses_explicit_factory() -> None:
 
 
 def test_cli_surface_builds_latest_plan_status_from_snapshot() -> None:
-    status = build_cli_twf_latest_plan_status(
-        ProductGatewayCliTwfLatestPlanSnapshotSchema(
+    status = build_cli_operation_flow_latest_plan_status(
+        ProductGatewayCliOperationFlowLatestPlanSnapshotSchema(
             status="succeeded",
             reference_context_status="completed",
             reference_evidence_ref_count=2,
-            workspace=ProductGatewayCliTwfRunWorkspaceSnapshotSchema(
+            workspace=ProductGatewayCliOperationFlowRunWorkspaceSnapshotSchema(
                 workspace_ref="workspace://latest-plan",
                 workspace_created=True,
                 artifact_refs=("artifact://terminal",),
@@ -262,7 +262,7 @@ def test_cli_surface_builds_latest_plan_status_from_snapshot() -> None:
             ),
             product_gateway_route_projection={
                 "status": "matched",
-                "workflow_name": PRODUCT_GATEWAY_CLI_TWF_PLAN_WORKFLOW_NAME,
+                "workflow_name": PRODUCT_GATEWAY_CLI_OPERATION_FLOW_PLAN_WORKFLOW_NAME,
             },
         )
     )
@@ -275,20 +275,20 @@ def test_cli_surface_builds_latest_plan_status_from_snapshot() -> None:
 
 
 def test_cli_surface_persists_status_summary_from_snapshot(tmp_path: Path) -> None:
-    policy = build_cli_twf_run_workspace_policy(
+    policy = build_cli_operation_flow_run_workspace_policy(
         workspace_root=tmp_path,
         retention_policy="keep",
         cleanup_policy="manual",
         max_write_bytes=65536,
     )
-    workspace = create_cli_twf_run_workspace(
+    workspace = create_cli_operation_flow_run_workspace(
         policy=policy,
-        workflow_name=PRODUCT_GATEWAY_CLI_TWF_PLAN_WORKFLOW_NAME,
+        workflow_name=PRODUCT_GATEWAY_CLI_OPERATION_FLOW_PLAN_WORKFLOW_NAME,
         run_id="cli-surface-status-summary",
     )
-    snapshot = ProductGatewayCliTwfLatestPlanSnapshotSchema(
+    snapshot = ProductGatewayCliOperationFlowLatestPlanSnapshotSchema(
         status="succeeded",
-        workspace=ProductGatewayCliTwfRunWorkspaceSnapshotSchema(
+        workspace=ProductGatewayCliOperationFlowRunWorkspaceSnapshotSchema(
             workspace_ref=workspace.workspace_ref,
             workspace_path=workspace.workspace_path,
             workflow_name=workspace.workflow_name,
@@ -302,7 +302,7 @@ def test_cli_surface_persists_status_summary_from_snapshot(tmp_path: Path) -> No
         ),
     )
 
-    persistence = persist_cli_twf_status_summary(
+    persistence = persist_cli_operation_flow_status_summary(
         latest_plan_snapshot=snapshot,
         status_summary_payload={
             "product": "Cognition System / 认知系统",
@@ -324,29 +324,29 @@ def test_cli_surface_does_not_export_request_draft_builder() -> None:
 
     assert product_gateway.__all__ == ()
     assert "cli_surface" not in product_gateway.__all__
-    assert "build_cli_twf_request_draft" not in cli_surface_module.__all__
-    assert not hasattr(cli_surface_module, "build_cli_twf_request_draft")
+    assert "build_cli_operation_flow_request_draft" not in cli_surface_module.__all__
+    assert not hasattr(cli_surface_module, "build_cli_operation_flow_request_draft")
 
 
 def test_cli_surface_keeps_private_request_draft_inside_surface() -> None:
-    draft = ProductGatewayCliTwfRequestDraftInputSchema(
-        workflow_name=PRODUCT_GATEWAY_CLI_TWF_PLAN_WORKFLOW_NAME,
+    draft = ProductGatewayCliOperationFlowRequestDraftInputSchema(
+        workflow_name=PRODUCT_GATEWAY_CLI_OPERATION_FLOW_PLAN_WORKFLOW_NAME,
         sanitized_user_text="我要建一个鱼塘，帮我设计方案",
         chat_session_id="cli-surface-draft",
         turn_index=1,
-        governance_refs=ProductGatewayCliTwfGovernanceRefsSchema(
+        governance_refs=ProductGatewayCliOperationFlowGovernanceRefsSchema(
             approval_ref="approval://cli-surface",
             audit_ref="audit://cli-surface",
         ),
-        controls=ProductGatewayCliTwfReferenceWorkspaceControlsSchema(),
+        controls=ProductGatewayCliOperationFlowReferenceWorkspaceControlsSchema(),
     )
 
-    assert draft.workflow_name == PRODUCT_GATEWAY_CLI_TWF_PLAN_WORKFLOW_NAME
+    assert draft.workflow_name == PRODUCT_GATEWAY_CLI_OPERATION_FLOW_PLAN_WORKFLOW_NAME
     assert draft.chat_session_id == "cli-surface-draft"
 
 
 def test_cli_surface_resolves_tool_exposure_to_contract_schema() -> None:
-    resolution = resolve_cli_twf_tool_exposure_profile(
+    resolution = resolve_cli_operation_flow_tool_exposure_profile(
         profile_name="readonly_reference",
         repo_root=str(REPO_ROOT),
     )

@@ -16,8 +16,8 @@ ProductGatewayResponseSummaryEntryKind = Literal[
     "controlled_live",
     "agent_shell",
     "tool_smoke",
-    "task_workflow_route",
-    "task_workflow_execution",
+    "operation_flow_route",
+    "operation_flow_execution",
     "external_readonly_fetch",
     "external_readonly_refs",
     "external_readonly_ask",
@@ -35,8 +35,8 @@ PRODUCT_GATEWAY_RESPONSE_SUMMARY_ENTRY_KINDS = frozenset(
         "controlled_live",
         "agent_shell",
         "tool_smoke",
-        "task_workflow_route",
-        "task_workflow_execution",
+        "operation_flow_route",
+        "operation_flow_execution",
         "external_readonly_fetch",
         "external_readonly_refs",
         "external_readonly_ask",
@@ -176,6 +176,18 @@ class ProductGatewayResponseSummarySchema(ProductGatewayResponseSummaryBaseModel
     answer_artifact_ref: str | None = None
     answer_artifact_status: str | None = None
     answer_artifact_summary: dict[str, Any] = Field(default_factory=dict)
+    observability_summary_ref: str | None = None
+    observability_summary_status: str | None = None
+    safe_observability_summary: dict[str, Any] = Field(default_factory=dict)
+    trace_inspect_ref: str | None = None
+    trace_inspect_status: str | None = None
+    trace_inspect_summary: dict[str, Any] = Field(default_factory=dict)
+    trace_inspect_unavailable_reason: str | None = None
+    answer_run_ref: str | None = None
+    answer_run_status: str | None = None
+    answer_run_summary: dict[str, Any] = Field(default_factory=dict)
+    answer_run_unavailable_reason: str | None = None
+    parent_answer_run_ref: str | None = None
     durable_session: bool = False
     memory_enabled: bool = False
 

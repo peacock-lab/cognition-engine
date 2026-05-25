@@ -2,19 +2,19 @@
 
 [简体中文](QUICKSTART.zh-CN.md) | English · [Back](README.md)
 
-Current version: `v0.8.0`
+Current release candidate: `v0.8.1`
 
 ## 1. Install
 
 ```bash
 python -m pip install --upgrade pip
-python -m pip install "cognition-system==0.8.0"
+python -m pip install "cognition-system==0.8.1"
 ```
 
 Or with uv:
 
 ```bash
-uv pip install "cognition-system==0.8.0"
+uv pip install "cognition-system==0.8.1"
 ```
 
 Python `3.14` is required.
@@ -23,13 +23,14 @@ Python `3.14` is required.
 
 ```bash
 cognition --help
-cognition external-readonly ask --help
+cognition-console --help
+cognition-console ask --help
 ```
 
-## 3. Try Source QA
+## 3. Try Reviewable Source QA
 
 ```bash
-cognition external-readonly ask --guided
+cognition-console ask --guided
 ```
 
 Example inputs:
@@ -52,6 +53,12 @@ After a successful answer, continue around the same source:
 ```
 
 If the source is insufficient, the system explains the limitation.
+
+For compatibility and technical checks, the CLI entry is still available:
+
+```bash
+cognition external-readonly ask --guided
+```
 
 ## 5. Configuration
 

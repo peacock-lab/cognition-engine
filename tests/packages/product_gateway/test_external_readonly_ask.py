@@ -58,6 +58,10 @@ def test_external_readonly_ask_entry_projects_public_summary() -> None:
     assert summary["refs_only"] is True
     assert summary["llm_call_enabled"] is False
     assert summary["answer_trace_ref"] == "evidence-summary-answer-trace://trace-ask"
+    assert summary["answer_run_ref"] == "evidence-summary-answer-run://run-ask"
+    assert summary["answer_run_status"] == "success"
+    assert summary["answer_run_summary"]["workflow_compatible"] is True
+    assert summary["answer_run_summary"]["runtime_backed"] is False
     assert summary["answer_trace_status"] == "success"
     assert summary["answer_trace_summary"]["task_compatible"] is True
     assert summary["answer_trace_summary"]["workflow_compatible"] is True
@@ -68,6 +72,25 @@ def test_external_readonly_ask_entry_projects_public_summary() -> None:
     assert summary["answer_artifact_summary"]["task_compatible"] is True
     assert summary["answer_artifact_summary"]["workflow_compatible"] is True
     assert summary["answer_artifact_summary"]["backed_by_adk_task_runtime"] is False
+    assert summary["observability_summary_ref"] == (
+        "evidence-summary-answer-observability-summary://summary-ask"
+    )
+    assert summary["observability_summary_status"] == "success"
+    assert summary["safe_observability_summary"]["task_compatible"] is True
+    assert summary["safe_observability_summary"]["workflow_compatible"] is True
+    assert summary["safe_observability_summary"]["runtime_backed"] is False
+    assert summary["trace_inspect_ref"] == (
+        "evidence-summary-answer-trace-inspect://inspect-ask"
+    )
+    assert summary["trace_inspect_status"] == "success"
+    assert summary["trace_inspect_summary"]["task_compatible"] is True
+    assert summary["trace_inspect_summary"]["workflow_compatible"] is True
+    assert summary["trace_inspect_summary"]["runtime_backed"] is False
+    assert summary["trace_inspect_summary"]["raw_boundary_summary"] == {
+        "restricted_payload_absent": True,
+        "restricted_boundary_intact": True,
+        "blocked_field_count": 0,
+    }
     assert summary["evidence_refs"][0]["ref"] == (
         "evidence://external-readonly/item/ask"
     )
@@ -202,6 +225,34 @@ def _gateway_input(**overrides: object) -> dict[str, object]:
         "external_readonly_fetch_performed": False,
         "external_readonly_network_call_performed": False,
         "external_network_call_performed": False,
+        "answer_run_ref": "evidence-summary-answer-run://run-ask",
+        "answer_run_status": "success",
+        "answer_run_summary": {
+            "answer_run_ref": "evidence-summary-answer-run://run-ask",
+            "answer_run_status": "success",
+            "request_id": "external-readonly-ask-request://unit",
+            "answer_status": "success",
+            "readonly_refs_status": "ready",
+            "answer_trace_ref": "evidence-summary-answer-trace://trace-ask",
+            "answer_artifact_ref": "evidence-summary-answer-artifact://artifact-ask",
+            "observability_summary_ref": (
+                "evidence-summary-answer-observability-summary://summary-ask"
+            ),
+            "trace_inspect_ref": (
+                "evidence-summary-answer-trace-inspect://inspect-ask"
+            ),
+            "evidence_ref_count": 1,
+            "additional_ref_count": 1,
+            "task_compatible": True,
+            "workflow_compatible": True,
+            "runtime_backed": False,
+            "backed_by_adk_task_runtime": False,
+            "backed_by_adk_workflow_runtime": False,
+            "backed_by_adk_artifact_service": False,
+            "backed_by_adk_event_stream": False,
+            "durable_session": False,
+            "memory_enabled": False,
+        },
         "answer_trace_ref": "evidence-summary-answer-trace://trace-ask",
         "answer_trace_status": "success",
         "answer_trace_summary": {
@@ -228,6 +279,89 @@ def _gateway_input(**overrides: object) -> dict[str, object]:
             "memory_enabled": False,
             "answer_present": True,
             "answer_preview_present": True,
+        },
+        "observability_summary_ref": (
+            "evidence-summary-answer-observability-summary://summary-ask"
+        ),
+        "observability_summary_status": "success",
+        "safe_observability_summary": {
+            "summary_ref": (
+                "evidence-summary-answer-observability-summary://summary-ask"
+            ),
+            "summary_status": "success",
+            "reason": "answer_ready",
+            "user_explanation": "本轮受治理资料问答已形成可返回答案。",
+            "recovery_hints": [],
+            "ref_count": 2,
+            "raw_boundary_summary": {
+                "restricted_payload_absent": True,
+                "restricted_boundary_intact": True,
+                "blocked_field_count": 0,
+            },
+            "evaluation_findings_summary": {
+                "finding_count": 0,
+                "quality_blocked": False,
+                "model_called": True,
+            },
+            "task_compatible": True,
+            "workflow_compatible": True,
+            "runtime_backed": False,
+            "backed_by_adk_task_runtime": False,
+            "backed_by_adk_workflow_runtime": False,
+            "durable_session": False,
+            "memory_enabled": False,
+        },
+        "trace_inspect_ref": "evidence-summary-answer-trace-inspect://inspect-ask",
+        "trace_inspect_status": "success",
+        "trace_inspect_summary": {
+            "trace_inspect_ref": (
+                "evidence-summary-answer-trace-inspect://inspect-ask"
+            ),
+            "trace_inspect_status": "success",
+            "inspect_reason": "answer_ready",
+            "user_explanation": "本轮受治理资料问答已形成可复查解释。",
+            "developer_facts_summary": {
+                "answer_trace_available": True,
+                "answer_artifact_available": True,
+                "observability_summary_available": True,
+            },
+            "refs_summary": {
+                "trace_ref": "evidence-summary-answer-trace://trace-ask",
+                "artifact_ref": "evidence-summary-answer-artifact://artifact-ask",
+                "evidence_ref_count": 1,
+                "additional_ref_count": 1,
+            },
+            "event_facts_summary": {
+                "event_summary_kind": "product_level_summary",
+                "event_stream_enabled": False,
+                "adk_event_runtime_enabled": False,
+            },
+            "artifact_handoff_summary": {
+                "artifact_summary_kind": "product_level_summary",
+                "artifact_service_enabled": False,
+                "export_enabled": False,
+            },
+            "raw_boundary_summary": {
+                "restricted_payload_absent": True,
+                "restricted_boundary_intact": True,
+                "blocked_field_count": 0,
+            },
+            "evaluation_summary": {
+                "evaluation_only": True,
+                "finding_count": 0,
+                "quality_blocked": False,
+            },
+            "governance_summary": {
+                "governance_summary_only": True,
+                "decision_reason": "answer_ready",
+            },
+            "task_compatible": True,
+            "workflow_compatible": True,
+            "runtime_backed": False,
+            "backed_by_adk_task_runtime": False,
+            "backed_by_adk_workflow_runtime": False,
+            "durable_session": False,
+            "memory_enabled": False,
         },
         "metadata": {"unit_test": True},
     }

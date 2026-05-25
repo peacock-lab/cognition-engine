@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from string import hexdigits
 from typing import Any, Literal
 
@@ -292,31 +293,41 @@ def _is_runtime_module(module_name: str) -> bool:
 
 def _looks_like_forbidden_marker(value: str) -> bool:
     lowered = value.lower()
-    return any(
+    if any(
         marker in lowered
         for marker in (
-            "api_key",
-            "authorization",
-            "authorization:",
-            "config_context",
             "config context value",
             "full productgatewayresponse",
-            "full_product_gateway_response",
-            "observability_candidate_body",
-            "prompt_or_messages",
             "raw html",
             "raw payload",
             "raw provider response",
+            "set-cookie",
+        )
+    ):
+        return True
+    return any(
+        _contains_forbidden_token(lowered, marker)
+        for marker in (
+            "api_key",
+            "authorization",
+            "config_context",
+            "full_product_gateway_response",
+            "observability_candidate_body",
+            "prompt_or_messages",
             "raw_payload",
             "raw_provider_response",
             "response_headers",
             "response_text",
             "sanitized_excerpt",
             "sanitized_excerpt_preview",
-            "set-cookie",
             "system_prompt",
         )
     )
+
+
+def _contains_forbidden_token(value: str, marker: str) -> bool:
+    pattern = rf"(?<![a-z0-9_]){re.escape(marker)}(?![a-z0-9_])"
+    return re.search(pattern, value) is not None
 
 
 __all__ = [

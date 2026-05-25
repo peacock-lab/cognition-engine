@@ -223,7 +223,7 @@ def test_adk_governed_llm_invocation_live_enabled_includes_reference_review_cont
             allowed=True,
             prompt_preview_sanitized="资料审查，输出主要结论",
             metadata={
-                "interaction_mode": "twf_reference_review_workflow",
+                "interaction_mode": "operation_flow_reference_review_workflow",
                 "reference_review_context": {
                     "current_user_input": "请审查这些资料",
                     "reference_labels": ["359-result.md"],

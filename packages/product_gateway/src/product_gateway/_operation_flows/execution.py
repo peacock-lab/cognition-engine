@@ -1,4 +1,4 @@
-"""Product gateway execution entry for Twf task workflows."""
+"""Product gateway execution entry for OperationFlow operation flows."""
 
 from __future__ import annotations
 
@@ -39,30 +39,30 @@ from product_gateway.contracts import (
     ProductGatewayStatus,
 )
 from product_gateway._operation_flows.route import (
-    InternalTwfRouteProjection,
+    InternalOperationFlowRouteProjection,
 )
 from product_gateway.external_readonly_refs import (
     run_external_readonly_refs_gateway_request,
 )
 
 
-INTERNAL_TWF_EXECUTION_SOURCE = "product_gateway._operation_flows.execution"
-INTERNAL_TWF_EXTERNAL_READONLY_REFS_SOURCE = (
-    "twf_execution_external_readonly_refs"
+INTERNAL_OPERATION_FLOW_EXECUTION_SOURCE = "product_gateway._operation_flows.execution"
+INTERNAL_OPERATION_FLOW_EXTERNAL_READONLY_REFS_SOURCE = (
+    "operation_flow_execution_external_readonly_refs"
 )
-TWF_LIVE_LLM_PROVIDER_NOT_INJECTED = "twf_live_llm_provider_not_injected"
-TWF_LIVE_LLM_PROVIDER_REQUIRED = "twf_live_llm_provider_required"
-TWF_LIVE_LLM_PROVIDER_RESOLUTION_FAILED = (
-    "twf_live_llm_provider_resolution_failed"
+OPERATION_FLOW_LIVE_LLM_PROVIDER_NOT_INJECTED = "operation_flow_live_llm_provider_not_injected"
+OPERATION_FLOW_LIVE_LLM_PROVIDER_REQUIRED = "operation_flow_live_llm_provider_required"
+OPERATION_FLOW_LIVE_LLM_PROVIDER_RESOLUTION_FAILED = (
+    "operation_flow_live_llm_provider_resolution_failed"
 )
-TWF_LIVE_LLM_PROVIDER_RESOLUTION_EXCEPTION = (
-    "twf_live_llm_provider_resolution_exception"
+OPERATION_FLOW_LIVE_LLM_PROVIDER_RESOLUTION_EXCEPTION = (
+    "operation_flow_live_llm_provider_resolution_exception"
 )
 
 
 @dataclass(frozen=True)
-class InternalTwfExecutionContext:
-    """Backend context needed to turn a Twf draft into an executable request."""
+class InternalOperationFlowExecutionContext:
+    """Backend context needed to turn a OperationFlow draft into an executable request."""
 
     llm_invocation_service: Any | None = None
     llm_invocation_service_factory: (
@@ -84,14 +84,14 @@ class InternalTwfExecutionContext:
 
 
 @dataclass(frozen=True)
-class InternalTwfExecutionInput:
-    """Product gateway input for executing a channel-neutral Twf request draft."""
+class InternalOperationFlowExecutionInput:
+    """Product gateway input for executing a channel-neutral OperationFlow request draft."""
 
     request_id: str
-    route_projection: InternalTwfRouteProjection
+    route_projection: InternalOperationFlowRouteProjection
     request_draft: Any
-    execution_context: InternalTwfExecutionContext = field(
-        default_factory=InternalTwfExecutionContext
+    execution_context: InternalOperationFlowExecutionContext = field(
+        default_factory=InternalOperationFlowExecutionContext
     )
 
     def __post_init__(self) -> None:
@@ -107,8 +107,8 @@ class InternalTwfExecutionInput:
 
 
 @dataclass(frozen=True)
-class InternalTwfExecutionResult:
-    """Product gateway result for one task workflow execution."""
+class InternalOperationFlowExecutionResult:
+    """Product gateway result for one operation flow execution."""
 
     handled: bool
     product_request: ProductGatewayRequest
@@ -120,10 +120,10 @@ class InternalTwfExecutionResult:
     latest_plan_result: Any | None = None
 
 
-def build_internal_twf_execution_request(
-    execution_input: InternalTwfExecutionInput,
+def build_internal_operation_flow_execution_request(
+    execution_input: InternalOperationFlowExecutionInput,
 ) -> ProductGatewayRequest:
-    """Build the product request envelope for a Twf workflow execution."""
+    """Build the product request envelope for a OperationFlow workflow execution."""
 
     draft = execution_input.request_draft
     governance_refs = draft.governance_refs
@@ -162,7 +162,7 @@ def build_internal_twf_execution_request(
             approved=draft.operator_approved,
             approval_ref=governance_refs.approval_ref,
             audit_ref=governance_refs.audit_ref,
-            decision_source=INTERNAL_TWF_EXECUTION_SOURCE,
+            decision_source=INTERNAL_OPERATION_FLOW_EXECUTION_SOURCE,
         ),
         live_options=ProductGatewayLiveOptions(
             request_live_llm=draft.request_live_llm,
@@ -171,13 +171,13 @@ def build_internal_twf_execution_request(
             allow_ollama=draft.allow_ollama,
             live_llm_approval_ref=governance_refs.live_llm_approval_ref,
             override_source=(
-                INTERNAL_TWF_EXECUTION_SOURCE
+                INTERNAL_OPERATION_FLOW_EXECUTION_SOURCE
                 if draft.request_live_llm or draft.request_ollama
                 else None
             ),
         ),
         metadata={
-            "source": INTERNAL_TWF_EXECUTION_SOURCE,
+            "source": INTERNAL_OPERATION_FLOW_EXECUTION_SOURCE,
             "route_source": execution_input.route_projection.source,
             "request_draft_schema_version": draft.schema_version,
             "product_gateway_entry_required": draft.product_gateway_entry_required,
@@ -187,34 +187,34 @@ def build_internal_twf_execution_request(
     )
 
 
-def execute_internal_twf_workflow(
-    execution_input: InternalTwfExecutionInput,
-) -> InternalTwfExecutionResult:
-    """Execute a Twf workflow through the product gateway boundary."""
+def execute_internal_operation_flow_workflow(
+    execution_input: InternalOperationFlowExecutionInput,
+) -> InternalOperationFlowExecutionResult:
+    """Execute a OperationFlow workflow through the product gateway boundary."""
 
-    product_request = build_internal_twf_execution_request(execution_input)
+    product_request = build_internal_operation_flow_execution_request(execution_input)
     if not execution_input.route_projection.matched:
-        return InternalTwfExecutionResult(
+        return InternalOperationFlowExecutionResult(
             handled=False,
             product_request=product_request,
             product_response=ProductGatewayResponse(
                 request_id=product_request.request_id,
                 entry_kind=product_request.entry_kind,
                 status=ProductGatewayStatus.SKIPPED,
-                warnings=["task_workflow_route_not_matched"],
+                warnings=["operation_flow_route_not_matched"],
                 metadata={
-                    "source": INTERNAL_TWF_EXECUTION_SOURCE,
+                    "source": INTERNAL_OPERATION_FLOW_EXECUTION_SOURCE,
                     "workflow_name": execution_input.request_draft.workflow_name,
                     "execution_skipped": True,
                 },
             ),
         )
 
-    llm_invocation_resolution = _resolve_twf_llm_invocation_service(
+    llm_invocation_resolution = _resolve_operation_flow_llm_invocation_service(
         execution_input
     )
     if llm_invocation_resolution.blocking_reasons:
-        return _blocked_twf_live_provider_result(
+        return _blocked_operation_flow_live_provider_result(
             execution_input,
             product_request=product_request,
             resolution=llm_invocation_resolution,
@@ -251,7 +251,7 @@ def execute_internal_twf_workflow(
     terminal_display_text = get_operation_flow_product_entry_result_display_text(
         workflow_result
     )
-    return InternalTwfExecutionResult(
+    return InternalOperationFlowExecutionResult(
         handled=True,
         product_request=product_request,
         product_response=ProductGatewayResponse(
@@ -268,7 +268,7 @@ def execute_internal_twf_workflow(
                 execution_input.request_draft.governance_refs.governance_summary_output_ref
             ),
             metadata={
-                "source": INTERNAL_TWF_EXECUTION_SOURCE,
+                "source": INTERNAL_OPERATION_FLOW_EXECUTION_SOURCE,
                 "workflow_name": execution_input.request_draft.workflow_name,
                 "task_kind": execution_input.request_draft.task_kind,
                 "triggered": bool(getattr(workflow_result, "triggered", False)),
@@ -295,7 +295,7 @@ def execute_internal_twf_workflow(
 
 
 def _build_workflow_request(
-    execution_input: InternalTwfExecutionInput,
+    execution_input: InternalOperationFlowExecutionInput,
     *,
     llm_invocation_service: Any | None = None,
 ) -> Any:
@@ -316,8 +316,8 @@ def _build_workflow_request(
     )
 
 
-def _resolve_twf_llm_invocation_service(
-    execution_input: InternalTwfExecutionInput,
+def _resolve_operation_flow_llm_invocation_service(
+    execution_input: InternalOperationFlowExecutionInput,
 ) -> GovernedLlmInvocationServiceResolution:
     context = execution_input.execution_context
     if context.llm_invocation_service is not None:
@@ -329,22 +329,22 @@ def _resolve_twf_llm_invocation_service(
         return GovernedLlmInvocationServiceResolution()
     if context.llm_invocation_service_factory is None:
         return GovernedLlmInvocationServiceResolution(
-            blocking_reasons=(TWF_LIVE_LLM_PROVIDER_NOT_INJECTED,),
-            warnings=(TWF_LIVE_LLM_PROVIDER_REQUIRED,),
+            blocking_reasons=(OPERATION_FLOW_LIVE_LLM_PROVIDER_NOT_INJECTED,),
+            warnings=(OPERATION_FLOW_LIVE_LLM_PROVIDER_REQUIRED,),
             metadata={"resolution_source": "missing_factory"},
         )
 
     try:
         resolution = context.llm_invocation_service_factory.resolve(
             config_context=context.config_context,
-            config_selection=_build_twf_runtime_config_selection(execution_input),
-            live_llm_options=_build_twf_live_llm_options(execution_input),
+            config_selection=_build_operation_flow_runtime_config_selection(execution_input),
+            live_llm_options=_build_operation_flow_live_llm_options(execution_input),
         )
     except Exception:
         return GovernedLlmInvocationServiceResolution(
-            blocking_reasons=(TWF_LIVE_LLM_PROVIDER_RESOLUTION_FAILED,),
-            warnings=(TWF_LIVE_LLM_PROVIDER_RESOLUTION_EXCEPTION,),
-            metadata={"failure_type": TWF_LIVE_LLM_PROVIDER_RESOLUTION_EXCEPTION},
+            blocking_reasons=(OPERATION_FLOW_LIVE_LLM_PROVIDER_RESOLUTION_FAILED,),
+            warnings=(OPERATION_FLOW_LIVE_LLM_PROVIDER_RESOLUTION_EXCEPTION,),
+            metadata={"failure_type": OPERATION_FLOW_LIVE_LLM_PROVIDER_RESOLUTION_EXCEPTION},
         )
 
     if resolution.service is not None and not resolution.blocking_reasons:
@@ -353,22 +353,22 @@ def _resolve_twf_llm_invocation_service(
         service=None,
         blocking_reasons=(
             tuple(resolution.blocking_reasons)
-            or (TWF_LIVE_LLM_PROVIDER_RESOLUTION_FAILED,)
+            or (OPERATION_FLOW_LIVE_LLM_PROVIDER_RESOLUTION_FAILED,)
         ),
         warnings=tuple(resolution.warnings),
         metadata=dict(resolution.metadata),
     )
 
 
-def _build_twf_runtime_config_selection(
-    execution_input: InternalTwfExecutionInput,
+def _build_operation_flow_runtime_config_selection(
+    execution_input: InternalOperationFlowExecutionInput,
 ) -> RuntimeConfigSelectionContext:
     context = execution_input.execution_context
     return RuntimeConfigSelectionContext(
         config_root=context.config_root,
         environment=context.environment,
         profile=context.profile,
-        selection_source=INTERNAL_TWF_EXECUTION_SOURCE,
+        selection_source=INTERNAL_OPERATION_FLOW_EXECUTION_SOURCE,
         metadata={
             "request_id": execution_input.request_id,
             "workflow_name": execution_input.request_draft.workflow_name,
@@ -377,14 +377,14 @@ def _build_twf_runtime_config_selection(
     )
 
 
-def _build_twf_live_llm_options(
-    execution_input: InternalTwfExecutionInput,
+def _build_operation_flow_live_llm_options(
+    execution_input: InternalOperationFlowExecutionInput,
 ) -> RuntimeLiveLlmInvocationOptionsContext:
     context = execution_input.execution_context
     return RuntimeLiveLlmInvocationOptionsContext(
         ollama_api_base=context.ollama_api_base,
         timeout_seconds=execution_input.request_draft.live_llm_timeout_seconds,
-        selection_source=INTERNAL_TWF_EXECUTION_SOURCE,
+        selection_source=INTERNAL_OPERATION_FLOW_EXECUTION_SOURCE,
         metadata={
             "request_id": execution_input.request_id,
             "workflow_name": execution_input.request_draft.workflow_name,
@@ -393,13 +393,13 @@ def _build_twf_live_llm_options(
     )
 
 
-def _blocked_twf_live_provider_result(
-    execution_input: InternalTwfExecutionInput,
+def _blocked_operation_flow_live_provider_result(
+    execution_input: InternalOperationFlowExecutionInput,
     *,
     product_request: ProductGatewayRequest,
     resolution: GovernedLlmInvocationServiceResolution,
-) -> InternalTwfExecutionResult:
-    return InternalTwfExecutionResult(
+) -> InternalOperationFlowExecutionResult:
+    return InternalOperationFlowExecutionResult(
         handled=True,
         product_request=product_request,
         product_response=ProductGatewayResponse(
@@ -412,7 +412,7 @@ def _blocked_twf_live_provider_result(
                 execution_input.request_draft.governance_refs.governance_summary_output_ref
             ),
             metadata={
-                "source": INTERNAL_TWF_EXECUTION_SOURCE,
+                "source": INTERNAL_OPERATION_FLOW_EXECUTION_SOURCE,
                 "workflow_name": execution_input.request_draft.workflow_name,
                 "task_kind": execution_input.request_draft.task_kind,
                 "triggered": False,
@@ -478,14 +478,14 @@ def _workflow_result_external_readonly_refs_response(
     readonly_public_refs = (
         build_external_readonly_evidence_readonly_public_refs_from_read_context(
             context,
-            metadata={"source": INTERNAL_TWF_EXTERNAL_READONLY_REFS_SOURCE},
+            metadata={"source": INTERNAL_OPERATION_FLOW_EXTERNAL_READONLY_REFS_SOURCE},
         )
     )
     return run_external_readonly_refs_gateway_request(
         {
             "request_id": f"{request_id}/external-readonly-refs",
             "readonly_public_refs": readonly_public_refs,
-            "metadata": {"source": INTERNAL_TWF_EXECUTION_SOURCE},
+            "metadata": {"source": INTERNAL_OPERATION_FLOW_EXECUTION_SOURCE},
         }
     )
 
@@ -496,7 +496,7 @@ def _workflow_result_output_refs(
     external_readonly_refs_response: ProductGatewayResponse | None = None,
 ) -> ProductGatewayOutputRefs:
     evidence_refs = [
-        ProductGatewayRef(ref=ref, kind="evidence", purpose="task_workflow")
+        ProductGatewayRef(ref=ref, kind="evidence", purpose="operation_flow")
         for ref in _workflow_result_evidence_refs(workflow_result)
     ]
     if external_readonly_refs_response is None:
@@ -568,10 +568,10 @@ def _ordered_unique(values: Sequence[str]) -> tuple[str, ...]:
 
 
 __all__ = [
-    "INTERNAL_TWF_EXECUTION_SOURCE",
-    "InternalTwfExecutionContext",
-    "InternalTwfExecutionInput",
-    "InternalTwfExecutionResult",
-    "build_internal_twf_execution_request",
-    "execute_internal_twf_workflow",
+    "INTERNAL_OPERATION_FLOW_EXECUTION_SOURCE",
+    "InternalOperationFlowExecutionContext",
+    "InternalOperationFlowExecutionInput",
+    "InternalOperationFlowExecutionResult",
+    "build_internal_operation_flow_execution_request",
+    "execute_internal_operation_flow_workflow",
 ]

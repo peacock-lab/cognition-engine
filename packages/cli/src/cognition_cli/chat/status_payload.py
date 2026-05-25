@@ -12,17 +12,17 @@ from cognition_cli.chat.controls import (
 )
 from cognition_cli.constants import PRODUCT_NAME
 from product_gateway.cli_surface import (
-    build_cli_twf_latest_plan_status,
-    build_cli_twf_skill_capability_projection_status,
-    build_cli_twf_tools_status,
+    build_cli_operation_flow_latest_plan_status,
+    build_cli_operation_flow_skill_capability_projection_status,
+    build_cli_operation_flow_tools_status,
 )
 
 
-def _chat_task_route_metadata(
+def _chat_operation_route_metadata(
     route: Any | None,
 ) -> dict[str, Any]:
     return {
-        "task_workflow_route": _chat_task_route_status(route) if route else None,
+        "operation_flow_route": _chat_operation_route_status(route) if route else None,
         "product_gateway_route_projection": (
             _chat_product_gateway_route_projection_summary(route)
             if route
@@ -31,7 +31,7 @@ def _chat_task_route_metadata(
     }
 
 
-def _chat_task_route_status(route: Any) -> dict[str, Any]:
+def _chat_operation_route_status(route: Any) -> dict[str, Any]:
     metadata = getattr(route, "metadata", {})
     if isinstance(metadata, Mapping):
         route_status = metadata.get("route_status")
@@ -182,7 +182,7 @@ def _chat_tools_status(
     operator_approved: bool,
     approval_ref: str | None,
 ) -> dict[str, Any]:
-    return build_cli_twf_tools_status(
+    return build_cli_operation_flow_tools_status(
         profile_name=profile_name,
         profile_config=profile_config,
         repo_root=repo_root,
@@ -230,10 +230,10 @@ def _chat_skills_status() -> dict[str, Any]:
 
 
 def _chat_skill_capability_projection_status() -> dict[str, Any]:
-    return build_cli_twf_skill_capability_projection_status()
+    return build_cli_operation_flow_skill_capability_projection_status()
 
 
 def _chat_latest_plan_status(
     latest_plan_snapshot: Any | None,
 ) -> dict[str, Any]:
-    return build_cli_twf_latest_plan_status(latest_plan_snapshot)
+    return build_cli_operation_flow_latest_plan_status(latest_plan_snapshot)

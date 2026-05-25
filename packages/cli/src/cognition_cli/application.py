@@ -9,13 +9,12 @@ from cognition_cli.chat.defaults import apply_default_local_live_chat_profile
 from cognition_cli.chat.channel import _chat_command
 from cognition_cli.config.init import config_init_command
 from cognition_cli.constants import EXIT_OK, EXIT_USAGE_ERROR
-from cognition_cli.external_readonly.answer import (
-    ExternalReadonlyAnswerLlmInvocationServiceFactory,
-    external_readonly_answer_command,
-)
 from cognition_cli.external_readonly.ask import (
     ExternalReadonlyAskLlmInvocationServiceFactory,
+    ExternalReadonlyAskProviderCredentialStoreFactory,
     external_readonly_ask_command,
+    run_external_readonly_ask_follow_up_channel,
+    run_external_readonly_ask_initial_channel,
 )
 from cognition_cli.external_readonly.fetch import external_readonly_fetch_command
 from cognition_cli.external_readonly.refs import (
@@ -28,7 +27,7 @@ from cognition_cli.services.runtime import (
     EntryRunner,
     RequestBuilder,
     RunGatewayExecutor,
-    TwfLlmInvocationServiceFactory,
+    OperationFlowLlmInvocationServiceFactory,
     _known_cli_warning_discipline,
 )
 from cognition_cli.startup import print_startup
@@ -46,17 +45,17 @@ def run_cli(
     entry_runner: EntryRunner | None = None,
     request_builder: RequestBuilder | None = None,
     run_gateway_executor: RunGatewayExecutor | None = None,
-    twf_llm_invocation_service_factory: (
-        TwfLlmInvocationServiceFactory | None
+    operation_flow_llm_invocation_service_factory: (
+        OperationFlowLlmInvocationServiceFactory | None
     ) = None,
     external_readonly_refs_application_executor: (
         ExternalReadonlyRefsApplicationExecutor | None
     ) = None,
-    external_readonly_answer_llm_invocation_service_factory: (
-        ExternalReadonlyAnswerLlmInvocationServiceFactory | None
-    ) = None,
     external_readonly_ask_llm_invocation_service_factory: (
         ExternalReadonlyAskLlmInvocationServiceFactory | None
+    ) = None,
+    external_readonly_ask_provider_credential_store_factory: (
+        ExternalReadonlyAskProviderCredentialStoreFactory | None
     ) = None,
 ) -> int:
     """Run the CLI with injectable execution hooks for tests."""
@@ -93,12 +92,20 @@ def run_cli(
                 request_builder=request_builder,
                 use_gateway_entry=use_gateway_entry,
                 run_gateway_executor=run_gateway_executor,
-                twf_llm_invocation_service_factory=(
-                    twf_llm_invocation_service_factory
+                operation_flow_llm_invocation_service_factory=(
+                    operation_flow_llm_invocation_service_factory
                 ),
                 external_readonly_ask_llm_invocation_service_factory=(
                     external_readonly_ask_llm_invocation_service_factory
-                    or external_readonly_answer_llm_invocation_service_factory
+                ),
+                external_readonly_ask_provider_credential_store_factory=(
+                    external_readonly_ask_provider_credential_store_factory
+                ),
+                external_readonly_ask_initial_runner=(
+                    run_external_readonly_ask_initial_channel
+                ),
+                external_readonly_ask_follow_up_runner=(
+                    run_external_readonly_ask_follow_up_channel
                 ),
             )
 
@@ -121,19 +128,6 @@ def run_cli(
 
     if (
         args.command == "external-readonly"
-        and args.external_readonly_command == "answer"
-    ):
-        with _known_cli_warning_discipline():
-            return external_readonly_answer_command(
-                args,
-                refs_executor=external_readonly_refs_application_executor,
-                llm_invocation_service_factory=(
-                    external_readonly_answer_llm_invocation_service_factory
-                ),
-            )
-
-    if (
-        args.command == "external-readonly"
         and args.external_readonly_command == "ask"
     ):
         with _known_cli_warning_discipline():
@@ -142,7 +136,9 @@ def run_cli(
                 refs_executor=external_readonly_refs_application_executor,
                 llm_invocation_service_factory=(
                     external_readonly_ask_llm_invocation_service_factory
-                    or external_readonly_answer_llm_invocation_service_factory
+                ),
+                provider_credential_store_factory=(
+                    external_readonly_ask_provider_credential_store_factory
                 ),
             )
 

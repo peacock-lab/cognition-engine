@@ -121,7 +121,7 @@ def test_external_readonly_fetch_to_refs_smoke_keeps_default_entrypoint_boundary
     source = PRODUCT_RUNTIME_ENTRYPOINT.read_text(encoding="utf-8")
 
     assert "execute_cognition_run_with_default_runtime" in source
-    assert "build_twf_default_llm_invocation_service_factory" in source
+    assert "build_operation_flow_default_llm_invocation_service_factory" in source
     assert "product_application_assembly" not in source
     assert "external_readonly_refs_application_executor" not in source
     assert "composition" not in source

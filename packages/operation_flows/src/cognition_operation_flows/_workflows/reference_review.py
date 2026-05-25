@@ -22,48 +22,48 @@ from contract_core.external_readonly_evidence import (
 from cognition_operation_flows._workflows.plan import (
     DEFAULT_PLAN_MODEL_NAME,
     PLAN_DISPLAY_PREVIEW_LIMIT,
-    detect_twf_plan_request,
+    detect_operation_flow_plan_request,
 )
 from cognition_operation_flows._tools.reference_reader import (
     REFERENCE_READER_TOOL_NAME,
-    TwfReferenceReadRequestCandidate,
-    read_twf_reference,
+    OperationFlowReferenceReadRequestCandidate,
+    read_operation_flow_reference,
 )
 from cognition_operation_flows._core.run_workspace import (
-    TwfRunWorkspaceStateCandidate,
-    build_twf_run_workspace_policy,
-    cleanup_twf_run_workspace,
-    twf_run_workspace_status_dict,
-    create_twf_run_workspace,
-    finalize_twf_run_workspace,
-    write_twf_run_workspace_json,
-    write_twf_run_workspace_text,
+    OperationFlowRunWorkspaceStateCandidate,
+    build_operation_flow_run_workspace_policy,
+    cleanup_operation_flow_run_workspace,
+    operation_flow_run_workspace_status_dict,
+    create_operation_flow_run_workspace,
+    finalize_operation_flow_run_workspace,
+    write_operation_flow_run_workspace_json,
+    write_operation_flow_run_workspace_text,
 )
 from cognition_operation_flows._core.control import (
-    TwfRunContextCandidate,
-    build_twf_run_context,
-    twf_run_context_status_dict,
-    finalize_twf_run_context,
+    OperationFlowRunContextCandidate,
+    build_operation_flow_run_context,
+    operation_flow_run_context_status_dict,
+    finalize_operation_flow_run_context,
 )
 from cognition_operation_flows._tools.exposure_profile import (
-    twf_tool_exposure_profile_status_dict,
-    resolve_twf_tool_exposure_profile,
+    operation_flow_tool_exposure_profile_status_dict,
+    resolve_operation_flow_tool_exposure_profile,
 )
 from cognition_operation_flows._tools.loading_validation import (
-    twf_tool_loading_gate_status_dict,
-    validate_twf_tool_loading_gate,
+    operation_flow_tool_loading_gate_status_dict,
+    validate_operation_flow_tool_loading_gate,
 )
 from cognition_operation_flows._llm.invocation import (
-    TwfLlmInvocationFacade,
-    build_twf_llm_invocation_request,
+    OperationFlowLlmInvocationFacade,
+    build_operation_flow_llm_invocation_request,
 )
 from cognition_operation_flows._skills.capability_projection import (
-    build_default_twf_skill_capability_projection_status_summary,
-    twf_skill_projection_status_summary_status_dict,
+    build_default_operation_flow_skill_capability_projection_status_summary,
+    operation_flow_skill_projection_status_summary_status_dict,
 )
-TWF_REFERENCE_REVIEW_WORKFLOW_NAME = "twf_reference_review_workflow"
-TWF_REFERENCE_REVIEW_TASK_KIND = "reference_review"
-TWF_REFERENCE_REVIEW_TEMPLATE_VERSION = "reference_review_template_v2"
+OPERATION_FLOW_REFERENCE_REVIEW_WORKFLOW_NAME = "operation_flow_reference_review_workflow"
+OPERATION_FLOW_REFERENCE_REVIEW_TASK_KIND = "reference_review"
+OPERATION_FLOW_REFERENCE_REVIEW_TEMPLATE_VERSION = "reference_review_template_v2"
 REFERENCE_REVIEW_CONTEXT_TOTAL_CHAR_LIMIT = 1800
 REFERENCE_REVIEW_PROMPT_PREVIEW_LIMIT = 80
 REFERENCE_REVIEW_KEYWORDS = (
@@ -233,7 +233,7 @@ REFERENCE_REVIEW_TERMINOLOGY_TERM_LIMIT = 24
 
 
 @dataclass(frozen=True)
-class TwfReferenceReviewWorkflowRequestCandidate:
+class OperationFlowReferenceReviewWorkflowRequestCandidate:
     """Request entering the governed task reference review workflow."""
 
     user_text: str
@@ -267,7 +267,7 @@ class TwfReferenceReviewWorkflowRequestCandidate:
 
 
 @dataclass(frozen=True)
-class TwfReferenceReviewFactsCandidate:
+class OperationFlowReferenceReviewFactsCandidate:
     """Minimal facts extracted from a reference review request."""
 
     original_text: str
@@ -280,7 +280,7 @@ class TwfReferenceReviewFactsCandidate:
 
 
 @dataclass(frozen=True)
-class TwfReferenceReviewContextCandidate:
+class OperationFlowReferenceReviewContextCandidate:
     """Bounded reference context consumed by the review workflow."""
 
     status: str
@@ -294,7 +294,7 @@ class TwfReferenceReviewContextCandidate:
 
 
 @dataclass(frozen=True)
-class TwfReferenceReviewDraftCandidate:
+class OperationFlowReferenceReviewDraftCandidate:
     """Review draft before final terminal formatting."""
 
     draft_text: str
@@ -305,24 +305,24 @@ class TwfReferenceReviewDraftCandidate:
 
 
 @dataclass(frozen=True)
-class TwfReferenceReviewWorkflowResultCandidate:
+class OperationFlowReferenceReviewWorkflowResultCandidate:
     """Final result returned to the product channel entrypoint."""
 
     triggered: bool
     terminal_display_text: str
-    request: TwfReferenceReviewWorkflowRequestCandidate
-    facts: TwfReferenceReviewFactsCandidate
-    reference_context: TwfReferenceReviewContextCandidate
-    draft: TwfReferenceReviewDraftCandidate | None
+    request: OperationFlowReferenceReviewWorkflowRequestCandidate
+    facts: OperationFlowReferenceReviewFactsCandidate
+    reference_context: OperationFlowReferenceReviewContextCandidate
+    draft: OperationFlowReferenceReviewDraftCandidate | None
     model_call_count: int = 0
     no_live: bool = False
     fail_safe: bool = False
-    task_run_context: TwfRunContextCandidate | None = None
-    run_workspace: TwfRunWorkspaceStateCandidate | None = None
+    task_run_context: OperationFlowRunContextCandidate | None = None
+    run_workspace: OperationFlowRunWorkspaceStateCandidate | None = None
     metadata: dict[str, Any] = field(default_factory=dict)
 
 
-def detect_twf_reference_review_request(
+def detect_operation_flow_reference_review_request(
     user_text: str,
     *,
     reference_paths: Sequence[str] = (),
@@ -347,14 +347,14 @@ def detect_twf_reference_review_request(
         keyword.lower() in normalized.lower()
         for keyword in REFERENCE_REVIEW_STRONG_KEYWORDS
     )
-    if detect_twf_plan_request(user_text) and not has_strong_review_intent:
+    if detect_operation_flow_plan_request(user_text) and not has_strong_review_intent:
         return False
     return True
 
 
-def extract_twf_reference_review_facts(
-    request: TwfReferenceReviewWorkflowRequestCandidate,
-) -> TwfReferenceReviewFactsCandidate:
+def extract_operation_flow_reference_review_facts(
+    request: OperationFlowReferenceReviewWorkflowRequestCandidate,
+) -> OperationFlowReferenceReviewFactsCandidate:
     """Extract bounded review intent facts from the user request."""
 
     normalized = _compact_text(request.user_text)
@@ -370,9 +370,9 @@ def extract_twf_reference_review_facts(
     requested_outputs = (
         ("terminology_glossary",) if terminology_output_requested else ()
     )
-    return TwfReferenceReviewFactsCandidate(
+    return OperationFlowReferenceReviewFactsCandidate(
         original_text=request.user_text,
-        task_kind=TWF_REFERENCE_REVIEW_TASK_KIND,
+        task_kind=OPERATION_FLOW_REFERENCE_REVIEW_TASK_KIND,
         review_intents=review_intents,
         topic_hints=topic_hints,
         requested_outputs=requested_outputs,
@@ -389,21 +389,21 @@ def extract_twf_reference_review_facts(
     )
 
 
-def run_twf_reference_review_workflow(
-    request: TwfReferenceReviewWorkflowRequestCandidate,
-) -> TwfReferenceReviewWorkflowResultCandidate:
+def run_operation_flow_reference_review_workflow(
+    request: OperationFlowReferenceReviewWorkflowRequestCandidate,
+) -> OperationFlowReferenceReviewWorkflowResultCandidate:
     """Run the governed task reference review workflow."""
 
-    facts = extract_twf_reference_review_facts(request)
+    facts = extract_operation_flow_reference_review_facts(request)
     task_context = _build_reference_review_task_context(request, facts)
     if not task_context.preflight.allowed:
-        task_context = finalize_twf_run_context(
+        task_context = finalize_operation_flow_run_context(
             task_context,
             status="blocked",
             metadata={"blocked_before_reference_read": True},
         )
-        reference_context = TwfReferenceReviewContextCandidate(status="not_started")
-        return TwfReferenceReviewWorkflowResultCandidate(
+        reference_context = OperationFlowReferenceReviewContextCandidate(status="not_started")
+        return OperationFlowReferenceReviewWorkflowResultCandidate(
             triggered=True,
             terminal_display_text=_preflight_blocked_terminal_display(task_context),
             request=request,
@@ -413,7 +413,7 @@ def run_twf_reference_review_workflow(
             fail_safe=True,
             task_run_context=task_context,
             metadata={
-                "workflow": TWF_REFERENCE_REVIEW_WORKFLOW_NAME,
+                "workflow": OPERATION_FLOW_REFERENCE_REVIEW_WORKFLOW_NAME,
                 **_task_context_metadata(task_context),
             },
         )
@@ -429,8 +429,8 @@ def run_twf_reference_review_workflow(
                 "failure_stage": "run_workspace",
             },
         )
-        reference_context = TwfReferenceReviewContextCandidate(status="not_started")
-        return TwfReferenceReviewWorkflowResultCandidate(
+        reference_context = OperationFlowReferenceReviewContextCandidate(status="not_started")
+        return OperationFlowReferenceReviewWorkflowResultCandidate(
             triggered=True,
             terminal_display_text=_workspace_blocked_terminal_display(
                 task_context,
@@ -444,7 +444,7 @@ def run_twf_reference_review_workflow(
             task_run_context=task_context,
             run_workspace=run_workspace,
             metadata={
-                "workflow": TWF_REFERENCE_REVIEW_WORKFLOW_NAME,
+                "workflow": OPERATION_FLOW_REFERENCE_REVIEW_WORKFLOW_NAME,
                 **_task_context_metadata(task_context),
                 **_run_workspace_metadata(run_workspace),
             },
@@ -462,7 +462,7 @@ def run_twf_reference_review_workflow(
             model_call_count=0,
             fail_safe=True,
         )
-        task_context = finalize_twf_run_context(
+        task_context = finalize_operation_flow_run_context(
             task_context,
             status="blocked",
             evidence_refs=(
@@ -474,13 +474,13 @@ def run_twf_reference_review_workflow(
             workspace_created=run_workspace.workspace_created if run_workspace else None,
             retention_policy=run_workspace.retention_policy if run_workspace else None,
             cleanup_policy=run_workspace.cleanup_policy if run_workspace else None,
-            workspace_metadata=twf_run_workspace_status_dict(run_workspace),
+            workspace_metadata=operation_flow_run_workspace_status_dict(run_workspace),
             metadata={
                 "blocked_before_model_call": True,
                 "failure_stage": "reference_context",
             },
         )
-        return TwfReferenceReviewWorkflowResultCandidate(
+        return OperationFlowReferenceReviewWorkflowResultCandidate(
             triggered=True,
             terminal_display_text=display,
             request=request,
@@ -491,14 +491,14 @@ def run_twf_reference_review_workflow(
             task_run_context=task_context,
             run_workspace=run_workspace,
             metadata={
-                "workflow": TWF_REFERENCE_REVIEW_WORKFLOW_NAME,
+                "workflow": OPERATION_FLOW_REFERENCE_REVIEW_WORKFLOW_NAME,
                 **_task_context_metadata(task_context),
                 **_reference_context_metadata(reference_context),
                 **_run_workspace_metadata(run_workspace),
             },
         )
 
-    draft = build_twf_reference_review_draft(request, facts, reference_context)
+    draft = build_operation_flow_reference_review_draft(request, facts, reference_context)
     status = "succeeded"
     fail_safe = False
     if draft.source == "controlled_live_failed":
@@ -506,7 +506,7 @@ def run_twf_reference_review_workflow(
         fail_safe = True
         display = _failed_terminal_display(reference_context)
     else:
-        display = format_twf_reference_review_for_terminal(
+        display = format_operation_flow_reference_review_for_terminal(
             draft,
             facts,
             reference_context,
@@ -522,7 +522,7 @@ def run_twf_reference_review_workflow(
         model_call_count=draft.model_call_count,
         fail_safe=fail_safe,
     )
-    task_context = finalize_twf_run_context(
+    task_context = finalize_operation_flow_run_context(
         task_context,
         status=status,
         evidence_refs=(
@@ -537,10 +537,10 @@ def run_twf_reference_review_workflow(
         workspace_created=run_workspace.workspace_created if run_workspace else None,
         retention_policy=run_workspace.retention_policy if run_workspace else None,
         cleanup_policy=run_workspace.cleanup_policy if run_workspace else None,
-        workspace_metadata=twf_run_workspace_status_dict(run_workspace),
+        workspace_metadata=operation_flow_run_workspace_status_dict(run_workspace),
         metadata={"failure_stage": "review_generation"} if fail_safe else {},
     )
-    return TwfReferenceReviewWorkflowResultCandidate(
+    return OperationFlowReferenceReviewWorkflowResultCandidate(
         triggered=True,
         terminal_display_text=display,
         request=request,
@@ -553,7 +553,7 @@ def run_twf_reference_review_workflow(
         task_run_context=task_context,
         run_workspace=run_workspace,
         metadata={
-            "workflow": TWF_REFERENCE_REVIEW_WORKFLOW_NAME,
+            "workflow": OPERATION_FLOW_REFERENCE_REVIEW_WORKFLOW_NAME,
             **_task_context_metadata(task_context),
             **_reference_context_metadata(reference_context),
             **_run_workspace_metadata(run_workspace),
@@ -561,14 +561,14 @@ def run_twf_reference_review_workflow(
     )
 
 
-def build_twf_reference_review_draft(
-    request: TwfReferenceReviewWorkflowRequestCandidate,
-    facts: TwfReferenceReviewFactsCandidate,
-    reference_context: TwfReferenceReviewContextCandidate,
-) -> TwfReferenceReviewDraftCandidate:
+def build_operation_flow_reference_review_draft(
+    request: OperationFlowReferenceReviewWorkflowRequestCandidate,
+    facts: OperationFlowReferenceReviewFactsCandidate,
+    reference_context: OperationFlowReferenceReviewContextCandidate,
+) -> OperationFlowReferenceReviewDraftCandidate:
     """Build a local or controlled-live reference review draft."""
 
-    prompt_preview = build_twf_reference_review_prompt_preview(
+    prompt_preview = build_operation_flow_reference_review_prompt_preview(
         facts,
         reference_context,
     )
@@ -579,7 +579,7 @@ def build_twf_reference_review_draft(
     )
     skill_readonly_hint = _reference_review_skill_readonly_hint_status()
     if not request.live_model_allowed:
-        return TwfReferenceReviewDraftCandidate(
+        return OperationFlowReferenceReviewDraftCandidate(
             draft_text=_local_reference_review_draft(
                 facts,
                 reference_context,
@@ -591,7 +591,7 @@ def build_twf_reference_review_draft(
             source="local_reference_rules",
             metadata={
                 "no_live": True,
-                "review_template_version": TWF_REFERENCE_REVIEW_TEMPLATE_VERSION,
+                "review_template_version": OPERATION_FLOW_REFERENCE_REVIEW_TEMPLATE_VERSION,
                 "terminology_output_requested": facts.terminology_output_requested,
                 "terminology_items": list(terminology_items),
                 "skills_readonly_hint": skill_readonly_hint,
@@ -606,7 +606,7 @@ def build_twf_reference_review_draft(
         skill_readonly_hint=skill_readonly_hint,
     )
     if not llm_result.success or not llm_result.response_non_empty:
-        return TwfReferenceReviewDraftCandidate(
+        return OperationFlowReferenceReviewDraftCandidate(
             draft_text=_local_reference_review_draft(
                 facts,
                 reference_context,
@@ -626,7 +626,7 @@ def build_twf_reference_review_draft(
                 "skills_readonly_hint": skill_readonly_hint,
             },
         )
-    return TwfReferenceReviewDraftCandidate(
+    return OperationFlowReferenceReviewDraftCandidate(
         draft_text=_llm_display_text(llm_result),
         prompt_preview_sanitized=prompt_preview,
         model_call_count=1,
@@ -634,7 +634,7 @@ def build_twf_reference_review_draft(
         metadata={
             "llm_invocation_result_ref": llm_result.request_id,
             "sanitized_response_length": llm_result.sanitized_response_length,
-            "review_template_version": TWF_REFERENCE_REVIEW_TEMPLATE_VERSION,
+            "review_template_version": OPERATION_FLOW_REFERENCE_REVIEW_TEMPLATE_VERSION,
             "terminology_output_requested": facts.terminology_output_requested,
             "terminology_items": list(terminology_items),
             "skills_readonly_hint": skill_readonly_hint,
@@ -642,9 +642,9 @@ def build_twf_reference_review_draft(
     )
 
 
-def build_twf_reference_review_prompt_preview(
-    facts: TwfReferenceReviewFactsCandidate,
-    reference_context: TwfReferenceReviewContextCandidate,
+def build_operation_flow_reference_review_prompt_preview(
+    facts: OperationFlowReferenceReviewFactsCandidate,
+    reference_context: OperationFlowReferenceReviewContextCandidate,
 ) -> str:
     """Build a compact sanitized prompt preview for governed LLM calls."""
 
@@ -662,10 +662,10 @@ def build_twf_reference_review_prompt_preview(
     return _preview_text("，".join(parts), REFERENCE_REVIEW_PROMPT_PREVIEW_LIMIT)
 
 
-def format_twf_reference_review_for_terminal(
-    draft: TwfReferenceReviewDraftCandidate,
-    facts: TwfReferenceReviewFactsCandidate,
-    reference_context: TwfReferenceReviewContextCandidate,
+def format_operation_flow_reference_review_for_terminal(
+    draft: OperationFlowReferenceReviewDraftCandidate,
+    facts: OperationFlowReferenceReviewFactsCandidate,
+    reference_context: OperationFlowReferenceReviewContextCandidate,
     *,
     no_live: bool,
     fallback_note: str | None = None,
@@ -733,7 +733,7 @@ def format_twf_reference_review_for_terminal(
 
 
 def _controlled_live_fallback_note(
-    draft: TwfReferenceReviewDraftCandidate,
+    draft: OperationFlowReferenceReviewDraftCandidate,
 ) -> str | None:
     if draft.source != "controlled_live_failed_local_fallback":
         return None
@@ -1132,11 +1132,11 @@ def _append_review_section(
 
 
 def _build_reference_review_task_context(
-    request: TwfReferenceReviewWorkflowRequestCandidate,
-    facts: TwfReferenceReviewFactsCandidate,
-) -> TwfRunContextCandidate:
-    return build_twf_run_context(
-        workflow_name=TWF_REFERENCE_REVIEW_WORKFLOW_NAME,
+    request: OperationFlowReferenceReviewWorkflowRequestCandidate,
+    facts: OperationFlowReferenceReviewFactsCandidate,
+) -> OperationFlowRunContextCandidate:
+    return build_operation_flow_run_context(
+        workflow_name=OPERATION_FLOW_REFERENCE_REVIEW_WORKFLOW_NAME,
         task_kind=facts.task_kind,
         session_id=request.chat_session_id,
         turn_index=request.turn_index,
@@ -1157,9 +1157,9 @@ def _build_reference_review_task_context(
 
 
 def _build_reference_review_context(
-    request: TwfReferenceReviewWorkflowRequestCandidate,
-    task_context: TwfRunContextCandidate,
-) -> TwfReferenceReviewContextCandidate:
+    request: OperationFlowReferenceReviewWorkflowRequestCandidate,
+    task_context: OperationFlowRunContextCandidate,
+) -> OperationFlowReferenceReviewContextCandidate:
     requested_references = tuple(_ordered_unique(request.reference_paths))
     requested_external_evidence = tuple(
         _ordered_unique(
@@ -1171,7 +1171,7 @@ def _build_reference_review_context(
         )
     )
     if not requested_references and not requested_external_evidence:
-        return TwfReferenceReviewContextCandidate(
+        return OperationFlowReferenceReviewContextCandidate(
             status="blocked",
             blocking_reasons=("reference_material_required",),
             metadata={"workflow_stage": "reference_context"},
@@ -1184,20 +1184,20 @@ def _build_reference_review_context(
     blocking: list[str] = []
     warnings: list[str] = []
     if requested_references:
-        exposure = resolve_twf_tool_exposure_profile(
+        exposure = resolve_operation_flow_tool_exposure_profile(
             profile_name=request.reference_profile_name,
             profile_config=request.reference_profile_config,
             repo_root=repo_root,
             session_args=request.reference_session_args,
             entrypoint_explicit_args=request.reference_entrypoint_explicit_args,
         )
-        exposure_status = twf_tool_exposure_profile_status_dict(exposure)
-        loading_gate = validate_twf_tool_loading_gate(
+        exposure_status = operation_flow_tool_exposure_profile_status_dict(exposure)
+        loading_gate = validate_operation_flow_tool_loading_gate(
             exposure,
             operator_approved=bool(request.approval_ref),
             approval_ref=request.approval_ref,
         )
-        loading_gate_status = twf_tool_loading_gate_status_dict(loading_gate)
+        loading_gate_status = operation_flow_tool_loading_gate_status_dict(loading_gate)
         reference_reader_policy = exposure.reference_reader_policy
         blocking.extend(exposure.blocking_reasons)
         warnings.extend(exposure.warnings)
@@ -1223,11 +1223,11 @@ def _build_reference_review_context(
     external_evidence_status: dict[str, Any] | None = None
     if not blocking and reference_reader_policy is not None:
         for reference in requested_references:
-            read_result = read_twf_reference(
-                TwfReferenceReadRequestCandidate(
+            read_result = read_operation_flow_reference(
+                OperationFlowReferenceReadRequestCandidate(
                     reference=reference,
                     policy=reference_reader_policy,
-                    purpose="twf_reference_review",
+                    purpose="operation_flow_reference_review",
                     task_run_id=task_context.run_id,
                 )
             )
@@ -1276,7 +1276,7 @@ def _build_reference_review_context(
 
     bounded_excerpts = tuple(_bounded_reference_excerpts(reference_excerpts))
     status = "blocked" if blocking else "succeeded"
-    return TwfReferenceReviewContextCandidate(
+    return OperationFlowReferenceReviewContextCandidate(
         status=status,
         requested_references=requested_references,
         consumed_reference_count=0 if blocking else len(bounded_excerpts),
@@ -1320,8 +1320,8 @@ def _build_reference_review_context(
 
 
 def _local_reference_review_draft(
-    facts: TwfReferenceReviewFactsCandidate,
-    reference_context: TwfReferenceReviewContextCandidate,
+    facts: OperationFlowReferenceReviewFactsCandidate,
+    reference_context: OperationFlowReferenceReviewContextCandidate,
     *,
     terminology_items: Sequence[Mapping[str, Any]] = (),
     skill_readonly_hint: Mapping[str, Any] | None = None,
@@ -1409,7 +1409,7 @@ def _local_reference_review_draft(
 def _reference_findings(excerpts_text: str) -> dict[str, list[str]]:
     next_step_markers = ("下一步", "建议", "进入", "实施", "真实", "验收")
     keyword_markers = (
-        "task workflow",
+        "operation flow",
         "reference-reader",
         "run workspace",
         "Agent runtime",
@@ -1444,14 +1444,14 @@ def _reference_review_requests_terminology(normalized_text: str) -> bool:
 
 
 def _reference_review_skill_readonly_hint_status() -> dict[str, Any]:
-    summary = build_default_twf_skill_capability_projection_status_summary()
-    status = twf_skill_projection_status_summary_status_dict(summary)
+    summary = build_default_operation_flow_skill_capability_projection_status_summary()
+    status = operation_flow_skill_projection_status_summary_status_dict(summary)
     return {
         "status": status.get("status"),
         "source": status.get("source"),
-        "workflow_name": TWF_REFERENCE_REVIEW_WORKFLOW_NAME,
+        "workflow_name": OPERATION_FLOW_REFERENCE_REVIEW_WORKFLOW_NAME,
         "allowed_use": status.get("allowed_use_summary", {}).get(
-            TWF_REFERENCE_REVIEW_WORKFLOW_NAME,
+            OPERATION_FLOW_REFERENCE_REVIEW_WORKFLOW_NAME,
             [],
         ),
         "skill_ids": [
@@ -1499,7 +1499,7 @@ def _reference_terminology_items(
         "reference reader",
         "local reference reader",
         "reference review",
-        "task workflow",
+        "operation flow",
         "run workspace",
         "Agent runtime",
         "Skills runtime",
@@ -1581,7 +1581,7 @@ def _looks_like_reference_term(term: str) -> bool:
             "skill",
             "summary",
             "tool",
-            "twf",
+            "operation_flow",
             "url",
             "workflow",
             "_",
@@ -1622,8 +1622,8 @@ def _terminology_category(term: str) -> str:
         for marker in ("reference", "reader", "evidence", "url", "search", "rag")
     ):
         return "资料读取与证据"
-    if any(marker in lower for marker in ("workflow", "twf", "task")):
-        return "workflow 与任务控制"
+    if any(marker in lower for marker in ("workflow", "operation_flow", "task")):
+        return "workflow 与操作控制"
     if any(marker in lower for marker in ("runtime", "litellm", "ollama", "model")):
         return "运行时与模型调用"
     if any(marker in lower for marker in ("gateway", "product")):
@@ -1662,9 +1662,9 @@ def _terminology_note(term: str) -> str:
         "reference reader": "本地只读资料读取器。",
         "local reference reader": "本地只读资料读取器。",
         "reference review": "资料审查 workflow。",
-        "task workflow": "任务型 workflow，承接特定任务控制结构。",
-        "cognition task workflows": "认知系统任务 workflow 包，承接通道无关任务能力。",
-        "twf reference review workflow": "Twf 资料审查 workflow 的内部标识。",
+        "operation flow": "任务型 workflow，承接特定操作控制结构。",
+        "cognition operation flows": "认知系统任务 workflow 包，承接通道无关任务能力。",
+        "operation_flow reference review workflow": "OperationFlow 资料审查 workflow 的内部标识。",
         "terminology items": "术语条目列表，用于稳定展示英文名词与中文语义注释。",
         "run workspace": "单次任务运行工作区，用于保存证据、摘要和结果。",
         "route projection summary": "路由投影摘要，用于展示任务路由判断。",
@@ -1710,11 +1710,11 @@ def _terminology_display_lines(
 
 
 def _invoke_reference_review_llm(
-    request: TwfReferenceReviewWorkflowRequestCandidate,
+    request: OperationFlowReferenceReviewWorkflowRequestCandidate,
     *,
-    facts: TwfReferenceReviewFactsCandidate,
+    facts: OperationFlowReferenceReviewFactsCandidate,
     prompt_preview: str,
-    reference_context: TwfReferenceReviewContextCandidate,
+    reference_context: OperationFlowReferenceReviewContextCandidate,
     terminology_items: Sequence[Mapping[str, Any]],
     skill_readonly_hint: Mapping[str, Any],
 ) -> LlmInvocationResult:
@@ -1723,17 +1723,17 @@ def _invoke_reference_review_llm(
         raise ValueError(
             "llm_invocation_service is required for controlled-live reference review"
         )
-    facade = TwfLlmInvocationFacade(
+    facade = OperationFlowLlmInvocationFacade(
         service=service,
         metadata={
             "source": "cognition_operation_flows._workflows.reference_review",
-            "workflow": TWF_REFERENCE_REVIEW_WORKFLOW_NAME,
+            "workflow": OPERATION_FLOW_REFERENCE_REVIEW_WORKFLOW_NAME,
             "purpose": "reference_review",
         },
     )
-    invocation_request = build_twf_llm_invocation_request(
+    invocation_request = build_operation_flow_llm_invocation_request(
         request_id=(
-            "twf-reference-review-"
+            "operation_flow-reference-review-"
             f"{request.chat_session_id or 'session'}-{request.turn_index or 0}"
         ),
         route_facts=ModelRouteFacts(
@@ -1749,7 +1749,7 @@ def _invoke_reference_review_llm(
         ),
         governance_precondition=LlmGovernancePrecondition(
             allowed=True,
-            reason="twf_reference_review_controlled_live_allowed",
+            reason="operation_flow_reference_review_controlled_live_allowed",
             decision="continue",
             governance_decision_ref=request.approval_ref,
             metadata={
@@ -1760,13 +1760,13 @@ def _invoke_reference_review_llm(
             },
         ),
         prompt_ref=(
-            "twf-reference-review-input://"
+            "operation_flow-reference-review-input://"
             f"{request.chat_session_id or 'session'}/{request.turn_index or 0}"
         ),
         prompt_preview_sanitized=prompt_preview,
         metadata={
             "source": "cognition_operation_flows._workflows.reference_review",
-            "interaction_mode": TWF_REFERENCE_REVIEW_WORKFLOW_NAME,
+            "interaction_mode": OPERATION_FLOW_REFERENCE_REVIEW_WORKFLOW_NAME,
             "workflow_stage": "reference_review",
             "controlled_live": True,
             "live_llm_allowed": True,
@@ -1777,7 +1777,7 @@ def _invoke_reference_review_llm(
             "terminology_output_requested": facts.terminology_output_requested,
             "reference_context_status": reference_context.status,
             "reference_context_evidence_ref_count": len(reference_context.evidence_refs),
-            "review_template_version": TWF_REFERENCE_REVIEW_TEMPLATE_VERSION,
+            "review_template_version": OPERATION_FLOW_REFERENCE_REVIEW_TEMPLATE_VERSION,
             "skills_readonly_hint": dict(skill_readonly_hint),
             "terminology_items": [dict(item) for item in terminology_items],
             "external_readonly_evidence_prepared": bool(
@@ -1801,19 +1801,19 @@ def _invoke_reference_review_llm(
 
 
 def _create_reference_review_run_workspace(
-    request: TwfReferenceReviewWorkflowRequestCandidate,
-    task_context: TwfRunContextCandidate,
-) -> TwfRunWorkspaceStateCandidate | None:
+    request: OperationFlowReferenceReviewWorkflowRequestCandidate,
+    task_context: OperationFlowRunContextCandidate,
+) -> OperationFlowRunWorkspaceStateCandidate | None:
     if not request.run_workspace_enabled and not request.run_workspace_root:
         return None
     workspace_root = request.run_workspace_root or ".cognition-runs"
-    policy = build_twf_run_workspace_policy(
+    policy = build_operation_flow_run_workspace_policy(
         workspace_root=workspace_root,
         retention_policy=request.run_workspace_retention_policy,
         cleanup_policy=request.run_workspace_cleanup_policy,
         max_write_bytes=request.run_workspace_max_write_bytes,
     )
-    return create_twf_run_workspace(
+    return create_operation_flow_run_workspace(
         policy=policy,
         workflow_name=task_context.workflow_name,
         run_id=task_context.run_id,
@@ -1821,20 +1821,20 @@ def _create_reference_review_run_workspace(
 
 
 def _finalize_reference_review_run_workspace(
-    run_workspace: TwfRunWorkspaceStateCandidate | None,
+    run_workspace: OperationFlowRunWorkspaceStateCandidate | None,
     *,
     status: str,
     terminal_display_text: str,
-    facts: TwfReferenceReviewFactsCandidate,
-    reference_context: TwfReferenceReviewContextCandidate,
+    facts: OperationFlowReferenceReviewFactsCandidate,
+    reference_context: OperationFlowReferenceReviewContextCandidate,
     model_call_count: int,
     fail_safe: bool,
-) -> TwfRunWorkspaceStateCandidate | None:
+) -> OperationFlowRunWorkspaceStateCandidate | None:
     if run_workspace is None or not run_workspace.workspace_created:
         return run_workspace
     max_write_bytes = int(run_workspace.metadata.get("max_write_bytes") or 65536)
     if reference_context.status != "not_started":
-        run_workspace, _ = write_twf_run_workspace_json(
+        run_workspace, _ = write_operation_flow_run_workspace_json(
             run_workspace,
             relative_path="evidence/reference_context.json",
             payload=_reference_context_workspace_payload(reference_context),
@@ -1842,60 +1842,60 @@ def _finalize_reference_review_run_workspace(
             max_write_bytes=max_write_bytes,
         )
         for index, excerpt in enumerate(reference_context.reference_excerpts, start=1):
-            run_workspace, _ = write_twf_run_workspace_text(
+            run_workspace, _ = write_operation_flow_run_workspace_text(
                 run_workspace,
                 relative_path=f"references/reference-{index:03d}.txt",
                 text=excerpt,
                 kind="reference",
                 max_write_bytes=max_write_bytes,
             )
-    run_workspace, _ = write_twf_run_workspace_text(
+    run_workspace, _ = write_operation_flow_run_workspace_text(
         run_workspace,
         relative_path="artifacts/terminal_display.txt",
         text=terminal_display_text + "\n",
         kind="artifact",
         max_write_bytes=max_write_bytes,
     )
-    run_workspace, _ = write_twf_run_workspace_json(
+    run_workspace, _ = write_operation_flow_run_workspace_json(
         run_workspace,
         relative_path="results/workflow_result.json",
         payload={
-            "workflow": TWF_REFERENCE_REVIEW_WORKFLOW_NAME,
+            "workflow": OPERATION_FLOW_REFERENCE_REVIEW_WORKFLOW_NAME,
             "status": status,
             "task_kind": facts.task_kind,
             "review_intents": list(facts.review_intents),
             "topic_hints": list(facts.topic_hints),
             "model_call_count": model_call_count,
             "fail_safe": fail_safe,
-            "review_template_version": TWF_REFERENCE_REVIEW_TEMPLATE_VERSION,
+            "review_template_version": OPERATION_FLOW_REFERENCE_REVIEW_TEMPLATE_VERSION,
             "reference_context_status": reference_context.status,
             "reference_evidence_refs": list(reference_context.evidence_refs),
         },
         kind="result",
         max_write_bytes=max_write_bytes,
     )
-    run_workspace = finalize_twf_run_workspace(
+    run_workspace = finalize_operation_flow_run_workspace(
         run_workspace,
         status=status,
         metadata={
-            "workflow": TWF_REFERENCE_REVIEW_WORKFLOW_NAME,
+            "workflow": OPERATION_FLOW_REFERENCE_REVIEW_WORKFLOW_NAME,
             "model_call_count": model_call_count,
             "fail_safe": fail_safe,
-            "review_template_version": TWF_REFERENCE_REVIEW_TEMPLATE_VERSION,
+            "review_template_version": OPERATION_FLOW_REFERENCE_REVIEW_TEMPLATE_VERSION,
         },
     )
-    run_workspace, _ = cleanup_twf_run_workspace(run_workspace, status=status)
+    run_workspace, _ = cleanup_operation_flow_run_workspace(run_workspace, status=status)
     return run_workspace
 
 
 def _finalize_task_context_with_run_workspace(
-    task_context: TwfRunContextCandidate,
+    task_context: OperationFlowRunContextCandidate,
     *,
     status: str,
-    run_workspace: TwfRunWorkspaceStateCandidate | None,
+    run_workspace: OperationFlowRunWorkspaceStateCandidate | None,
     metadata: Mapping[str, Any] | None = None,
-) -> TwfRunContextCandidate:
-    return finalize_twf_run_context(
+) -> OperationFlowRunContextCandidate:
+    return finalize_operation_flow_run_context(
         task_context,
         status=status,
         artifact_refs=_run_workspace_artifact_and_result_refs(run_workspace),
@@ -1904,24 +1904,24 @@ def _finalize_task_context_with_run_workspace(
         workspace_created=run_workspace.workspace_created if run_workspace else None,
         retention_policy=run_workspace.retention_policy if run_workspace else None,
         cleanup_policy=run_workspace.cleanup_policy if run_workspace else None,
-        workspace_metadata=twf_run_workspace_status_dict(run_workspace),
+        workspace_metadata=operation_flow_run_workspace_status_dict(run_workspace),
         metadata=metadata,
     )
 
 
-def _task_context_metadata(task_context: TwfRunContextCandidate) -> dict[str, Any]:
-    return {"task_control": twf_run_context_status_dict(task_context)}
+def _task_context_metadata(task_context: OperationFlowRunContextCandidate) -> dict[str, Any]:
+    return {"operation_control": operation_flow_run_context_status_dict(task_context)}
 
 
 def _run_workspace_metadata(
-    run_workspace: TwfRunWorkspaceStateCandidate | None,
+    run_workspace: OperationFlowRunWorkspaceStateCandidate | None,
 ) -> dict[str, Any]:
-    status = twf_run_workspace_status_dict(run_workspace)
+    status = operation_flow_run_workspace_status_dict(run_workspace)
     return {"run_workspace": status} if status is not None else {}
 
 
 def _reference_context_metadata(
-    reference_context: TwfReferenceReviewContextCandidate,
+    reference_context: OperationFlowReferenceReviewContextCandidate,
 ) -> dict[str, Any]:
     return {
         "reference_context": {
@@ -1942,7 +1942,7 @@ def _reference_context_metadata(
 
 
 def _reference_context_workspace_payload(
-    reference_context: TwfReferenceReviewContextCandidate,
+    reference_context: OperationFlowReferenceReviewContextCandidate,
 ) -> dict[str, Any]:
     tool_loading_gate = reference_context.metadata.get("tool_loading_gate")
     return {
@@ -1964,7 +1964,7 @@ def _reference_context_workspace_payload(
 
 
 def _run_workspace_artifact_and_result_refs(
-    run_workspace: TwfRunWorkspaceStateCandidate | None,
+    run_workspace: OperationFlowRunWorkspaceStateCandidate | None,
 ) -> tuple[str, ...]:
     if run_workspace is None:
         return ()
@@ -1972,7 +1972,7 @@ def _run_workspace_artifact_and_result_refs(
 
 
 def _preflight_blocked_terminal_display(
-    task_context: TwfRunContextCandidate,
+    task_context: OperationFlowRunContextCandidate,
 ) -> str:
     reasons = ", ".join(task_context.preflight.blocking_reasons)
     return "\n".join(
@@ -1986,8 +1986,8 @@ def _preflight_blocked_terminal_display(
 
 
 def _workspace_blocked_terminal_display(
-    task_context: TwfRunContextCandidate,
-    run_workspace: TwfRunWorkspaceStateCandidate,
+    task_context: OperationFlowRunContextCandidate,
+    run_workspace: OperationFlowRunWorkspaceStateCandidate,
 ) -> str:
     reasons = ", ".join(run_workspace.blocking_reasons)
     return "\n".join(
@@ -2001,8 +2001,8 @@ def _workspace_blocked_terminal_display(
 
 
 def _reference_blocked_terminal_display(
-    task_context: TwfRunContextCandidate,
-    reference_context: TwfReferenceReviewContextCandidate,
+    task_context: OperationFlowRunContextCandidate,
+    reference_context: OperationFlowReferenceReviewContextCandidate,
 ) -> str:
     reasons = ", ".join(reference_context.blocking_reasons)
     return "\n".join(
@@ -2016,7 +2016,7 @@ def _reference_blocked_terminal_display(
 
 
 def _failed_terminal_display(
-    reference_context: TwfReferenceReviewContextCandidate,
+    reference_context: OperationFlowReferenceReviewContextCandidate,
 ) -> str:
     evidence_refs = ", ".join(reference_context.evidence_refs) or "none"
     return "\n".join(
@@ -2047,7 +2047,7 @@ def _evidence_lines(labels: Sequence[str], refs: Sequence[str]) -> list[str]:
 
 
 def _external_readonly_evidence_ref_lines(
-    reference_context: TwfReferenceReviewContextCandidate,
+    reference_context: OperationFlowReferenceReviewContextCandidate,
 ) -> list[str]:
     summaries = _external_readonly_evidence_summaries(reference_context)
     lines: list[str] = []
@@ -2071,7 +2071,7 @@ def _external_readonly_evidence_ref_lines(
 
 
 def _external_readonly_evidence_summary_lines(
-    reference_context: TwfReferenceReviewContextCandidate,
+    reference_context: OperationFlowReferenceReviewContextCandidate,
 ) -> list[str]:
     summaries = _external_readonly_evidence_summaries(reference_context)
     if not summaries:
@@ -2110,7 +2110,7 @@ def _external_readonly_evidence_summary_lines(
 
 
 def _external_readonly_evidence_summaries(
-    reference_context: TwfReferenceReviewContextCandidate,
+    reference_context: OperationFlowReferenceReviewContextCandidate,
 ) -> tuple[Mapping[str, Any], ...]:
     context = reference_context.metadata.get("external_readonly_evidence_context")
     if not isinstance(context, Mapping):

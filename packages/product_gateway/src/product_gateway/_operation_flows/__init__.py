@@ -1,2 +1,2 @@
-"""Internal task workflow backend implementation for product_gateway."""
+"""Internal operation flow backend implementation for product_gateway."""
 

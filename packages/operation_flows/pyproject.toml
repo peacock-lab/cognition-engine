@@ -1,13 +1,13 @@
 [project]
 name = "cognition-system-operation-flows"
-version = "0.8.0"
+version = "0.8.1"
 description = "Product-level governed operation flows package for the Cognition System."
-readme = { text = "Cognition System v0.8.0 public package. See the version-specific public README in the release repository for usage and boundary notes.", content-type = "text/markdown" }
+readme = { text = "Cognition System v0.8.1 public package. See the version-specific public README in the release repository for usage and boundary notes.", content-type = "text/markdown" }
 requires-python = ">=3.14"
 dependencies = [
-  "cognition-system-config-contexts==0.8.0",
-  "cognition-system-contract-core==0.8.0",
-  "cognition-system-runtime==0.8.0",
+  "cognition-system-config-contexts==0.8.1",
+  "cognition-system-contract-core==0.8.1",
+  "cognition-system-runtime==0.8.1",
   "pydantic>=2.13.0",
 ]
 
@@ -25,8 +25,7 @@ source_root = "src/cognition_operation_flows"
 channel_neutral = true
 workflow_execution_enabled = false
 operation_flow_descriptor_candidate_enabled = true
-twf_router_candidate_enabled = true
-task_control_candidate_enabled = false
+operation_flow_router_candidate_enabled = true
 operation_control_candidate_enabled = true
 run_workspace_candidate_enabled = true
 skill_projection_context_candidate_enabled = true

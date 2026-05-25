@@ -7,17 +7,17 @@ from typing import Any
 
 from cognition_operation_flows._workflows.plan import DEFAULT_PLAN_MODEL_NAME
 from cognition_operation_flows._requests.builder import (
-    TwfWorkflowRequestCandidate,
-    build_twf_workflow_request_from_twf_draft,
+    OperationFlowWorkflowRequestCandidate,
+    build_operation_flow_workflow_request_from_operation_flow_draft,
 )
 from cognition_operation_flows._requests.drafts import (
-    TwfGovernanceRefsCandidate,
-    TwfReferenceWorkspaceControlsCandidate,
-    TwfWorkflowRequestDraftCandidate,
-    build_twf_config_profile_explain_request_draft,
-    build_twf_plan_request_draft,
-    build_twf_reference_review_request_draft,
-    build_twf_run_workspace_evidence_audit_request_draft,
+    OperationFlowGovernanceRefsCandidate,
+    OperationFlowReferenceWorkspaceControlsCandidate,
+    OperationFlowWorkflowRequestDraftCandidate,
+    build_operation_flow_config_profile_explain_request_draft,
+    build_operation_flow_plan_request_draft,
+    build_operation_flow_reference_review_request_draft,
+    build_operation_flow_run_workspace_evidence_audit_request_draft,
 )
 
 
@@ -49,7 +49,7 @@ _REFERENCE_WORKSPACE_CONTROL_FIELDS = (
 )
 
 
-def build_twf_product_entry_plan_request_draft(
+def build_operation_flow_product_entry_plan_request_draft(
     *,
     sanitized_user_text: str,
     chat_session_id: str | None = None,
@@ -68,17 +68,17 @@ def build_twf_product_entry_plan_request_draft(
     live_llm_timeout_seconds: int | None = None,
     live_model_allowed: bool = False,
     metadata: Mapping[str, Any] | None = None,
-) -> TwfWorkflowRequestDraftCandidate:
+) -> OperationFlowWorkflowRequestDraftCandidate:
     """Build a plan request draft for product-entry consumers."""
 
-    return build_twf_plan_request_draft(
+    return build_operation_flow_plan_request_draft(
         sanitized_user_text=sanitized_user_text,
         chat_session_id=chat_session_id,
         turn_index=turn_index,
         sanitized_history=sanitized_history,
         sanitized_previous_display_text=sanitized_previous_display_text,
-        governance_refs=_twf_product_entry_governance_refs(governance_refs),
-        controls=_twf_product_entry_controls(controls),
+        governance_refs=_operation_flow_product_entry_governance_refs(governance_refs),
+        controls=_operation_flow_product_entry_controls(controls),
         route_summary=route_summary,
         user_passthrough_parameters=user_passthrough_parameters,
         operator_approved=operator_approved,
@@ -92,7 +92,7 @@ def build_twf_product_entry_plan_request_draft(
     )
 
 
-def build_twf_product_entry_reference_review_request_draft(
+def build_operation_flow_product_entry_reference_review_request_draft(
     *,
     sanitized_user_text: str,
     chat_session_id: str | None = None,
@@ -110,16 +110,16 @@ def build_twf_product_entry_reference_review_request_draft(
     live_llm_timeout_seconds: int | None = None,
     live_model_allowed: bool = False,
     metadata: Mapping[str, Any] | None = None,
-) -> TwfWorkflowRequestDraftCandidate:
+) -> OperationFlowWorkflowRequestDraftCandidate:
     """Build a reference-review request draft for product-entry consumers."""
 
-    return build_twf_reference_review_request_draft(
+    return build_operation_flow_reference_review_request_draft(
         sanitized_user_text=sanitized_user_text,
         chat_session_id=chat_session_id,
         turn_index=turn_index,
         sanitized_history=sanitized_history,
-        governance_refs=_twf_product_entry_governance_refs(governance_refs),
-        controls=_twf_product_entry_controls(controls),
+        governance_refs=_operation_flow_product_entry_governance_refs(governance_refs),
+        controls=_operation_flow_product_entry_controls(controls),
         route_summary=route_summary,
         user_passthrough_parameters=user_passthrough_parameters,
         operator_approved=operator_approved,
@@ -133,7 +133,7 @@ def build_twf_product_entry_reference_review_request_draft(
     )
 
 
-def build_twf_product_entry_config_profile_explain_request_draft(
+def build_operation_flow_product_entry_config_profile_explain_request_draft(
     *,
     sanitized_user_text: str,
     chat_session_id: str | None = None,
@@ -153,16 +153,16 @@ def build_twf_product_entry_config_profile_explain_request_draft(
     live_llm_timeout_seconds: int | None = None,
     live_model_allowed: bool = False,
     metadata: Mapping[str, Any] | None = None,
-) -> TwfWorkflowRequestDraftCandidate:
+) -> OperationFlowWorkflowRequestDraftCandidate:
     """Build a config-profile explanation draft for product-entry consumers."""
 
-    return build_twf_config_profile_explain_request_draft(
+    return build_operation_flow_config_profile_explain_request_draft(
         sanitized_user_text=sanitized_user_text,
         chat_session_id=chat_session_id,
         turn_index=turn_index,
         sanitized_history=sanitized_history,
-        governance_refs=_twf_product_entry_governance_refs(governance_refs),
-        controls=_twf_product_entry_controls(controls),
+        governance_refs=_operation_flow_product_entry_governance_refs(governance_refs),
+        controls=_operation_flow_product_entry_controls(controls),
         route_summary=route_summary,
         entrypoint_explicit_args=entrypoint_explicit_args,
         session_args=session_args,
@@ -178,7 +178,7 @@ def build_twf_product_entry_config_profile_explain_request_draft(
     )
 
 
-def build_twf_product_entry_run_workspace_evidence_audit_request_draft(
+def build_operation_flow_product_entry_run_workspace_evidence_audit_request_draft(
     *,
     sanitized_user_text: str,
     chat_session_id: str | None = None,
@@ -196,16 +196,16 @@ def build_twf_product_entry_run_workspace_evidence_audit_request_draft(
     live_llm_timeout_seconds: int | None = None,
     live_model_allowed: bool = False,
     metadata: Mapping[str, Any] | None = None,
-) -> TwfWorkflowRequestDraftCandidate:
+) -> OperationFlowWorkflowRequestDraftCandidate:
     """Build a run-workspace evidence-audit draft for product-entry consumers."""
 
-    return build_twf_run_workspace_evidence_audit_request_draft(
+    return build_operation_flow_run_workspace_evidence_audit_request_draft(
         sanitized_user_text=sanitized_user_text,
         chat_session_id=chat_session_id,
         turn_index=turn_index,
         sanitized_history=sanitized_history,
-        governance_refs=_twf_product_entry_governance_refs(governance_refs),
-        controls=_twf_product_entry_controls(controls),
+        governance_refs=_operation_flow_product_entry_governance_refs(governance_refs),
+        controls=_operation_flow_product_entry_controls(controls),
         route_summary=route_summary,
         user_passthrough_parameters=user_passthrough_parameters,
         operator_approved=operator_approved,
@@ -219,8 +219,8 @@ def build_twf_product_entry_run_workspace_evidence_audit_request_draft(
     )
 
 
-def build_twf_product_entry_workflow_request(
-    draft: TwfWorkflowRequestDraftCandidate,
+def build_operation_flow_product_entry_workflow_request(
+    draft: OperationFlowWorkflowRequestDraftCandidate,
     *,
     llm_invocation_service: Any | None = None,
     config_context: Any | None = None,
@@ -232,10 +232,10 @@ def build_twf_product_entry_workflow_request(
     reference_session_args: Mapping[str, Any] | None = None,
     reference_entrypoint_explicit_args: Mapping[str, Any] | None = None,
     model_name: str = DEFAULT_PLAN_MODEL_NAME,
-) -> TwfWorkflowRequestCandidate:
-    """Build an executable TWF request from a product-entry draft."""
+) -> OperationFlowWorkflowRequestCandidate:
+    """Build an executable operation flow request from a product-entry draft."""
 
-    return build_twf_workflow_request_from_twf_draft(
+    return build_operation_flow_workflow_request_from_operation_flow_draft(
         draft,
         llm_invocation_service=llm_invocation_service,
         config_context=config_context,
@@ -250,22 +250,22 @@ def build_twf_product_entry_workflow_request(
     )
 
 
-def _twf_product_entry_governance_refs(
+def _operation_flow_product_entry_governance_refs(
     value: Any | Mapping[str, Any] | None,
-) -> TwfGovernanceRefsCandidate | None:
-    if value is None or isinstance(value, TwfGovernanceRefsCandidate):
+) -> OperationFlowGovernanceRefsCandidate | None:
+    if value is None or isinstance(value, OperationFlowGovernanceRefsCandidate):
         return value
-    return TwfGovernanceRefsCandidate(
+    return OperationFlowGovernanceRefsCandidate(
         **_object_values(value, _GOVERNANCE_REF_FIELDS)
     )
 
 
-def _twf_product_entry_controls(
+def _operation_flow_product_entry_controls(
     value: Any | Mapping[str, Any] | None,
-) -> TwfReferenceWorkspaceControlsCandidate | None:
-    if value is None or isinstance(value, TwfReferenceWorkspaceControlsCandidate):
+) -> OperationFlowReferenceWorkspaceControlsCandidate | None:
+    if value is None or isinstance(value, OperationFlowReferenceWorkspaceControlsCandidate):
         return value
-    return TwfReferenceWorkspaceControlsCandidate(
+    return OperationFlowReferenceWorkspaceControlsCandidate(
         **_object_values(value, _REFERENCE_WORKSPACE_CONTROL_FIELDS)
     )
 
@@ -281,9 +281,9 @@ def _object_values(value: Any, field_names: Sequence[str]) -> dict[str, Any]:
 
 
 __all__ = [
-    "build_twf_product_entry_config_profile_explain_request_draft",
-    "build_twf_product_entry_plan_request_draft",
-    "build_twf_product_entry_reference_review_request_draft",
-    "build_twf_product_entry_run_workspace_evidence_audit_request_draft",
-    "build_twf_product_entry_workflow_request",
+    "build_operation_flow_product_entry_config_profile_explain_request_draft",
+    "build_operation_flow_product_entry_plan_request_draft",
+    "build_operation_flow_product_entry_reference_review_request_draft",
+    "build_operation_flow_product_entry_run_workspace_evidence_audit_request_draft",
+    "build_operation_flow_product_entry_workflow_request",
 ]

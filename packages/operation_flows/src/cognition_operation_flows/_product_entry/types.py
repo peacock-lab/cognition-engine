@@ -1,4 +1,4 @@
-"""Private product-entry types for the TWF public service surface."""
+"""Private product-entry types for the operation flow public service surface."""
 
 from __future__ import annotations
 
@@ -6,9 +6,9 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from cognition_operation_flows._requests.intent_detectors import (
-    TWF_CONFIG_PROFILE_EXPLAIN_WORKFLOW_NAME,
-    TWF_REFERENCE_REVIEW_WORKFLOW_NAME,
-    TWF_RUN_WORKSPACE_EVIDENCE_AUDIT_WORKFLOW_NAME,
+    OPERATION_FLOW_CONFIG_PROFILE_EXPLAIN_WORKFLOW_NAME,
+    OPERATION_FLOW_REFERENCE_REVIEW_WORKFLOW_NAME,
+    OPERATION_FLOW_RUN_WORKSPACE_EVIDENCE_AUDIT_WORKFLOW_NAME,
 )
 from cognition_operation_flows._tools.reference_reader import (
     DEFAULT_REFERENCE_READER_FORBIDDEN_PATH_MARKERS,
@@ -16,35 +16,35 @@ from cognition_operation_flows._tools.reference_reader import (
     REFERENCE_READER_TOOL_NAME,
 )
 from cognition_operation_flows._requests.registry import (
-    TWF_PLAN_WORKFLOW_NAME,
-    TwfRouteCandidate,
+    OPERATION_FLOW_PLAN_WORKFLOW_NAME,
+    OperationFlowRouteCandidate,
 )
 
 
-TWF_PRODUCT_ENTRY_PLAN_WORKFLOW_NAME = TWF_PLAN_WORKFLOW_NAME
-TWF_PRODUCT_ENTRY_REFERENCE_REVIEW_WORKFLOW_NAME = (
-    TWF_REFERENCE_REVIEW_WORKFLOW_NAME
+OPERATION_FLOW_PRODUCT_ENTRY_PLAN_WORKFLOW_NAME = OPERATION_FLOW_PLAN_WORKFLOW_NAME
+OPERATION_FLOW_PRODUCT_ENTRY_REFERENCE_REVIEW_WORKFLOW_NAME = (
+    OPERATION_FLOW_REFERENCE_REVIEW_WORKFLOW_NAME
 )
-TWF_PRODUCT_ENTRY_CONFIG_PROFILE_EXPLAIN_WORKFLOW_NAME = (
-    TWF_CONFIG_PROFILE_EXPLAIN_WORKFLOW_NAME
+OPERATION_FLOW_PRODUCT_ENTRY_CONFIG_PROFILE_EXPLAIN_WORKFLOW_NAME = (
+    OPERATION_FLOW_CONFIG_PROFILE_EXPLAIN_WORKFLOW_NAME
 )
-TWF_PRODUCT_ENTRY_RUN_WORKSPACE_EVIDENCE_AUDIT_WORKFLOW_NAME = (
-    TWF_RUN_WORKSPACE_EVIDENCE_AUDIT_WORKFLOW_NAME
+OPERATION_FLOW_PRODUCT_ENTRY_RUN_WORKSPACE_EVIDENCE_AUDIT_WORKFLOW_NAME = (
+    OPERATION_FLOW_RUN_WORKSPACE_EVIDENCE_AUDIT_WORKFLOW_NAME
 )
-TWF_PRODUCT_ENTRY_REFERENCE_READER_TOOL_NAME = REFERENCE_READER_TOOL_NAME
-TWF_PRODUCT_ENTRY_REFERENCE_READER_FORBIDDEN_SEGMENTS = (
+OPERATION_FLOW_PRODUCT_ENTRY_REFERENCE_READER_TOOL_NAME = REFERENCE_READER_TOOL_NAME
+OPERATION_FLOW_PRODUCT_ENTRY_REFERENCE_READER_FORBIDDEN_SEGMENTS = (
     DEFAULT_REFERENCE_READER_FORBIDDEN_SEGMENTS
 )
-TWF_PRODUCT_ENTRY_REFERENCE_READER_FORBIDDEN_PATH_MARKERS = (
+OPERATION_FLOW_PRODUCT_ENTRY_REFERENCE_READER_FORBIDDEN_PATH_MARKERS = (
     DEFAULT_REFERENCE_READER_FORBIDDEN_PATH_MARKERS
 )
 
 
 @dataclass(frozen=True)
-class TwfProductEntryRouteResultCandidate:
-    """TWF route result prepared for product-entry consumers."""
+class OperationFlowProductEntryRouteResultCandidate:
+    """Operation flow route result prepared for product-entry consumers."""
 
-    route: TwfRouteCandidate
+    route: OperationFlowRouteCandidate
     registry_status: dict[str, Any]
     route_status: dict[str, Any]
     registry_version: str
@@ -53,7 +53,7 @@ class TwfProductEntryRouteResultCandidate:
 
 
 @dataclass(frozen=True)
-class TwfProductEntryReferenceReaderPolicyCandidate:
+class OperationFlowProductEntryReferenceReaderPolicyCandidate:
     """Sanitized reference-reader policy for product-entry consumers."""
 
     allowed_roots: tuple[str, ...]
@@ -66,7 +66,7 @@ class TwfProductEntryReferenceReaderPolicyCandidate:
 
 
 @dataclass(frozen=True)
-class TwfProductEntryToolExposureResolutionCandidate:
+class OperationFlowProductEntryToolExposureResolutionCandidate:
     """Sanitized tool exposure resolution for product-entry consumers."""
 
     status: str
@@ -75,20 +75,20 @@ class TwfProductEntryToolExposureResolutionCandidate:
     blocking_reasons: tuple[str, ...] = ()
     warnings: tuple[str, ...] = ()
     reference_reader_policy: (
-        TwfProductEntryReferenceReaderPolicyCandidate | None
+        OperationFlowProductEntryReferenceReaderPolicyCandidate | None
     ) = None
     metadata: dict[str, Any] = field(default_factory=dict)
 
 
 __all__ = [
-    "TWF_PRODUCT_ENTRY_CONFIG_PROFILE_EXPLAIN_WORKFLOW_NAME",
-    "TWF_PRODUCT_ENTRY_PLAN_WORKFLOW_NAME",
-    "TWF_PRODUCT_ENTRY_REFERENCE_READER_FORBIDDEN_PATH_MARKERS",
-    "TWF_PRODUCT_ENTRY_REFERENCE_READER_FORBIDDEN_SEGMENTS",
-    "TWF_PRODUCT_ENTRY_REFERENCE_READER_TOOL_NAME",
-    "TWF_PRODUCT_ENTRY_REFERENCE_REVIEW_WORKFLOW_NAME",
-    "TWF_PRODUCT_ENTRY_RUN_WORKSPACE_EVIDENCE_AUDIT_WORKFLOW_NAME",
-    "TwfProductEntryReferenceReaderPolicyCandidate",
-    "TwfProductEntryRouteResultCandidate",
-    "TwfProductEntryToolExposureResolutionCandidate",
+    "OPERATION_FLOW_PRODUCT_ENTRY_CONFIG_PROFILE_EXPLAIN_WORKFLOW_NAME",
+    "OPERATION_FLOW_PRODUCT_ENTRY_PLAN_WORKFLOW_NAME",
+    "OPERATION_FLOW_PRODUCT_ENTRY_REFERENCE_READER_FORBIDDEN_PATH_MARKERS",
+    "OPERATION_FLOW_PRODUCT_ENTRY_REFERENCE_READER_FORBIDDEN_SEGMENTS",
+    "OPERATION_FLOW_PRODUCT_ENTRY_REFERENCE_READER_TOOL_NAME",
+    "OPERATION_FLOW_PRODUCT_ENTRY_REFERENCE_REVIEW_WORKFLOW_NAME",
+    "OPERATION_FLOW_PRODUCT_ENTRY_RUN_WORKSPACE_EVIDENCE_AUDIT_WORKFLOW_NAME",
+    "OperationFlowProductEntryReferenceReaderPolicyCandidate",
+    "OperationFlowProductEntryRouteResultCandidate",
+    "OperationFlowProductEntryToolExposureResolutionCandidate",
 ]

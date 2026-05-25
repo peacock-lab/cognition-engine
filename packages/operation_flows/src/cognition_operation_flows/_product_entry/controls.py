@@ -7,47 +7,47 @@ from pathlib import Path
 from typing import Any
 
 from cognition_operation_flows._product_entry.types import (
-    TwfProductEntryReferenceReaderPolicyCandidate,
-    TwfProductEntryToolExposureResolutionCandidate,
+    OperationFlowProductEntryReferenceReaderPolicyCandidate,
+    OperationFlowProductEntryToolExposureResolutionCandidate,
 )
 from cognition_operation_flows._skills.capability_projection import (
-    build_default_twf_skill_capability_projection_status_summary,
-    twf_skill_projection_status_summary_status_dict,
+    build_default_operation_flow_skill_capability_projection_status_summary,
+    operation_flow_skill_projection_status_summary_status_dict,
 )
 from cognition_operation_flows._tools.exposure_profile import (
-    resolve_twf_tool_exposure_profile,
-    twf_tool_exposure_profile_status_dict,
+    resolve_operation_flow_tool_exposure_profile,
+    operation_flow_tool_exposure_profile_status_dict,
 )
 from cognition_operation_flows._tools.loading_validation import (
-    twf_tool_loading_gate_status_dict,
-    validate_twf_tool_loading_gate,
+    operation_flow_tool_loading_gate_status_dict,
+    validate_operation_flow_tool_loading_gate,
 )
 
 
-def resolve_twf_product_entry_tool_exposure_profile(
+def resolve_operation_flow_product_entry_tool_exposure_profile(
     *,
     profile_name: str,
     profile_config: Mapping[str, Any] | None = None,
     repo_root: str | Path | None = None,
     entrypoint_explicit_args: Mapping[str, Any] | None = None,
-) -> TwfProductEntryToolExposureResolutionCandidate:
+) -> OperationFlowProductEntryToolExposureResolutionCandidate:
     """Resolve read-only tool exposure for product-entry consumers."""
 
-    resolution = resolve_twf_tool_exposure_profile(
+    resolution = resolve_operation_flow_tool_exposure_profile(
         profile_name=profile_name,
         profile_config=profile_config,
         repo_root=repo_root,
         entrypoint_explicit_args=entrypoint_explicit_args,
     )
     policy = resolution.reference_reader_policy
-    return TwfProductEntryToolExposureResolutionCandidate(
+    return OperationFlowProductEntryToolExposureResolutionCandidate(
         status=resolution.status,
         exposed_tool_names=tuple(resolution.exposed_tool_names),
         blocked_tool_names=tuple(resolution.blocked_tool_names),
         blocking_reasons=tuple(resolution.blocking_reasons),
         warnings=tuple(resolution.warnings),
         reference_reader_policy=(
-            TwfProductEntryReferenceReaderPolicyCandidate(
+            OperationFlowProductEntryReferenceReaderPolicyCandidate(
                 allowed_roots=tuple(policy.allowed_roots),
                 allowed_files=tuple(policy.allowed_files),
                 allowed_suffixes=tuple(policy.allowed_suffixes),
@@ -63,7 +63,7 @@ def resolve_twf_product_entry_tool_exposure_profile(
     )
 
 
-def build_twf_product_entry_tools_status(
+def build_operation_flow_product_entry_tools_status(
     *,
     profile_name: str,
     profile_config: Mapping[str, Any] | None,
@@ -74,19 +74,19 @@ def build_twf_product_entry_tools_status(
 ) -> dict[str, Any]:
     """Return sanitized tool exposure and loading status."""
 
-    resolution = resolve_twf_tool_exposure_profile(
+    resolution = resolve_operation_flow_tool_exposure_profile(
         profile_name=profile_name,
         profile_config=profile_config,
         repo_root=repo_root,
         entrypoint_explicit_args=entrypoint_explicit_args,
     )
-    status = twf_tool_exposure_profile_status_dict(resolution)
-    loading_gate = validate_twf_tool_loading_gate(
+    status = operation_flow_tool_exposure_profile_status_dict(resolution)
+    loading_gate = validate_operation_flow_tool_loading_gate(
         resolution,
         operator_approved=operator_approved,
         approval_ref=approval_ref,
     )
-    loading_status = twf_tool_loading_gate_status_dict(loading_gate)
+    loading_status = operation_flow_tool_loading_gate_status_dict(loading_gate)
     profile = status["profile"]
     selection = status["selection"]
     reference_policy = status["reference_reader_policy"]
@@ -110,12 +110,12 @@ def build_twf_product_entry_tools_status(
     }
 
 
-def build_twf_product_entry_skill_capability_projection_status() -> dict[str, Any]:
+def build_operation_flow_product_entry_skill_capability_projection_status() -> dict[str, Any]:
     """Return the candidate-only Skills projection status summary."""
 
     try:
-        return twf_skill_projection_status_summary_status_dict(
-            build_default_twf_skill_capability_projection_status_summary()
+        return operation_flow_skill_projection_status_summary_status_dict(
+            build_default_operation_flow_skill_capability_projection_status_summary()
         )
     except Exception as exc:
         return {
@@ -151,7 +151,7 @@ def build_twf_product_entry_skill_capability_projection_status() -> dict[str, An
 
 
 __all__ = [
-    "build_twf_product_entry_skill_capability_projection_status",
-    "build_twf_product_entry_tools_status",
-    "resolve_twf_product_entry_tool_exposure_profile",
+    "build_operation_flow_product_entry_skill_capability_projection_status",
+    "build_operation_flow_product_entry_tools_status",
+    "resolve_operation_flow_product_entry_tool_exposure_profile",
 ]

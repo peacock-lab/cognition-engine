@@ -1,4 +1,4 @@
-"""Product gateway read-only controls for task workflow tools and Skills slots."""
+"""Product gateway read-only controls for operation flow tools and Skills slots."""
 
 from __future__ import annotations
 
@@ -40,7 +40,7 @@ class InternalReferenceReaderPolicy:
 
 
 @dataclass(frozen=True)
-class InternalTwfToolExposureResolution:
+class InternalOperationFlowToolExposureResolution:
     """Sanitized tool exposure resolution for channel adapters."""
 
     status: str
@@ -52,14 +52,14 @@ class InternalTwfToolExposureResolution:
     metadata: dict[str, Any] = field(default_factory=dict)
 
 
-def resolve_internal_twf_tool_exposure_profile(
+def resolve_internal_operation_flow_tool_exposure_profile(
     *,
     profile_name: str,
     profile_config: Mapping[str, Any] | None = None,
     repo_root: str | Path | None = None,
     entrypoint_explicit_args: Mapping[str, Any] | None = None,
-) -> InternalTwfToolExposureResolution:
-    """Resolve read-only task workflow tool exposure behind product gateway."""
+) -> InternalOperationFlowToolExposureResolution:
+    """Resolve read-only operation flow tool exposure behind product gateway."""
 
     resolution = resolve_operation_flow_product_entry_tool_exposure_profile(
         profile_name=profile_name,
@@ -68,7 +68,7 @@ def resolve_internal_twf_tool_exposure_profile(
         entrypoint_explicit_args=entrypoint_explicit_args,
     )
     policy = resolution.reference_reader_policy
-    return InternalTwfToolExposureResolution(
+    return InternalOperationFlowToolExposureResolution(
         status=resolution.status,
         exposed_tool_names=tuple(resolution.exposed_tool_names),
         blocked_tool_names=tuple(resolution.blocked_tool_names),
@@ -91,7 +91,7 @@ def resolve_internal_twf_tool_exposure_profile(
     )
 
 
-def build_internal_twf_tools_status(
+def build_internal_operation_flow_tools_status(
     *,
     profile_name: str,
     profile_config: Mapping[str, Any] | None,
@@ -112,7 +112,7 @@ def build_internal_twf_tools_status(
     )
 
 
-def build_internal_twf_skill_capability_projection_status() -> dict[str, Any]:
+def build_internal_operation_flow_skill_capability_projection_status() -> dict[str, Any]:
     """Return the candidate-only Skills projection status summary."""
 
     return build_operation_flow_product_entry_skill_capability_projection_status()
@@ -123,8 +123,8 @@ __all__ = [
     "INTERNAL_REFERENCE_READER_FORBIDDEN_SEGMENTS",
     "INTERNAL_REFERENCE_READER_TOOL_NAME",
     "InternalReferenceReaderPolicy",
-    "InternalTwfToolExposureResolution",
-    "build_internal_twf_skill_capability_projection_status",
-    "build_internal_twf_tools_status",
-    "resolve_internal_twf_tool_exposure_profile",
+    "InternalOperationFlowToolExposureResolution",
+    "build_internal_operation_flow_skill_capability_projection_status",
+    "build_internal_operation_flow_tools_status",
+    "resolve_internal_operation_flow_tool_exposure_profile",
 ]

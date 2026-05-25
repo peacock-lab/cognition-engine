@@ -28,7 +28,7 @@ CLI_CHAT_PROMPT_PREFIX = (
     "严禁输出 JSON、YAML、键值对、代码块、系统状态、环境信息或协议说明；"
     "不要出现 system_context、response_strategy、protocol_support 等内部字段。\n\n"
 )
-TWF_REFERENCE_REVIEW_PROMPT_PREFIX = (
+OPERATION_FLOW_REFERENCE_REVIEW_PROMPT_PREFIX = (
     "你是认知系统的中文资料审查助手。请只依据下方受控参考资料进行审查，"
     "直接输出普通中文自然语言，不要输出 JSON、YAML、代码块、系统状态或协议说明。"
     "必须使用固定审查骨架：主要结论、判断依据、发现的问题、风险边界、建议动作。"
@@ -468,13 +468,13 @@ def _provider_messages(
                 ),
             }
         ]
-    if request.metadata.get("interaction_mode") == "twf_reference_review_workflow":
+    if request.metadata.get("interaction_mode") == "operation_flow_reference_review_workflow":
         return [
             {
                 "role": "user",
                 "content": (
-                    f"{TWF_REFERENCE_REVIEW_PROMPT_PREFIX}"
-                    f"{_twf_reference_review_prompt_text(request, prompt)}"
+                    f"{OPERATION_FLOW_REFERENCE_REVIEW_PROMPT_PREFIX}"
+                    f"{_operation_flow_reference_review_prompt_text(request, prompt)}"
                 ),
             }
         ]
@@ -659,7 +659,7 @@ def _evidence_summary_prompt_forbidden(value: str) -> bool:
     return any(marker in value for marker in forbidden_markers)
 
 
-def _twf_reference_review_prompt_text(
+def _operation_flow_reference_review_prompt_text(
     request: LlmInvocationRequest,
     prompt: str,
 ) -> str:

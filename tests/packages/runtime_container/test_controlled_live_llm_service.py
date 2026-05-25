@@ -202,7 +202,7 @@ def test_controlled_live_llm_factory_resolves_with_config_root(
     factory = build_runtime_container_governed_llm_invocation_service_factory()
     resolution = factory.resolve(
         config_selection=RuntimeConfigSelectionContext(
-            config_root="config/twf",
+            config_root="config/operation_flow",
             environment="local",
             profile="dev",
             selection_source="product_gateway._operation_flows.execution",
@@ -215,7 +215,7 @@ def test_controlled_live_llm_factory_resolves_with_config_root(
 
     assert resolution.service == "factory-controlled-live-service-from-root"
     assert captured["config_context"] is None
-    assert captured["config_root"] == "config/twf"
+    assert captured["config_root"] == "config/operation_flow"
     assert captured["environment"] == "local"
     assert captured["timeout_seconds"] == 17
     assert captured["metadata"]["config_profile"] == "dev"

@@ -10,8 +10,11 @@ from behavior_contracts import (
     EvidenceSummaryAnswerFollowUpSeedGuard as RootFollowUpSeedGuard,
     EvidenceSummaryAnswerGenerationPolicyGuard as RootGenerationPolicyGuard,
     EvidenceSummaryAnswerHeaderGuard as RootEvidenceSummaryAnswerHeaderGuard,
+    EvidenceSummaryAnswerObservabilitySummaryGuard as RootObservabilitySummaryGuard,
     EvidenceSummaryAnswerResultQualityGuard as RootQualityGuard,
+    EvidenceSummaryAnswerRunGuard as RootRunGuard,
     EvidenceSummaryAnswerTraceGuard as RootTraceGuard,
+    EvidenceSummaryAnswerTraceInspectGuard as RootTraceInspectGuard,
     validate_evidence_summary_answer_guards as root_validate_guards,
     validate_evidence_summary_answer_generation_policy as root_validate_generation_policy,
 )
@@ -26,11 +29,14 @@ from behavior_contracts.evidence_summary_answer import (
     EvidenceSummaryAnswerHeaderGuard,
     EvidenceSummaryAnswerLlmRequestBoundaryGuard,
     EvidenceSummaryAnswerNoRawBoundaryGuard,
+    EvidenceSummaryAnswerObservabilitySummaryGuard,
     EvidenceSummaryAnswerResultCitationGuard,
     EvidenceSummaryAnswerResultMappingGuard,
     EvidenceSummaryAnswerResultQualityGuard,
     EvidenceSummaryAnswerResultRuntimeFlagsGuard,
+    EvidenceSummaryAnswerRunGuard,
     EvidenceSummaryAnswerTraceGuard,
+    EvidenceSummaryAnswerTraceInspectGuard,
     build_evidence_summary_answer_answerability_preflight_facts,
     validate_evidence_summary_answer_answer_quality,
     validate_evidence_summary_answer_generation_policy,
@@ -45,8 +51,14 @@ from schemas.evidence_summary_answer import (
     EVIDENCE_SUMMARY_ANSWER_ARTIFACT_VERSION,
     EVIDENCE_SUMMARY_ANSWER_CONTEXT_VERSION,
     EVIDENCE_SUMMARY_ANSWER_FOLLOW_UP_SEED_VERSION,
+    EVIDENCE_SUMMARY_ANSWER_OBSERVABILITY_SUMMARY_REF_PREFIX,
+    EVIDENCE_SUMMARY_ANSWER_OBSERVABILITY_SUMMARY_VERSION,
     EVIDENCE_SUMMARY_ANSWER_PRODUCT,
     EVIDENCE_SUMMARY_ANSWER_RESULT_VERSION,
+    EVIDENCE_SUMMARY_ANSWER_RUN_REF_PREFIX,
+    EVIDENCE_SUMMARY_ANSWER_RUN_VERSION,
+    EVIDENCE_SUMMARY_ANSWER_TRACE_INSPECT_REF_PREFIX,
+    EVIDENCE_SUMMARY_ANSWER_TRACE_INSPECT_VERSION,
     EVIDENCE_SUMMARY_ANSWER_TRACE_REF_PREFIX,
     EVIDENCE_SUMMARY_ANSWER_TRACE_VERSION,
     GOVERNED_EVIDENCE_DIGEST_VERSION,
@@ -101,6 +113,42 @@ def test_evidence_summary_answer_guards_accept_safe_artifact() -> None:
     assert result.violations == ()
 
 
+def test_evidence_summary_answer_guards_accept_safe_observability_summary() -> None:
+    result = validate_evidence_summary_answer_guards(_observability_summary())
+
+    assert result.passed is True
+    assert result.violations == ()
+
+
+def test_evidence_summary_answer_guards_accept_safe_trace_inspect() -> None:
+    result = validate_evidence_summary_answer_guards(_trace_inspect())
+
+    assert result.passed is True
+    assert result.violations == ()
+
+
+def test_evidence_summary_answer_guards_accept_safe_run() -> None:
+    result = validate_evidence_summary_answer_guards(_run())
+
+    assert result.passed is True
+    assert result.violations == ()
+
+
+def test_run_guard_rejects_runtime_backing_or_missing_success_refs() -> None:
+    answer_run = _run()
+    answer_run["runtime_backed"] = True
+    answer_run["backed_by_adk_artifact_service"] = True
+    answer_run["answer_trace_ref"] = None
+
+    result = EvidenceSummaryAnswerRunGuard().validate(answer_run)
+
+    assert result.passed is False
+    violations = " ".join(result.violations)
+    assert "runtime-backed" in violations
+    assert "ADK ArtifactService" in violations
+    assert "answer_trace_ref" in violations
+
+
 def test_artifact_guard_rejects_runtime_backing_or_missing_answer() -> None:
     artifact = _artifact()
     artifact["backed_by_adk_task_runtime"] = True
@@ -112,6 +160,31 @@ def test_artifact_guard_rejects_runtime_backing_or_missing_answer() -> None:
     assert result.passed is False
     assert any("ADK Task runtime" in item for item in result.violations)
     assert any("answer or answer_preview" in item for item in result.violations)
+
+
+def test_observability_summary_guard_rejects_runtime_backing() -> None:
+    summary = _observability_summary()
+    summary["runtime_backed"] = True
+    summary["backed_by_adk_task_runtime"] = True
+
+    result = EvidenceSummaryAnswerObservabilitySummaryGuard().validate(summary)
+
+    assert result.passed is False
+    assert any("runtime-backed" in item for item in result.violations)
+    assert any("ADK Task runtime" in item for item in result.violations)
+
+
+def test_trace_inspect_guard_rejects_runtime_backing_or_missing_reason() -> None:
+    trace_inspect = _trace_inspect()
+    trace_inspect["runtime_backed"] = True
+    trace_inspect["inspect_status"] = "unavailable"
+    trace_inspect["unavailable_reason"] = None
+
+    result = EvidenceSummaryAnswerTraceInspectGuard().validate(trace_inspect)
+
+    assert result.passed is False
+    assert any("runtime-backed" in item for item in result.violations)
+    assert any("unavailable" in item for item in result.violations)
 
 
 def test_follow_up_seed_guard_rejects_durable_or_memory_state() -> None:
@@ -209,6 +282,27 @@ def test_digest_guard_rejects_answerable_without_model_context_permission() -> N
 def test_digest_guard_rejects_answerable_without_summary_facts() -> None:
     digest = _digest()
     digest["summary_facts"] = []
+
+    result = EvidenceSummaryAnswerDigestGuard().validate(digest)
+
+    assert result.passed is False
+    assert "summary_facts" in result.violations[0]
+
+
+def test_digest_guard_allows_public_package_names_in_summary_facts() -> None:
+    digest = _digest()
+    digest["summary_facts"] = [
+        "CHANGELOG mentions config_contexts and config_assembly as public packages."
+    ]
+
+    result = EvidenceSummaryAnswerDigestGuard().validate(digest)
+
+    assert result.passed is True
+
+
+def test_digest_guard_rejects_private_config_context_marker() -> None:
+    digest = _digest()
+    digest["summary_facts"] = ["A private config_context marker leaked."]
 
     result = EvidenceSummaryAnswerDigestGuard().validate(digest)
 
@@ -395,6 +489,63 @@ def test_question_answer_quality_rejects_chinese_question_with_english_answer() 
 
     assert result.passed is False
     assert "use Chinese" in " ".join(result.violations)
+
+
+def test_question_answer_quality_allows_chinese_question_with_english_output_request() -> None:
+    result = validate_evidence_summary_answer_question_answer_quality(
+        (
+            "Cognition System is a governed AI collaboration system that can read "
+            "authorized public material and produce reviewable answers."
+        ),
+        user_question=(
+            "请基于这份公开资料，用300到500字说明 Cognition System 当前能做什么，"
+            "要求英文输出"
+        ),
+    )
+
+    assert result.passed is True
+
+
+def test_question_answer_quality_allows_chinese_question_with_korean_output_request() -> None:
+    result = validate_evidence_summary_answer_question_answer_quality(
+        (
+            "Cognition System은 명시적 승인 아래 외부 읽기 전용 자료를 읽고, "
+            "근거를 확인할 수 있는 답변을 제공합니다."
+        ),
+        user_question="帮我做个简短摘要100字以内，用韩语输出",
+    )
+
+    assert result.passed is True
+
+
+def test_question_answer_quality_rejects_wrong_language_for_korean_output_request() -> None:
+    result = validate_evidence_summary_answer_question_answer_quality(
+        "Cognition System 可以读取外部只读资料，并提供可复查回答。",
+        user_question="帮我做个简短摘要100字以内，用韩语输出",
+    )
+
+    assert result.passed is False
+    assert "requested output language" in " ".join(result.violations)
+
+
+def test_question_answer_quality_rejects_mixed_chinese_for_korean_output_request() -> None:
+    result = validate_evidence_summary_answer_question_answer_quality(
+        "Cognition System（认知系统）은 승인된 자료를 읽고 근거 있는 답변을 제공합니다.",
+        user_question="做个100字摘要，韩文输出",
+    )
+
+    assert result.passed is False
+    assert "requested output language" in " ".join(result.violations)
+
+
+def test_question_answer_quality_rejects_overlong_short_output_request() -> None:
+    result = validate_evidence_summary_answer_question_answer_quality(
+        "이 시스템은 승인된 자료를 읽고 근거 있는 답변을 제공합니다。" * 20,
+        user_question="做个100字摘要，韩文输出",
+    )
+
+    assert result.passed is False
+    assert "concise output length" in " ".join(result.violations)
 
 
 def test_question_answer_quality_rejects_request_for_more_source_context() -> None:
@@ -643,7 +794,11 @@ def test_behavior_contracts_root_exports_evidence_summary_answer_guards() -> Non
     assert RootQualityGuard is EvidenceSummaryAnswerResultQualityGuard
     assert RootTraceGuard is EvidenceSummaryAnswerTraceGuard
     assert RootArtifactGuard is EvidenceSummaryAnswerArtifactGuard
+    assert RootObservabilitySummaryGuard is EvidenceSummaryAnswerObservabilitySummaryGuard
+    assert RootTraceInspectGuard is EvidenceSummaryAnswerTraceInspectGuard
+    assert RootRunGuard is EvidenceSummaryAnswerRunGuard
     assert root_validate_guards(_digest()).passed is True
+    assert root_validate_guards(_run()).passed is True
     assert RootGenerationPolicyGuard is EvidenceSummaryAnswerGenerationPolicyGuard
     assert root_validate_generation_policy(_generation_policy()).passed is True
 
@@ -971,5 +1126,176 @@ def _artifact() -> dict[str, object]:
         "backed_by_adk_task_runtime": False,
         "backed_by_adk_workflow_runtime": False,
         "raw_boundary_flags": {},
+        "metadata": {"source": "behavior_contracts.test"},
+    }
+
+
+def _observability_summary() -> dict[str, object]:
+    return {
+        "product": EVIDENCE_SUMMARY_ANSWER_PRODUCT,
+        "payload_type": "evidence_summary_answer_observability_summary",
+        "payload_version": EVIDENCE_SUMMARY_ANSWER_OBSERVABILITY_SUMMARY_VERSION,
+        "summary_id": "summary-1",
+        "summary_ref": (
+            f"{EVIDENCE_SUMMARY_ANSWER_OBSERVABILITY_SUMMARY_REF_PREFIX}summary-1"
+        ),
+        "request_id": "request-1",
+        "status": "success",
+        "reason": "answer_ready",
+        "user_explanation": "本轮受治理资料问答已形成可返回答案。",
+        "recovery_hints": [],
+        "refs": [
+            {
+                "ref": f"{EVIDENCE_SUMMARY_ANSWER_TRACE_REF_PREFIX}trace-1",
+                "kind": "evidence_summary_answer_trace",
+                "purpose": "answer_trace",
+            }
+        ],
+        "raw_boundary_summary": {
+            "restricted_payload_absent": True,
+            "restricted_boundary_intact": True,
+            "blocked_field_count": 0,
+        },
+        "evaluation_findings_summary": {
+            "finding_count": 0,
+            "quality_blocked": False,
+            "model_called": True,
+        },
+        "task_compatible": True,
+        "workflow_compatible": True,
+        "runtime_backed": False,
+        "backed_by_adk_task_runtime": False,
+        "backed_by_adk_workflow_runtime": False,
+        "durable_session": False,
+        "memory_enabled": False,
+        "metadata": {"source": "behavior_contracts.test"},
+    }
+
+
+def _trace_inspect() -> dict[str, object]:
+    return {
+        "product": EVIDENCE_SUMMARY_ANSWER_PRODUCT,
+        "payload_type": "evidence_summary_answer_trace_inspect",
+        "payload_version": EVIDENCE_SUMMARY_ANSWER_TRACE_INSPECT_VERSION,
+        "trace_inspect_id": "trace-inspect-1",
+        "trace_inspect_ref": (
+            f"{EVIDENCE_SUMMARY_ANSWER_TRACE_INSPECT_REF_PREFIX}trace-inspect-1"
+        ),
+        "request_id": "request-1",
+        "inspect_status": "success",
+        "inspect_reason": "answer_ready",
+        "answer_status": "success",
+        "user_explanation": "本轮受治理资料问答已形成可复查解释。",
+        "developer_facts_summary": {
+            "answer_trace_available": True,
+            "answer_artifact_available": True,
+            "observability_summary_available": True,
+        },
+        "refs_summary": {
+            "trace_ref": f"{EVIDENCE_SUMMARY_ANSWER_TRACE_REF_PREFIX}trace-1",
+            "artifact_ref": (
+                f"{EVIDENCE_SUMMARY_ANSWER_ARTIFACT_REF_PREFIX}artifact-1"
+            ),
+            "evidence_ref_count": 1,
+            "additional_ref_count": 1,
+        },
+        "event_facts_summary": {
+            "event_summary_kind": "product_level_summary",
+            "event_stream_enabled": False,
+            "adk_event_runtime_enabled": False,
+        },
+        "artifact_handoff_summary": {
+            "artifact_summary_kind": "product_level_summary",
+            "artifact_service_enabled": False,
+            "export_enabled": False,
+        },
+        "raw_boundary_summary": {
+            "restricted_payload_absent": True,
+            "restricted_boundary_intact": True,
+            "blocked_field_count": 0,
+        },
+        "evaluation_summary": {
+            "evaluation_only": True,
+            "finding_count": 0,
+            "quality_blocked": False,
+        },
+        "governance_summary": {
+            "governance_summary_only": True,
+            "decision_reason": "answer_ready",
+        },
+        "unavailable_reason": None,
+        "recovery_hints": [],
+        "task_compatible": True,
+        "workflow_compatible": True,
+        "runtime_backed": False,
+        "backed_by_adk_task_runtime": False,
+        "backed_by_adk_workflow_runtime": False,
+        "durable_session": False,
+        "memory_enabled": False,
+        "metadata": {"source": "behavior_contracts.test"},
+    }
+
+
+def _run() -> dict[str, object]:
+    return {
+        "product": EVIDENCE_SUMMARY_ANSWER_PRODUCT,
+        "payload_type": "evidence_summary_answer_run",
+        "payload_version": EVIDENCE_SUMMARY_ANSWER_RUN_VERSION,
+        "run_id": "run-1",
+        "answer_run_ref": f"{EVIDENCE_SUMMARY_ANSWER_RUN_REF_PREFIX}run-1",
+        "request_id": "request-1",
+        "source_request_id": "request-1",
+        "parent_answer_run_ref": None,
+        "answer_run_status": "success",
+        "answer_status": "success",
+        "readonly_refs_status": "ready",
+        "answer_trace_ref": f"{EVIDENCE_SUMMARY_ANSWER_TRACE_REF_PREFIX}trace-1",
+        "answer_artifact_ref": (
+            f"{EVIDENCE_SUMMARY_ANSWER_ARTIFACT_REF_PREFIX}artifact-1"
+        ),
+        "observability_summary_ref": (
+            f"{EVIDENCE_SUMMARY_ANSWER_OBSERVABILITY_SUMMARY_REF_PREFIX}summary-1"
+        ),
+        "trace_inspect_ref": (
+            f"{EVIDENCE_SUMMARY_ANSWER_TRACE_INSPECT_REF_PREFIX}trace-inspect-1"
+        ),
+        "follow_up_seed_ref": None,
+        "evidence_ref_count": 1,
+        "additional_ref_count": 1,
+        "evidence_refs": [
+            {
+                "ref": "evidence://external-readonly/request-1/fetch-1",
+                "kind": "external_readonly_evidence",
+                "purpose": "answer_context",
+            }
+        ],
+        "additional_refs": [
+            {
+                "ref": "governed-evidence-digest://request-1/digest-1",
+                "kind": "governed_evidence_digest",
+                "purpose": "digest_context",
+            }
+        ],
+        "blocking_reasons": [],
+        "warnings": [],
+        "recovery_hints": [],
+        "unavailable_reason": None,
+        "follow_up": False,
+        "follow_up_turn_index": None,
+        "answer_scoped_transformation": False,
+        "task_compatible": True,
+        "workflow_compatible": True,
+        "runtime_backed": False,
+        "backed_by_adk_task_runtime": False,
+        "backed_by_adk_workflow_runtime": False,
+        "backed_by_adk_artifact_service": False,
+        "backed_by_adk_event_stream": False,
+        "durable_session": False,
+        "memory_enabled": False,
+        "raw_boundary_summary": {
+            "restricted_payload_absent": True,
+            "restricted_boundary_intact": True,
+            "blocked_field_count": 0,
+        },
         "metadata": {"source": "behavior_contracts.test"},
     }

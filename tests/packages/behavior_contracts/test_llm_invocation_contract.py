@@ -104,15 +104,15 @@ def test_governed_llm_invocation_factory_accepts_structural_factory() -> None:
 
 def test_governed_llm_invocation_resolution_can_block_without_service() -> None:
     resolution = GovernedLlmInvocationServiceResolution(
-        blocking_reasons=("twf_live_llm_provider_not_injected",),
-        warnings=("twf_live_llm_provider_required",),
+        blocking_reasons=("operation_flow_live_llm_provider_not_injected",),
+        warnings=("operation_flow_live_llm_provider_required",),
     )
 
     assert resolution.service is None
     assert resolution.blocking_reasons == (
-        "twf_live_llm_provider_not_injected",
+        "operation_flow_live_llm_provider_not_injected",
     )
-    assert resolution.warnings == ("twf_live_llm_provider_required",)
+    assert resolution.warnings == ("operation_flow_live_llm_provider_required",)
 
 
 def test_llm_invocation_behavior_contract_does_not_call_model_libraries() -> None:

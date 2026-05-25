@@ -138,6 +138,8 @@ def evidence_summary_answer_artifact_summary_dict(
     """Return ProductGateway-safe answer artifact summary facts."""
 
     payload = evidence_summary_answer_artifact_status_dict(artifact)
+    metadata = payload.get("metadata")
+    metadata = metadata if isinstance(metadata, Mapping) else {}
     return {
         "artifact_ref": payload["artifact_ref"],
         "artifact_status": payload["artifact_status"],
@@ -172,6 +174,10 @@ def evidence_summary_answer_artifact_summary_dict(
         "workflow_compatible": payload["workflow_compatible"],
         "backed_by_adk_task_runtime": False,
         "backed_by_adk_workflow_runtime": False,
+        "summary_fact_count": metadata.get("summary_fact_count"),
+        "evidence_chunked": metadata.get("evidence_chunked"),
+        "fact_slice_count": metadata.get("fact_slice_count"),
+        "chunked_source_item_count": metadata.get("chunked_source_item_count"),
     }
 
 

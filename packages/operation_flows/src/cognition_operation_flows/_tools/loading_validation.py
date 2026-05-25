@@ -1,4 +1,4 @@
-"""Pre-execution loading validation and risk gate for task workflow tools."""
+"""Pre-execution loading validation and risk gate for operation flow tools."""
 
 from __future__ import annotations
 
@@ -8,16 +8,16 @@ from typing import Any
 
 from cognition_operation_flows._tools.reference_reader import REFERENCE_READER_TOOL_NAME
 from cognition_operation_flows._tools.exposure_profile import (
-    TwfToolExposureResolutionCandidate,
-    TwfToolsetExposurePolicyCandidate,
+    OperationFlowToolExposureResolutionCandidate,
+    OperationFlowToolsetExposurePolicyCandidate,
 )
 from cognition_operation_flows._tools.toolset_admission import (
-    TwfToolCandidate,
-    TwfToolsetInventoryCandidate,
+    OperationFlowToolCandidate,
+    OperationFlowToolsetInventoryCandidate,
 )
 
 
-TWF_TOOL_LOADING_VALIDATION_STAGES = (
+OPERATION_FLOW_TOOL_LOADING_VALIDATION_STAGES = (
     "tool_exposure_resolution",
     "selected_tool_inventory",
     "loadability_validation",
@@ -43,8 +43,8 @@ LOCAL_REFERENCE_READER_OUTPUT_BOUNDARY_REF = (
 
 
 @dataclass(frozen=True)
-class TwfToolLoadingValidationCandidate:
-    """Validation result for one selected task workflow tool before execution."""
+class OperationFlowToolLoadingValidationCandidate:
+    """Validation result for one selected operation flow tool before execution."""
 
     tool_name: str
     toolset_name: str
@@ -67,12 +67,12 @@ class TwfToolLoadingValidationCandidate:
 
 
 @dataclass(frozen=True)
-class TwfToolLoadingGateCandidate:
-    """Aggregate loading-validation gate for a resolved task workflow tool profile."""
+class OperationFlowToolLoadingGateCandidate:
+    """Aggregate loading-validation gate for a resolved operation flow tool profile."""
 
     status: str
     risk_gate_status: str
-    validations: tuple[TwfToolLoadingValidationCandidate, ...]
+    validations: tuple[OperationFlowToolLoadingValidationCandidate, ...]
     allowed_tool_names: tuple[str, ...]
     blocked_tool_names: tuple[str, ...]
     blocking_reasons: tuple[str, ...] = ()
@@ -80,18 +80,18 @@ class TwfToolLoadingGateCandidate:
     metadata: dict[str, Any] = field(default_factory=dict)
 
 
-def validate_twf_tool_loading_gate(
-    resolution: TwfToolExposureResolutionCandidate,
+def validate_operation_flow_tool_loading_gate(
+    resolution: OperationFlowToolExposureResolutionCandidate,
     *,
     operator_approved: bool = False,
     approval_ref: str | None = None,
-) -> TwfToolLoadingGateCandidate:
-    """Validate selected tools before they are eligible for task workflow use."""
+) -> OperationFlowToolLoadingGateCandidate:
+    """Validate selected tools before they are eligible for operation flow use."""
 
     policies = {
         policy.toolset_name: policy for policy in resolution.profile.toolsets
     }
-    validations: list[TwfToolLoadingValidationCandidate] = []
+    validations: list[OperationFlowToolLoadingValidationCandidate] = []
     blocking: list[str] = []
     warnings: list[str] = list(resolution.warnings)
     if resolution.status != "resolved":
@@ -101,7 +101,7 @@ def validate_twf_tool_loading_gate(
         for tool in inventory.tools:
             if not tool.selected:
                 continue
-            validation = validate_twf_tool_loading(
+            validation = validate_operation_flow_tool_loading(
                 inventory=inventory,
                 tool=tool,
                 policy=policy,
@@ -125,7 +125,7 @@ def validate_twf_tool_loading_gate(
         if not validation.allowed_for_execution
     )
     status = "passed" if not blocking else "blocked"
-    return TwfToolLoadingGateCandidate(
+    return OperationFlowToolLoadingGateCandidate(
         status=status,
         risk_gate_status=status,
         validations=tuple(validations),
@@ -134,7 +134,7 @@ def validate_twf_tool_loading_gate(
         blocking_reasons=tuple(_ordered_unique(blocking)),
         warnings=tuple(_ordered_unique(warnings)),
         metadata={
-            "stages": list(TWF_TOOL_LOADING_VALIDATION_STAGES),
+            "stages": list(OPERATION_FLOW_TOOL_LOADING_VALIDATION_STAGES),
             "does_not_execute_tools": True,
             "does_not_call_model": True,
             "operator_approved": operator_approved,
@@ -144,15 +144,15 @@ def validate_twf_tool_loading_gate(
     )
 
 
-def validate_twf_tool_loading(
+def validate_operation_flow_tool_loading(
     *,
-    inventory: TwfToolsetInventoryCandidate,
-    tool: TwfToolCandidate,
-    policy: TwfToolsetExposurePolicyCandidate | None = None,
+    inventory: OperationFlowToolsetInventoryCandidate,
+    tool: OperationFlowToolCandidate,
+    policy: OperationFlowToolsetExposurePolicyCandidate | None = None,
     operator_approved: bool = False,
     approval_ref: str | None = None,
-) -> TwfToolLoadingValidationCandidate:
-    """Validate one selected tool before it can be used by task workflows."""
+) -> OperationFlowToolLoadingValidationCandidate:
+    """Validate one selected tool before it can be used by operation flows."""
 
     operation = tool.operation_facts
     review = tool.risk_review
@@ -185,7 +185,7 @@ def validate_twf_tool_loading(
     if review.confirmation_required and not confirmation_satisfied:
         blocking.append("operator_confirmation_required")
     risk_gate_status = "passed" if not blocking else "blocked"
-    return TwfToolLoadingValidationCandidate(
+    return OperationFlowToolLoadingValidationCandidate(
         tool_name=tool.tool_name,
         toolset_name=operation.toolset_name,
         toolset_kind=operation.toolset_kind,
@@ -212,8 +212,8 @@ def validate_twf_tool_loading(
     )
 
 
-def twf_tool_loading_gate_status_dict(
-    gate: TwfToolLoadingGateCandidate,
+def operation_flow_tool_loading_gate_status_dict(
+    gate: OperationFlowToolLoadingGateCandidate,
 ) -> dict[str, Any]:
     """Return a sanitized JSON-ready gate summary."""
 
@@ -225,15 +225,15 @@ def twf_tool_loading_gate_status_dict(
         "blocking_reasons": list(gate.blocking_reasons),
         "warnings": list(gate.warnings),
         "validations": [
-            twf_tool_loading_validation_status_dict(validation)
+            operation_flow_tool_loading_validation_status_dict(validation)
             for validation in gate.validations
         ],
         "metadata": dict(gate.metadata),
     }
 
 
-def twf_tool_loading_validation_status_dict(
-    validation: TwfToolLoadingValidationCandidate,
+def operation_flow_tool_loading_validation_status_dict(
+    validation: OperationFlowToolLoadingValidationCandidate,
 ) -> dict[str, Any]:
     """Return a sanitized JSON-ready validation summary."""
 
@@ -259,8 +259,8 @@ def twf_tool_loading_validation_status_dict(
 
 
 def _dependencies_satisfied(
-    inventory: TwfToolsetInventoryCandidate,
-    tool: TwfToolCandidate,
+    inventory: OperationFlowToolsetInventoryCandidate,
+    tool: OperationFlowToolCandidate,
 ) -> bool:
     if tool.tool_name == REFERENCE_READER_TOOL_NAME:
         return True
@@ -275,13 +275,13 @@ def _dependencies_satisfied(
     return True
 
 
-def _input_schema_ref(tool: TwfToolCandidate) -> str | None:
+def _input_schema_ref(tool: OperationFlowToolCandidate) -> str | None:
     if tool.tool_name == REFERENCE_READER_TOOL_NAME:
         return LOCAL_REFERENCE_READER_INPUT_SCHEMA_REF
     return _metadata_ref(tool.operation_facts.metadata, "input_schema_ref")
 
 
-def _output_boundary_ref(tool: TwfToolCandidate) -> str | None:
+def _output_boundary_ref(tool: OperationFlowToolCandidate) -> str | None:
     if tool.tool_name == REFERENCE_READER_TOOL_NAME:
         return LOCAL_REFERENCE_READER_OUTPUT_BOUNDARY_REF
     return _metadata_ref(tool.operation_facts.metadata, "output_boundary_ref")

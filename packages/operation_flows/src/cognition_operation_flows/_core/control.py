@@ -1,4 +1,4 @@
-"""Shared task-control candidates for governed task workflows."""
+"""Shared task-control candidates for governed operation flows."""
 
 from __future__ import annotations
 
@@ -8,7 +8,7 @@ import re
 from typing import Any
 
 
-TWF_CONTROL_STAGES = (
+OPERATION_FLOW_CONTROL_STAGES = (
     "preflight",
     "staging",
     "plan",
@@ -17,7 +17,7 @@ TWF_CONTROL_STAGES = (
     "summarize",
     "cleanup/result",
 )
-TWF_CONFIG_PRECEDENCE = (
+OPERATION_FLOW_CONFIG_PRECEDENCE = (
     "entrypoint_explicit_args",
     "session_args",
     "profile_config",
@@ -41,8 +41,8 @@ KNOWN_RISK_LEVELS = frozenset({"none", "low", "medium", "high", "unknown"})
 
 
 @dataclass(frozen=True)
-class TwfPreflightCandidate:
-    """Preflight facts for a governed task workflow."""
+class OperationFlowPreflightCandidate:
+    """Preflight facts for a governed operation flow."""
 
     allowed: bool
     blocking_reasons: tuple[str, ...] = ()
@@ -53,7 +53,7 @@ class TwfPreflightCandidate:
 
 
 @dataclass(frozen=True)
-class TwfWorkspaceCandidate:
+class OperationFlowWorkspaceCandidate:
     """Run workspace candidate without creating filesystem state yet."""
 
     workspace_ref: str
@@ -66,22 +66,22 @@ class TwfWorkspaceCandidate:
 
 
 @dataclass(frozen=True)
-class TwfRunContextCandidate:
-    """Task-control context shared by task workflows."""
+class OperationFlowRunContextCandidate:
+    """Task-control context shared by operation flows."""
 
     workflow_name: str
     task_kind: str
     run_id: str
     stages: tuple[str, ...]
-    preflight: TwfPreflightCandidate
-    workspace: TwfWorkspaceCandidate
+    preflight: OperationFlowPreflightCandidate
+    workspace: OperationFlowWorkspaceCandidate
     config_precedence: tuple[str, ...]
     status: str
     evidence_summary: dict[str, Any] = field(default_factory=dict)
     metadata: dict[str, Any] = field(default_factory=dict)
 
 
-def build_twf_run_id(
+def build_operation_flow_run_id(
     workflow_name: str,
     *,
     session_id: str | None = None,
@@ -95,7 +95,7 @@ def build_twf_run_id(
     return f"{workflow_slug}-{session_slug}-{turn_slug}"
 
 
-def evaluate_twf_preflight(
+def evaluate_operation_flow_preflight(
     *,
     live_model_allowed: bool,
     approval_ref: str | None = None,
@@ -105,7 +105,7 @@ def evaluate_twf_preflight(
     output_budget: int | None = None,
     live_gate: str | None = None,
     user_passthrough_parameters: Mapping[str, Any] | None = None,
-) -> TwfPreflightCandidate:
+) -> OperationFlowPreflightCandidate:
     """Evaluate generic task preflight without calling external services."""
 
     passthrough_keys = tuple(sorted((user_passthrough_parameters or {}).keys()))
@@ -135,7 +135,7 @@ def evaluate_twf_preflight(
             warnings.append("sanitized_evidence_ref_missing_observed")
     else:
         warnings.append("live_model_disabled")
-    return TwfPreflightCandidate(
+    return OperationFlowPreflightCandidate(
         allowed=not blocking_reasons,
         blocking_reasons=blocking_reasons,
         warnings=tuple(_ordered_unique(warnings)),
@@ -151,7 +151,7 @@ def evaluate_twf_preflight(
     )
 
 
-def build_twf_workspace_candidate(
+def build_operation_flow_workspace_candidate(
     *,
     workflow_name: str,
     run_id: str,
@@ -159,10 +159,10 @@ def build_twf_workspace_candidate(
     evidence_refs: Sequence[str] = (),
     retention_policy: str = "candidate_only_not_created",
     cleanup_policy: str = "no_cleanup_required_until_workspace_created",
-) -> TwfWorkspaceCandidate:
+) -> OperationFlowWorkspaceCandidate:
     """Build a run workspace candidate without touching the filesystem."""
 
-    return TwfWorkspaceCandidate(
+    return OperationFlowWorkspaceCandidate(
         workspace_ref=f"run-workspace://{_slug_or_default(workflow_name, 'workflow')}/{run_id}",
         workspace_created=False,
         retention_policy=retention_policy,
@@ -176,7 +176,7 @@ def build_twf_workspace_candidate(
     )
 
 
-def build_twf_run_context(
+def build_operation_flow_run_context(
     *,
     workflow_name: str,
     task_kind: str,
@@ -193,18 +193,18 @@ def build_twf_run_context(
     artifact_refs: Sequence[str] = (),
     evidence_refs: Sequence[str] = (),
     metadata: Mapping[str, Any] | None = None,
-) -> TwfRunContextCandidate:
+) -> OperationFlowRunContextCandidate:
     """Build the shared task-control context for a workflow run."""
 
     resolved_live_gate = live_gate or (
         "controlled_live" if live_model_allowed else "no_live"
     )
-    run_id = build_twf_run_id(
+    run_id = build_operation_flow_run_id(
         workflow_name,
         session_id=session_id,
         turn_index=turn_index,
     )
-    preflight = evaluate_twf_preflight(
+    preflight = evaluate_operation_flow_preflight(
         live_model_allowed=live_model_allowed,
         approval_ref=approval_ref,
         audit_ref=audit_ref,
@@ -214,7 +214,7 @@ def build_twf_run_context(
         live_gate=resolved_live_gate,
         user_passthrough_parameters=user_passthrough_parameters,
     )
-    workspace = build_twf_workspace_candidate(
+    workspace = build_operation_flow_workspace_candidate(
         workflow_name=workflow_name,
         run_id=run_id,
         artifact_refs=artifact_refs,
@@ -233,14 +233,14 @@ def build_twf_run_context(
         "output_budget": output_budget,
         "live_gate": resolved_live_gate,
     }
-    return TwfRunContextCandidate(
+    return OperationFlowRunContextCandidate(
         workflow_name=workflow_name,
         task_kind=task_kind,
         run_id=run_id,
-        stages=TWF_CONTROL_STAGES,
+        stages=OPERATION_FLOW_CONTROL_STAGES,
         preflight=preflight,
         workspace=workspace,
-        config_precedence=TWF_CONFIG_PRECEDENCE,
+        config_precedence=OPERATION_FLOW_CONFIG_PRECEDENCE,
         status=status,
         evidence_summary=evidence_summary,
         metadata={
@@ -251,8 +251,8 @@ def build_twf_run_context(
     )
 
 
-def finalize_twf_run_context(
-    context: TwfRunContextCandidate,
+def finalize_operation_flow_run_context(
+    context: OperationFlowRunContextCandidate,
     *,
     status: str,
     artifact_refs: Sequence[str] = (),
@@ -263,7 +263,7 @@ def finalize_twf_run_context(
     cleanup_policy: str | None = None,
     workspace_metadata: Mapping[str, Any] | None = None,
     metadata: Mapping[str, Any] | None = None,
-) -> TwfRunContextCandidate:
+) -> OperationFlowRunContextCandidate:
     """Return a finalized context with result refs and status attached."""
 
     workspace = replace(
@@ -299,8 +299,8 @@ def finalize_twf_run_context(
     )
 
 
-def twf_run_context_status_dict(
-    context: TwfRunContextCandidate,
+def operation_flow_run_context_status_dict(
+    context: OperationFlowRunContextCandidate,
 ) -> dict[str, Any]:
     """Build a sanitized status/evidence dict for result metadata."""
 

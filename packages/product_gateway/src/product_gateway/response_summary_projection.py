@@ -56,6 +56,9 @@ def project_product_gateway_response_summary(
         **_follow_up_summary(response.metadata),
         **_answer_trace_summary(response.metadata),
         **_answer_artifact_summary(response.metadata),
+        **_observability_summary(response.metadata),
+        **_trace_inspect_summary(response.metadata),
+        **_answer_run_summary(response.metadata),
     }
     return validate_product_gateway_response_summary(summary).model_dump(mode="python")
 
@@ -106,6 +109,16 @@ def _summary_metadata(response_metadata: Mapping[str, Any]) -> dict[str, Any]:
     response_source = response_metadata.get("source")
     if response_source is not None:
         metadata["product_gateway_response_source"] = str(response_source)
+    for key in (
+        "digest_count",
+        "summary_fact_count",
+        "evidence_chunked",
+        "fact_slice_count",
+        "chunked_source_item_count",
+    ):
+        value = response_metadata.get(key)
+        if isinstance(value, bool | int | float | str):
+            metadata[key] = value
     return metadata
 
 
@@ -148,6 +161,54 @@ def _answer_artifact_summary(response_metadata: Mapping[str, Any]) -> dict[str, 
         ),
         "answer_artifact_summary": (
             dict(summary) if isinstance(summary, Mapping) else {}
+        ),
+    }
+
+
+def _observability_summary(response_metadata: Mapping[str, Any]) -> dict[str, Any]:
+    summary = response_metadata.get("safe_observability_summary")
+    return {
+        "observability_summary_ref": _string_or_none(
+            response_metadata.get("observability_summary_ref")
+        ),
+        "observability_summary_status": _string_or_none(
+            response_metadata.get("observability_summary_status")
+        ),
+        "safe_observability_summary": (
+            dict(summary) if isinstance(summary, Mapping) else {}
+        ),
+    }
+
+
+def _trace_inspect_summary(response_metadata: Mapping[str, Any]) -> dict[str, Any]:
+    summary = response_metadata.get("trace_inspect_summary")
+    return {
+        "trace_inspect_ref": _string_or_none(
+            response_metadata.get("trace_inspect_ref")
+        ),
+        "trace_inspect_status": _string_or_none(
+            response_metadata.get("trace_inspect_status")
+        ),
+        "trace_inspect_summary": dict(summary) if isinstance(summary, Mapping) else {},
+        "trace_inspect_unavailable_reason": _string_or_none(
+            response_metadata.get("trace_inspect_unavailable_reason")
+        ),
+    }
+
+
+def _answer_run_summary(response_metadata: Mapping[str, Any]) -> dict[str, Any]:
+    summary = response_metadata.get("answer_run_summary")
+    return {
+        "answer_run_ref": _string_or_none(response_metadata.get("answer_run_ref")),
+        "answer_run_status": _string_or_none(
+            response_metadata.get("answer_run_status")
+        ),
+        "answer_run_summary": dict(summary) if isinstance(summary, Mapping) else {},
+        "answer_run_unavailable_reason": _string_or_none(
+            response_metadata.get("answer_run_unavailable_reason")
+        ),
+        "parent_answer_run_ref": _string_or_none(
+            response_metadata.get("parent_answer_run_ref")
         ),
     }
 

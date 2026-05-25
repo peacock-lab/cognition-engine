@@ -5,6 +5,7 @@ from pathlib import Path
 
 from behavior_contracts.evidence_summary_answer import (
     EvidenceSummaryAnswerFollowUpSeedGuard,
+    EvidenceSummaryAnswerRunGuard,
     build_evidence_summary_answer_outcome_observation_readonly_facts,
     build_evidence_summary_answer_outcome_observation_readonly_public_refs,
     evidence_summary_answer_outcome_observation_readonly_public_refs_status_dict,
@@ -13,7 +14,9 @@ from behavior_contracts.evidence_summary_answer import (
 from contract_core import evidence_summary_answer
 from schemas.evidence_summary_answer import (
     EvidenceSummaryAnswerFollowUpSeedSchema,
+    EvidenceSummaryAnswerRunSchema,
     validate_evidence_summary_answer_follow_up_seed,
+    validate_evidence_summary_answer_run,
 )
 
 
@@ -50,6 +53,12 @@ def test_contract_core_reexports_evidence_summary_answer_contracts() -> None:
     assert (
         evidence_summary_answer.EvidenceSummaryAnswerFollowUpSeedSchema
         is EvidenceSummaryAnswerFollowUpSeedSchema
+    )
+    assert evidence_summary_answer.EvidenceSummaryAnswerRunGuard is EvidenceSummaryAnswerRunGuard
+    assert evidence_summary_answer.EvidenceSummaryAnswerRunSchema is EvidenceSummaryAnswerRunSchema
+    assert (
+        evidence_summary_answer.validate_evidence_summary_answer_run
+        is validate_evidence_summary_answer_run
     )
     assert (
         evidence_summary_answer.validate_evidence_summary_answer_follow_up_seed

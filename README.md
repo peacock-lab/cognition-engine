@@ -2,18 +2,18 @@
 
 English | [简体中文](README.zh-CN.md)
 
-Current version: `v0.8.0`
+Current release candidate: `v0.8.1`
 
 Cognition System is a cognitive capability system for governed AI collaboration. It combines language models, tool ecosystems, runtime capabilities, and governance rules to help users understand sources, handle tasks, and deliver traceable results within explicit approval and reviewable boundaries.
 
-The currently verifiable product capability is external-readonly question answering: with your approval, the system reads a URL or evidence path and answers based on that material.
+The first verifiable product is the Reviewable Source QA Pack, exposed through the Cognition System product console. With your approval, the system reads a URL or evidence path, answers based on that material, and returns a reviewable answer run.
 
 ## What It Can Do Today
 
 Ask a question about a URL or governed evidence input:
 
 ```bash
-cognition external-readonly ask --guided
+cognition-console ask --guided
 ```
 
 Guided mode asks for:
@@ -26,17 +26,23 @@ Guided mode asks for:
 
 The answer shows its evidence context where possible. If the material is too short or insufficient, the system says so instead of inventing unsupported content.
 
+The technical compatibility entry remains available:
+
+```bash
+cognition external-readonly ask --guided
+```
+
 ## Install
 
 ```bash
 python -m pip install --upgrade pip
-python -m pip install "cognition-system==0.8.0"
+python -m pip install "cognition-system==0.8.1"
 ```
 
 Or with uv:
 
 ```bash
-uv pip install "cognition-system==0.8.0"
+uv pip install "cognition-system==0.8.1"
 ```
 
 Python `3.14` is required.
@@ -44,7 +50,7 @@ Python `3.14` is required.
 ## Quick Trial
 
 ```bash
-cognition external-readonly ask --guided
+cognition-console ask --guided
 ```
 
 Example:
@@ -76,9 +82,11 @@ By default, the system does not:
 ## Useful Commands
 
 ```bash
+cognition-console --help
+cognition-console ask --help
+cognition-console ask --guided
 cognition --help
 cognition external-readonly ask --help
-cognition external-readonly ask --guided
 cognition config init --config-root ./config
 ```
 

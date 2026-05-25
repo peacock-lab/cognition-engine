@@ -2,18 +2,18 @@
 
 [English](README.md) | 简体中文
 
-当前版本：`v0.8.0`
+当前发布候选版本：`v0.8.1`
 
 Cognition System 是一个面向受治理 AI 协作的认知能力系统：它把大模型、工具生态、运行能力和治理规则组合起来，在明确授权和可复查边界内帮助用户理解资料、处理任务并交付可追踪结果。
 
-当前可直接体验的能力是：基于用户授权读取外部只读资料，并给出可复查的回答。
+当前第一批可直接体验的产品能力是“可复查资料问答包”，推荐通过“认知系统产品控制台”使用。系统会在用户授权下读取 URL 或 evidence path，基于资料回答问题，并返回可复查的问答运行引用。
 
 ## 当前能做什么
 
 你可以让系统读取一个 URL 或 evidence path，然后基于这份资料回答问题。
 
 ```bash
-cognition external-readonly ask --guided
+cognition-console ask --guided
 ```
 
 系统会逐步询问：
@@ -26,17 +26,23 @@ cognition external-readonly ask --guided
 
 回答会尽量说明答案依据、证据引用和受限原因。资料不足时，系统会提示无法展开，而不是编造内容。
 
+兼容 / 技术入口仍然保留：
+
+```bash
+cognition external-readonly ask --guided
+```
+
 ## 安装
 
 ```bash
 python -m pip install --upgrade pip
-python -m pip install "cognition-system==0.8.0"
+python -m pip install "cognition-system==0.8.1"
 ```
 
 或使用 uv：
 
 ```bash
-uv pip install "cognition-system==0.8.0"
+uv pip install "cognition-system==0.8.1"
 ```
 
 需要 Python `3.14`。
@@ -44,7 +50,7 @@ uv pip install "cognition-system==0.8.0"
 ## 快速体验
 
 ```bash
-cognition external-readonly ask --guided
+cognition-console ask --guided
 ```
 
 示例：
@@ -76,9 +82,11 @@ cognition external-readonly ask --guided
 ## 常用命令
 
 ```bash
+cognition-console --help
+cognition-console ask --help
+cognition-console ask --guided
 cognition --help
 cognition external-readonly ask --help
-cognition external-readonly ask --guided
 cognition config init --config-root ./config
 ```
 

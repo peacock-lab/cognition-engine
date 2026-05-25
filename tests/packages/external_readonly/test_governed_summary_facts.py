@@ -17,6 +17,7 @@ from external_readonly import (
     external_readonly_governed_summary_facts_status_dict,
     project_external_readonly_adapter_records,
 )
+from schemas.evidence_summary_answer import SUMMARY_FACT_ITEM_MAX_CHARS
 from schemas.external_readonly_governed_summary_facts import (
     ExternalReadonlyGovernedSummaryFactsSchema,
     validate_external_readonly_governed_summary_facts,
@@ -98,6 +99,73 @@ def test_governed_summary_facts_builder_accepts_provider_adapter_multi_item() ->
     assert "model_context_items" not in str(status)
 
 
+def test_governed_summary_facts_builder_splits_long_item_into_fact_slices() -> None:
+    long_text = _long_fact_text()
+    facts = build_external_readonly_governed_summary_facts(
+        _envelope(
+            model_context_items=(_item(text=long_text),),
+            total_excerpt_chars=len(long_text),
+        ),
+        evidence_written=True,
+    )
+    status = external_readonly_governed_summary_facts_status_dict(facts)
+
+    assert facts.status == "ready"
+    assert facts.fact_count > 1
+    assert all(
+        len(fact.fact_text) <= SUMMARY_FACT_ITEM_MAX_CHARS for fact in facts.facts
+    )
+    assert "governed_facts_chunked" in facts.warnings
+    assert facts.metadata["chunked"] is True
+    assert facts.metadata["fact_slice_count"] == facts.fact_count
+    assert facts.metadata["chunked_source_item_count"] == 1
+    assert (
+        facts.metadata["chunking_strategy_ref"]
+        == "policy://external-readonly/chunking/fact-slice-v1"
+    )
+
+    chunk_indexes = [fact.metadata["chunk_index"] for fact in facts.facts]
+    assert chunk_indexes == list(range(1, facts.fact_count + 1))
+    assert {fact.metadata["source_item_index"] for fact in facts.facts} == {1}
+    assert {fact.metadata["chunk_count"] for fact in facts.facts} == {
+        facts.fact_count
+    }
+    assert all(
+        0
+        <= fact.metadata["source_char_start"]
+        < fact.metadata["source_char_end"]
+        <= fact.metadata["source_excerpt_chars"]
+        for fact in facts.facts
+    )
+    assert validate_external_readonly_governed_summary_facts(status).status == "ready"
+    assert (
+        validate_external_readonly_governed_summary_facts_guards(status).passed is True
+    )
+    assert "sanitized_excerpt" not in str(status)
+    assert "model_context_items" not in str(status)
+
+
+def test_governed_summary_facts_builder_respects_fact_budget_when_slicing() -> None:
+    long_text = _long_fact_text()
+    facts = build_external_readonly_governed_summary_facts(
+        _envelope(
+            model_context_items=(_item(text=long_text),),
+            total_excerpt_chars=len(long_text),
+        ),
+        evidence_written=True,
+        facts_budget=SUMMARY_FACT_ITEM_MAX_CHARS + 100,
+    )
+    status = external_readonly_governed_summary_facts_status_dict(facts)
+
+    assert facts.status == "ready"
+    assert facts.fact_count >= 1
+    assert facts.total_fact_chars <= SUMMARY_FACT_ITEM_MAX_CHARS + 100
+    assert "governed_facts_chunk_budget_exhausted" in facts.warnings
+    assert (
+        validate_external_readonly_governed_summary_facts_guards(status).passed is True
+    )
+
+
 def test_governed_summary_facts_builder_blocks_until_evidence_is_written() -> None:
     facts = build_external_readonly_governed_summary_facts(_envelope())
     status = external_readonly_governed_summary_facts_status_dict(facts)
@@ -157,6 +225,26 @@ def test_governed_summary_facts_builder_blocks_forbidden_fact_marker() -> None:
     assert "governed_facts_validation_failed" in facts.blocking_reasons
     assert "sanitized_excerpt" not in str(status)
     assert validate_external_readonly_governed_summary_facts_guards(status).passed is True
+
+
+def test_governed_summary_facts_builder_allows_public_package_names() -> None:
+    text = (
+        "The public packages include contract_core, schemas, "
+        "behavior_contracts, config_assembly, and config_contexts."
+    )
+    facts = build_external_readonly_governed_summary_facts(
+        _envelope(model_context_items=(_item(text=text),)),
+        evidence_written=True,
+    )
+    status = external_readonly_governed_summary_facts_status_dict(facts)
+
+    assert facts.status == "ready"
+    assert facts.fact_count == 1
+    assert "governed_facts_validation_failed" not in facts.blocking_reasons
+    assert "config_contexts" in facts.facts[0].fact_text
+    assert (
+        validate_external_readonly_governed_summary_facts_guards(status).passed is True
+    )
 
 
 def test_governed_summary_facts_builder_blocks_bad_source_url() -> None:
@@ -266,6 +354,14 @@ def _gate() -> ExternalReadonlyNetworkGateView:
             "network_gate_ref_present": True,
         },
     )
+
+
+def _long_fact_text() -> str:
+    sentence = (
+        "认知系统公开资料说明其面向受控资料理解、证据问答、操作流治理、"
+        "可追踪回答和产品化验收。"
+    )
+    return "\n".join(f"{index}. {sentence}" for index in range(1, 36))
 
 
 def _hash(value: str) -> str:

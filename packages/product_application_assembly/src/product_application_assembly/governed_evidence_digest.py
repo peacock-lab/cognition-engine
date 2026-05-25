@@ -150,6 +150,7 @@ def _metadata(
     facts: ExternalReadonlyGovernedSummaryFactsSchema,
     extra: Mapping[str, Any],
 ) -> dict[str, Any]:
+    source_metadata = _compact_metadata(facts.metadata)
     metadata: dict[str, Any] = {
         "source": PRODUCT_APPLICATION_GOVERNED_EVIDENCE_DIGEST_SOURCE,
         "source_contract": "ExternalReadonlyGovernedSummaryFactsSchema",
@@ -159,6 +160,14 @@ def _metadata(
         "upstream_fact_count": facts.fact_count,
         "total_excerpt_chars_source": "governed_summary_facts.total_fact_chars",
     }
+    for key in (
+        "chunked",
+        "fact_slice_count",
+        "chunked_source_item_count",
+        "chunking_strategy_ref",
+    ):
+        if key in source_metadata:
+            metadata[f"upstream_{key}"] = source_metadata[key]
     metadata.update(_compact_metadata(extra))
     return {key: value for key, value in metadata.items() if value is not None}
 

@@ -9,7 +9,7 @@ from cognition_cli.chat.status_payload import (
     _chat_status_payload,
 )
 from product_gateway.cli_surface import (
-    persist_cli_twf_status_summary,
+    persist_cli_operation_flow_status_summary,
 )
 
 
@@ -26,7 +26,7 @@ def _persist_chat_status_summary(
         turn_count,
         latest_plan_snapshot=latest_plan_snapshot,
     )
-    persistence = persist_cli_twf_status_summary(
+    persistence = persist_cli_operation_flow_status_summary(
         latest_plan_snapshot=latest_plan_snapshot,
         status_summary_payload=payload,
     )

@@ -145,6 +145,30 @@ def test_governed_summary_facts_schema_rejects_sanitized_excerpt_marker() -> Non
         validate_external_readonly_governed_summary_facts(payload)
 
 
+def test_governed_summary_facts_schema_allows_public_package_names() -> None:
+    payload = _ready_payload()
+    fact_text = (
+        "The public packages include contract_core, schemas, "
+        "behavior_contracts, config_assembly, and config_contexts."
+    )
+    payload["facts"][0]["fact_text"] = fact_text
+    payload["total_fact_chars"] = len(fact_text)
+
+    model = validate_external_readonly_governed_summary_facts(payload)
+
+    assert model.status == "ready"
+
+
+def test_governed_summary_facts_schema_rejects_config_context_marker() -> None:
+    payload = _ready_payload()
+    fact_text = "The config_context value must stay inside the runtime boundary."
+    payload["facts"][0]["fact_text"] = fact_text
+    payload["total_fact_chars"] = len(fact_text)
+
+    with pytest.raises(ValidationError):
+        validate_external_readonly_governed_summary_facts(payload)
+
+
 def test_governed_summary_facts_schema_rejects_empty_model_context() -> None:
     payload = _ready_payload()
     payload["facts"] = []

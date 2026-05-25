@@ -189,7 +189,7 @@ def test_runtime_live_llm_config_view_accepts_controlled_live_options() -> None:
         view.model_profiles["gemma4_pro_local"].model_name
         == "ollama/gemma4-pro:latest"
     )
-    assert view.model_profiles["gemma4_pro_local"].max_tokens == 256
+    assert view.model_profiles["gemma4_pro_local"].max_tokens == 800
     assert view.default_output_governance_profile_ref == "direct_controlled_live"
     assert (
         view.output_governance_profiles["direct_controlled_live"].mode

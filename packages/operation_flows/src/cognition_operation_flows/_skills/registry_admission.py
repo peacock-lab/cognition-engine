@@ -1,4 +1,4 @@
-"""Candidate-only project-side Skills registry admission for the task workflow channel."""
+"""Candidate-only project-side Skills registry admission for the operation flow channel."""
 
 from __future__ import annotations
 
@@ -8,10 +8,10 @@ from typing import Any
 
 from config_contexts import SkillMetadataViewCandidate
 
-from cognition_operation_flows._tools.loading_validation import TwfToolLoadingGateCandidate
+from cognition_operation_flows._tools.loading_validation import OperationFlowToolLoadingGateCandidate
 
 
-TWF_SKILL_REGISTRY_LOADING_VALIDATION_STAGES = (
+OPERATION_FLOW_SKILL_REGISTRY_LOADING_VALIDATION_STAGES = (
     "registry_source_resolution",
     "skill_metadata_view_validation",
     "candidate_flags_validation",
@@ -24,7 +24,7 @@ TWF_SKILL_REGISTRY_LOADING_VALIDATION_STAGES = (
     "risk_level_validation",
     "evidence_projection_validation",
 )
-TWF_SKILL_REGISTRY_SOURCE_KINDS = frozenset(
+OPERATION_FLOW_SKILL_REGISTRY_SOURCE_KINDS = frozenset(
     {
         "inline_candidate",
         "config_profile",
@@ -33,7 +33,7 @@ TWF_SKILL_REGISTRY_SOURCE_KINDS = frozenset(
         "unknown",
     }
 )
-TWF_SKILL_RISK_LEVEL_ORDER = {
+OPERATION_FLOW_SKILL_RISK_LEVEL_ORDER = {
     "none": 0,
     "low": 1,
     "medium": 2,
@@ -41,13 +41,13 @@ TWF_SKILL_RISK_LEVEL_ORDER = {
     "unknown": 4,
     "blocked": 5,
 }
-TWF_SKILL_SCRIPT_POLICIES = frozenset(
+OPERATION_FLOW_SKILL_SCRIPT_POLICIES = frozenset(
     {"no_scripts", "reference_only", "review_required", "blocked"}
 )
-TWF_SKILL_RESOURCE_POLICIES = frozenset(
+OPERATION_FLOW_SKILL_RESOURCE_POLICIES = frozenset(
     {"refs_only", "digest_required", "review_required", "blocked"}
 )
-TWF_SKILL_FORBIDDEN_RUNTIME_FLAGS = (
+OPERATION_FLOW_SKILL_FORBIDDEN_RUNTIME_FLAGS = (
     "skill_registry_runtime_requested",
     "skill_toolset_runtime_requested",
     "real_skill_loading_requested",
@@ -59,7 +59,7 @@ TWF_SKILL_FORBIDDEN_RUNTIME_FLAGS = (
     "live_call_enabled",
     "raw_adk_object_included",
 )
-TWF_SKILL_FORBIDDEN_RAW_KEYS = (
+OPERATION_FLOW_SKILL_FORBIDDEN_RAW_KEYS = (
     "raw_skill_instructions",
     "skill_instructions",
     "raw_instructions",
@@ -68,7 +68,7 @@ TWF_SKILL_FORBIDDEN_RAW_KEYS = (
     "raw_script_body",
     "script_body",
 )
-TWF_SKILL_SECRET_KEY_MARKERS = (
+OPERATION_FLOW_SKILL_SECRET_KEY_MARKERS = (
     "access_token",
     "api_key",
     "credential",
@@ -81,7 +81,7 @@ TWF_SKILL_SECRET_KEY_MARKERS = (
 
 
 @dataclass(frozen=True)
-class TwfProjectSkillRegistrySourceCandidate:
+class OperationFlowProjectSkillRegistrySourceCandidate:
     """Project-side Skills registry source summary before runtime integration."""
 
     registry_name: str
@@ -96,7 +96,7 @@ class TwfProjectSkillRegistrySourceCandidate:
 
 
 @dataclass(frozen=True)
-class TwfProjectSkillCapabilityDeclarationCandidate:
+class OperationFlowProjectSkillCapabilityDeclarationCandidate:
     """Capability declaration for one project-side Skill candidate."""
 
     skill_id: str
@@ -119,13 +119,13 @@ class TwfProjectSkillCapabilityDeclarationCandidate:
 
 
 @dataclass(frozen=True)
-class TwfProjectSkillRegistryRecordCandidate:
+class OperationFlowProjectSkillRegistryRecordCandidate:
     """Registry record connecting existing Skill metadata to capabilities."""
 
     skill_id: str
     metadata_view: SkillMetadataViewCandidate
     capability_declarations: tuple[
-        TwfProjectSkillCapabilityDeclarationCandidate, ...
+        OperationFlowProjectSkillCapabilityDeclarationCandidate, ...
     ] = ()
     source_ref: str | None = None
     declared_status: str = "candidate_declared"
@@ -135,7 +135,7 @@ class TwfProjectSkillRegistryRecordCandidate:
 
 
 @dataclass(frozen=True)
-class TwfProjectSkillLoadingValidationCandidate:
+class OperationFlowProjectSkillLoadingValidationCandidate:
     """Validation result for one project-side Skill candidate."""
 
     skill_id: str
@@ -158,14 +158,14 @@ class TwfProjectSkillLoadingValidationCandidate:
 
 
 @dataclass(frozen=True)
-class TwfProjectSkillRegistryLoadingGateCandidate:
+class OperationFlowProjectSkillRegistryLoadingGateCandidate:
     """Aggregate gate for project-side Skills registry declarations."""
 
     registry_name: str
     status: str
     risk_gate_status: str
-    source: TwfProjectSkillRegistrySourceCandidate
-    validations: tuple[TwfProjectSkillLoadingValidationCandidate, ...]
+    source: OperationFlowProjectSkillRegistrySourceCandidate
+    validations: tuple[OperationFlowProjectSkillLoadingValidationCandidate, ...]
     validated_skill_ids: tuple[str, ...]
     blocked_skill_ids: tuple[str, ...]
     warnings: tuple[str, ...] = ()
@@ -178,7 +178,7 @@ class TwfProjectSkillRegistryLoadingGateCandidate:
 
 
 @dataclass(frozen=True)
-class TwfProjectSkillRegistryEvidenceProjectionCandidate:
+class OperationFlowProjectSkillRegistryEvidenceProjectionCandidate:
     """Sanitized evidence projection for a project-side Skills registry gate."""
 
     registry_name: str
@@ -195,7 +195,7 @@ class TwfProjectSkillRegistryEvidenceProjectionCandidate:
     metadata: dict[str, Any] = field(default_factory=dict)
 
 
-def build_twf_project_skill_registry_source(
+def build_operation_flow_project_skill_registry_source(
     *,
     registry_name: str,
     registry_version: str = "v0.7.0-candidate",
@@ -204,11 +204,11 @@ def build_twf_project_skill_registry_source(
     profile_ref: str | None = None,
     declared_skill_ids: Sequence[str] = (),
     metadata: Mapping[str, Any] | None = None,
-) -> TwfProjectSkillRegistrySourceCandidate:
+) -> OperationFlowProjectSkillRegistrySourceCandidate:
     """Build a project-side registry source without reading Skill files."""
 
     normalized_kind = _normalize_source_kind(source_kind)
-    return TwfProjectSkillRegistrySourceCandidate(
+    return OperationFlowProjectSkillRegistrySourceCandidate(
         registry_name=registry_name,
         registry_version=registry_version,
         source_kind=normalized_kind,
@@ -232,13 +232,13 @@ def build_twf_project_skill_registry_source(
     )
 
 
-def validate_twf_project_skill_registry_loading_gate(
+def validate_operation_flow_project_skill_registry_loading_gate(
     *,
-    source: TwfProjectSkillRegistrySourceCandidate,
-    records: Sequence[TwfProjectSkillRegistryRecordCandidate],
-    tool_loading_gate: TwfToolLoadingGateCandidate | None = None,
+    source: OperationFlowProjectSkillRegistrySourceCandidate,
+    records: Sequence[OperationFlowProjectSkillRegistryRecordCandidate],
+    tool_loading_gate: OperationFlowToolLoadingGateCandidate | None = None,
     max_risk_level: str = "medium",
-) -> TwfProjectSkillRegistryLoadingGateCandidate:
+) -> OperationFlowProjectSkillRegistryLoadingGateCandidate:
     """Validate project-side Skills declarations without runtime loading."""
 
     blocking: list[str] = []
@@ -247,7 +247,7 @@ def validate_twf_project_skill_registry_loading_gate(
         blocking.append("registry_name_missing")
     if not source.registry_version.strip():
         warnings.append("registry_version_missing")
-    if source.source_kind not in TWF_SKILL_REGISTRY_SOURCE_KINDS:
+    if source.source_kind not in OPERATION_FLOW_SKILL_REGISTRY_SOURCE_KINDS:
         blocking.append("registry_source_kind_unsupported")
     if not source.source_ref:
         blocking.append("registry_source_ref_missing")
@@ -265,11 +265,11 @@ def validate_twf_project_skill_registry_loading_gate(
     if not registry_records:
         blocking.append("skill_registry_empty")
     declared_ids = set(source.declared_skill_ids)
-    validations: list[TwfProjectSkillLoadingValidationCandidate] = []
+    validations: list[OperationFlowProjectSkillLoadingValidationCandidate] = []
     for record in registry_records:
         if declared_ids and record.skill_id not in declared_ids:
             blocking.append(f"skill_not_declared_in_source:{record.skill_id}")
-        validation = validate_twf_project_skill_loading(
+        validation = validate_operation_flow_project_skill_loading(
             record=record,
             tool_loading_gate=tool_loading_gate,
             max_risk_level=max_risk_level,
@@ -292,7 +292,7 @@ def validate_twf_project_skill_registry_loading_gate(
         if not validation.allowed_for_candidate_reference
     )
     status = "passed" if not blocking else "blocked"
-    return TwfProjectSkillRegistryLoadingGateCandidate(
+    return OperationFlowProjectSkillRegistryLoadingGateCandidate(
         registry_name=source.registry_name,
         status=status,
         risk_gate_status=status,
@@ -307,7 +307,7 @@ def validate_twf_project_skill_registry_loading_gate(
         allowed_for_tool_exposure=False,
         allowed_for_workflow_registration=False,
         metadata={
-            "stages": list(TWF_SKILL_REGISTRY_LOADING_VALIDATION_STAGES),
+            "stages": list(OPERATION_FLOW_SKILL_REGISTRY_LOADING_VALIDATION_STAGES),
             "candidate_only": True,
             "observation_only": True,
             "does_not_load_skill_file": True,
@@ -326,12 +326,12 @@ def validate_twf_project_skill_registry_loading_gate(
     )
 
 
-def validate_twf_project_skill_loading(
+def validate_operation_flow_project_skill_loading(
     *,
-    record: TwfProjectSkillRegistryRecordCandidate,
-    tool_loading_gate: TwfToolLoadingGateCandidate | None = None,
+    record: OperationFlowProjectSkillRegistryRecordCandidate,
+    tool_loading_gate: OperationFlowToolLoadingGateCandidate | None = None,
     max_risk_level: str = "medium",
-) -> TwfProjectSkillLoadingValidationCandidate:
+) -> OperationFlowProjectSkillLoadingValidationCandidate:
     """Validate one Skill registry record without loading the Skill itself."""
 
     blocking: list[str] = list(record.blocking_reasons)
@@ -395,7 +395,7 @@ def validate_twf_project_skill_loading(
     if tool_dependencies and not dependencies_satisfied:
         blocking.append("tool_dependency_bypasses_tools_gate")
     status = "passed" if not blocking else "blocked"
-    return TwfProjectSkillLoadingValidationCandidate(
+    return OperationFlowProjectSkillLoadingValidationCandidate(
         skill_id=record.skill_id,
         status=status,
         capability_ids=tuple(_ordered_unique(capability_ids)),
@@ -415,7 +415,7 @@ def validate_twf_project_skill_loading(
         blocking_reasons=tuple(_ordered_unique(blocking)),
         warnings=tuple(_ordered_unique(warnings)),
         metadata={
-            "stages": list(TWF_SKILL_REGISTRY_LOADING_VALIDATION_STAGES),
+            "stages": list(OPERATION_FLOW_SKILL_REGISTRY_LOADING_VALIDATION_STAGES),
             "candidate_only": True,
             "observation_only": True,
             "does_not_load_skill_file": True,
@@ -434,11 +434,11 @@ def validate_twf_project_skill_loading(
     )
 
 
-def build_twf_project_skill_registry_evidence_projection(
-    gate: TwfProjectSkillRegistryLoadingGateCandidate,
+def build_operation_flow_project_skill_registry_evidence_projection(
+    gate: OperationFlowProjectSkillRegistryLoadingGateCandidate,
     *,
-    records: Sequence[TwfProjectSkillRegistryRecordCandidate],
-) -> TwfProjectSkillRegistryEvidenceProjectionCandidate:
+    records: Sequence[OperationFlowProjectSkillRegistryRecordCandidate],
+) -> OperationFlowProjectSkillRegistryEvidenceProjectionCandidate:
     """Build a sanitized evidence projection for a Skills registry gate."""
 
     record_by_skill_id = {record.skill_id: record for record in records}
@@ -475,7 +475,7 @@ def build_twf_project_skill_registry_evidence_projection(
                 for workflow_ref in capability.workflow_refs
             )
         )
-    return TwfProjectSkillRegistryEvidenceProjectionCandidate(
+    return OperationFlowProjectSkillRegistryEvidenceProjectionCandidate(
         registry_name=gate.registry_name,
         skill_count=len(gate.validations),
         capability_count=capability_count,
@@ -502,8 +502,8 @@ def build_twf_project_skill_registry_evidence_projection(
     )
 
 
-def twf_project_skill_registry_source_status_dict(
-    source: TwfProjectSkillRegistrySourceCandidate,
+def operation_flow_project_skill_registry_source_status_dict(
+    source: OperationFlowProjectSkillRegistrySourceCandidate,
 ) -> dict[str, Any]:
     """Return a sanitized JSON-ready registry source summary."""
 
@@ -520,8 +520,8 @@ def twf_project_skill_registry_source_status_dict(
     }
 
 
-def twf_project_skill_capability_declaration_status_dict(
-    capability: TwfProjectSkillCapabilityDeclarationCandidate,
+def operation_flow_project_skill_capability_declaration_status_dict(
+    capability: OperationFlowProjectSkillCapabilityDeclarationCandidate,
 ) -> dict[str, Any]:
     """Return a sanitized JSON-ready capability declaration summary."""
 
@@ -542,20 +542,20 @@ def twf_project_skill_capability_declaration_status_dict(
         "risk_level": _normalize_risk(capability.risk_level),
         "script_policy": _normalize_policy(
             capability.script_policy,
-            TWF_SKILL_SCRIPT_POLICIES,
+            OPERATION_FLOW_SKILL_SCRIPT_POLICIES,
             default="blocked",
         ),
         "resource_policy": _normalize_policy(
             capability.resource_policy,
-            TWF_SKILL_RESOURCE_POLICIES,
+            OPERATION_FLOW_SKILL_RESOURCE_POLICIES,
             default="blocked",
         ),
         "metadata": dict(capability.metadata),
     }
 
 
-def twf_project_skill_loading_validation_status_dict(
-    validation: TwfProjectSkillLoadingValidationCandidate,
+def operation_flow_project_skill_loading_validation_status_dict(
+    validation: OperationFlowProjectSkillLoadingValidationCandidate,
 ) -> dict[str, Any]:
     """Return a sanitized JSON-ready loading validation summary."""
 
@@ -582,8 +582,8 @@ def twf_project_skill_loading_validation_status_dict(
     }
 
 
-def twf_project_skill_registry_loading_gate_status_dict(
-    gate: TwfProjectSkillRegistryLoadingGateCandidate,
+def operation_flow_project_skill_registry_loading_gate_status_dict(
+    gate: OperationFlowProjectSkillRegistryLoadingGateCandidate,
 ) -> dict[str, Any]:
     """Return a sanitized JSON-ready registry loading gate summary."""
 
@@ -591,9 +591,9 @@ def twf_project_skill_registry_loading_gate_status_dict(
         "registry_name": gate.registry_name,
         "status": gate.status,
         "risk_gate_status": gate.risk_gate_status,
-        "source": twf_project_skill_registry_source_status_dict(gate.source),
+        "source": operation_flow_project_skill_registry_source_status_dict(gate.source),
         "validations": [
-            twf_project_skill_loading_validation_status_dict(validation)
+            operation_flow_project_skill_loading_validation_status_dict(validation)
             for validation in gate.validations
         ],
         "validated_skill_ids": list(gate.validated_skill_ids),
@@ -610,8 +610,8 @@ def twf_project_skill_registry_loading_gate_status_dict(
     }
 
 
-def twf_project_skill_registry_evidence_projection_status_dict(
-    projection: TwfProjectSkillRegistryEvidenceProjectionCandidate,
+def operation_flow_project_skill_registry_evidence_projection_status_dict(
+    projection: OperationFlowProjectSkillRegistryEvidenceProjectionCandidate,
 ) -> dict[str, Any]:
     """Return a sanitized JSON-ready Skills registry evidence projection."""
 
@@ -642,9 +642,9 @@ def twf_project_skill_registry_evidence_projection_status_dict(
 
 def _validate_capability(
     *,
-    capability: TwfProjectSkillCapabilityDeclarationCandidate,
+    capability: OperationFlowProjectSkillCapabilityDeclarationCandidate,
     record_skill_id: str,
-    tool_loading_gate: TwfToolLoadingGateCandidate | None,
+    tool_loading_gate: OperationFlowToolLoadingGateCandidate | None,
     max_risk_level: str,
     blocking: list[str],
     warnings: list[str],
@@ -654,12 +654,12 @@ def _validate_capability(
     normalized_risk = _normalize_risk(capability.risk_level)
     script_policy = _normalize_policy(
         capability.script_policy,
-        TWF_SKILL_SCRIPT_POLICIES,
+        OPERATION_FLOW_SKILL_SCRIPT_POLICIES,
         default="blocked",
     )
     resource_policy = _normalize_policy(
         capability.resource_policy,
-        TWF_SKILL_RESOURCE_POLICIES,
+        OPERATION_FLOW_SKILL_RESOURCE_POLICIES,
         default="blocked",
     )
     if capability.skill_id != record_skill_id:
@@ -744,7 +744,7 @@ def _metadata_runtime_blocking_reasons(metadata: Mapping[str, Any]) -> list[str]
     blocking: list[str] = []
     for key, value in metadata.items():
         key_text = str(key)
-        if key_text in TWF_SKILL_FORBIDDEN_RUNTIME_FLAGS and bool(value):
+        if key_text in OPERATION_FLOW_SKILL_FORBIDDEN_RUNTIME_FLAGS and bool(value):
             blocking.append(key_text)
         if isinstance(value, Mapping):
             blocking.extend(_metadata_runtime_blocking_reasons(value))
@@ -755,7 +755,7 @@ def _forbidden_raw_keys(metadata: Mapping[str, Any]) -> tuple[str, ...]:
     keys: list[str] = []
     for key, value in metadata.items():
         key_text = str(key)
-        if key_text in TWF_SKILL_FORBIDDEN_RAW_KEYS:
+        if key_text in OPERATION_FLOW_SKILL_FORBIDDEN_RAW_KEYS:
             keys.append(key_text)
         if isinstance(value, Mapping):
             keys.extend(_forbidden_raw_keys(value))
@@ -766,7 +766,7 @@ def _raw_secret_keys(raw_config: Mapping[str, Any]) -> tuple[str, ...]:
     keys: list[str] = []
     for key, value in raw_config.items():
         key_text = str(key).lower()
-        if any(marker in key_text for marker in TWF_SKILL_SECRET_KEY_MARKERS):
+        if any(marker in key_text for marker in OPERATION_FLOW_SKILL_SECRET_KEY_MARKERS):
             keys.append(str(key))
         if isinstance(value, Mapping):
             keys.extend(_raw_secret_keys(value))
@@ -774,7 +774,7 @@ def _raw_secret_keys(raw_config: Mapping[str, Any]) -> tuple[str, ...]:
 
 
 def _capability_tool_dependencies(
-    capability: TwfProjectSkillCapabilityDeclarationCandidate,
+    capability: OperationFlowProjectSkillCapabilityDeclarationCandidate,
 ) -> list[str]:
     return _ordered_unique(
         (
@@ -788,7 +788,7 @@ def _capability_tool_dependencies(
 def _tool_dependencies_satisfied(
     *,
     tool_dependencies: Sequence[str],
-    tool_loading_gate: TwfToolLoadingGateCandidate | None,
+    tool_loading_gate: OperationFlowToolLoadingGateCandidate | None,
 ) -> bool:
     if not tool_dependencies:
         return True
@@ -800,21 +800,21 @@ def _tool_dependencies_satisfied(
 
 def _normalize_source_kind(source_kind: str) -> str:
     normalized = source_kind.strip().lower()
-    return normalized if normalized in TWF_SKILL_REGISTRY_SOURCE_KINDS else "unknown"
+    return normalized if normalized in OPERATION_FLOW_SKILL_REGISTRY_SOURCE_KINDS else "unknown"
 
 
 def _normalize_risk(risk_level: str) -> str:
     normalized = (risk_level or "unknown").strip().lower()
-    return normalized if normalized in TWF_SKILL_RISK_LEVEL_ORDER else "unknown"
+    return normalized if normalized in OPERATION_FLOW_SKILL_RISK_LEVEL_ORDER else "unknown"
 
 
 def _risk_at_or_below(risk_level: str, max_risk_level: str) -> bool:
-    return TWF_SKILL_RISK_LEVEL_ORDER.get(
+    return OPERATION_FLOW_SKILL_RISK_LEVEL_ORDER.get(
         _normalize_risk(risk_level),
-        TWF_SKILL_RISK_LEVEL_ORDER["unknown"],
-    ) <= TWF_SKILL_RISK_LEVEL_ORDER.get(
+        OPERATION_FLOW_SKILL_RISK_LEVEL_ORDER["unknown"],
+    ) <= OPERATION_FLOW_SKILL_RISK_LEVEL_ORDER.get(
         _normalize_risk(max_risk_level),
-        TWF_SKILL_RISK_LEVEL_ORDER["medium"],
+        OPERATION_FLOW_SKILL_RISK_LEVEL_ORDER["medium"],
     )
 
 
@@ -823,7 +823,7 @@ def _max_risk_level(risk_levels: Sequence[str]) -> str:
         return "unknown"
     return max(
         (_normalize_risk(risk_level) for risk_level in risk_levels),
-        key=lambda risk: TWF_SKILL_RISK_LEVEL_ORDER[risk],
+        key=lambda risk: OPERATION_FLOW_SKILL_RISK_LEVEL_ORDER[risk],
     )
 
 

@@ -10,13 +10,13 @@ from typing import Any
 from urllib.parse import urlparse
 
 from cognition_operation_flows._external_readonly.tool_design import (
-    TWF_EXTERNAL_READONLY_ORIGIN_OPERATIONS,
-    TwfExternalReadonlyToolDesignCandidate,
-    review_twf_external_readonly_tool_design,
+    OPERATION_FLOW_EXTERNAL_READONLY_ORIGIN_OPERATIONS,
+    OperationFlowExternalReadonlyToolDesignCandidate,
+    review_operation_flow_external_readonly_tool_design,
 )
 
 
-TWF_EXTERNAL_READONLY_NETWORK_GATE_STAGES = (
+OPERATION_FLOW_EXTERNAL_READONLY_NETWORK_GATE_STAGES = (
     "design_review",
     "request_scope_review",
     "network_gate_review",
@@ -26,15 +26,15 @@ TWF_EXTERNAL_READONLY_NETWORK_GATE_STAGES = (
     "runtime_closed_review",
     "sanitized_gate_summary",
 )
-TWF_EXTERNAL_READONLY_NETWORK_GATE_POLICIES = frozenset(
+OPERATION_FLOW_EXTERNAL_READONLY_NETWORK_GATE_POLICIES = frozenset(
     {"external_readonly_manual_approval"}
 )
-TWF_EXTERNAL_READONLY_CONTROLLED_OUTPUT_ROOT = "outputs/external-readonly"
-TWF_EXTERNAL_READONLY_MAX_RESULT_COUNT = 10
-TWF_EXTERNAL_READONLY_MAX_BYTES = 50_000
-TWF_EXTERNAL_READONLY_MAX_TIMEOUT_SECONDS = 30
-TWF_EXTERNAL_READONLY_MAX_REDIRECT_LIMIT = 3
-TWF_EXTERNAL_READONLY_SECRET_KEY_MARKERS = (
+OPERATION_FLOW_EXTERNAL_READONLY_CONTROLLED_OUTPUT_ROOT = "outputs/external-readonly"
+OPERATION_FLOW_EXTERNAL_READONLY_MAX_RESULT_COUNT = 10
+OPERATION_FLOW_EXTERNAL_READONLY_MAX_BYTES = 50_000
+OPERATION_FLOW_EXTERNAL_READONLY_MAX_TIMEOUT_SECONDS = 30
+OPERATION_FLOW_EXTERNAL_READONLY_MAX_REDIRECT_LIMIT = 3
+OPERATION_FLOW_EXTERNAL_READONLY_SECRET_KEY_MARKERS = (
     "access_token",
     "api_key",
     "authorization",
@@ -50,7 +50,7 @@ TWF_EXTERNAL_READONLY_SECRET_KEY_MARKERS = (
 
 
 @dataclass(frozen=True)
-class TwfExternalReadonlyNetworkRequestCandidate:
+class OperationFlowExternalReadonlyNetworkRequestCandidate:
     """Future external read-only request facts, without making a network call."""
 
     request_ref: str
@@ -90,7 +90,7 @@ class TwfExternalReadonlyNetworkRequestCandidate:
 
 
 @dataclass(frozen=True)
-class TwfExternalReadonlyNetworkApprovalCandidate:
+class OperationFlowExternalReadonlyNetworkApprovalCandidate:
     """Operator approval facts for opening a future external-readonly gate."""
 
     operator_approved: bool = False
@@ -105,7 +105,7 @@ class TwfExternalReadonlyNetworkApprovalCandidate:
 
 
 @dataclass(frozen=True)
-class TwfExternalReadonlyNetworkGateCandidate:
+class OperationFlowExternalReadonlyNetworkGateCandidate:
     """Sanitized gate result for one future external-readonly network request."""
 
     request_ref: str
@@ -126,27 +126,27 @@ class TwfExternalReadonlyNetworkGateCandidate:
 
 
 @dataclass(frozen=True)
-class TwfExternalReadonlyNetworkGateSummaryCandidate:
+class OperationFlowExternalReadonlyNetworkGateSummaryCandidate:
     """Aggregate sanitized summary for external-readonly network gates."""
 
     status: str
     allowed_request_refs: tuple[str, ...]
     blocked_request_refs: tuple[str, ...]
-    gates: tuple[TwfExternalReadonlyNetworkGateCandidate, ...]
+    gates: tuple[OperationFlowExternalReadonlyNetworkGateCandidate, ...]
     external_network_call_performed: bool = False
     tool_execution_performed: bool = False
     metadata: dict[str, Any] = field(default_factory=dict)
 
 
-def evaluate_twf_external_readonly_network_gate(
+def evaluate_operation_flow_external_readonly_network_gate(
     *,
-    design: TwfExternalReadonlyToolDesignCandidate,
-    request: TwfExternalReadonlyNetworkRequestCandidate,
-    approval: TwfExternalReadonlyNetworkApprovalCandidate,
-) -> TwfExternalReadonlyNetworkGateCandidate:
+    design: OperationFlowExternalReadonlyToolDesignCandidate,
+    request: OperationFlowExternalReadonlyNetworkRequestCandidate,
+    approval: OperationFlowExternalReadonlyNetworkApprovalCandidate,
+) -> OperationFlowExternalReadonlyNetworkGateCandidate:
     """Evaluate a future external-readonly network gate without network I/O."""
 
-    design_review = review_twf_external_readonly_tool_design(design)
+    design_review = review_operation_flow_external_readonly_tool_design(design)
     request_origin = _normalize_token(request.tool_origin)
     request_operation = _normalize_operation_family(request.operation_family)
     blocking: list[str] = []
@@ -164,7 +164,7 @@ def evaluate_twf_external_readonly_network_gate(
         blocking.append("request_tool_identity_mismatch")
     if request_operation != design_review.operation_family:
         blocking.append("request_tool_identity_mismatch")
-    if request_operation not in TWF_EXTERNAL_READONLY_ORIGIN_OPERATIONS.get(
+    if request_operation not in OPERATION_FLOW_EXTERNAL_READONLY_ORIGIN_OPERATIONS.get(
         request_origin,
         frozenset(),
     ):
@@ -196,7 +196,7 @@ def evaluate_twf_external_readonly_network_gate(
         blocking.append("approved_by_required")
     if not _present(approval.network_gate_ref):
         blocking.append("network_gate_ref_required")
-    if approval.network_gate_policy not in TWF_EXTERNAL_READONLY_NETWORK_GATE_POLICIES:
+    if approval.network_gate_policy not in OPERATION_FLOW_EXTERNAL_READONLY_NETWORK_GATE_POLICIES:
         blocking.append("network_gate_policy_not_allowed")
     if not _present(approval.audit_ref):
         blocking.append("audit_ref_required")
@@ -208,25 +208,25 @@ def evaluate_twf_external_readonly_network_gate(
     if not _bounded_int(
         request.max_result_count,
         minimum=1,
-        maximum=TWF_EXTERNAL_READONLY_MAX_RESULT_COUNT,
+        maximum=OPERATION_FLOW_EXTERNAL_READONLY_MAX_RESULT_COUNT,
     ):
         blocking.append("max_result_count_out_of_bounds")
     if not _bounded_int(
         request.max_bytes,
         minimum=1,
-        maximum=TWF_EXTERNAL_READONLY_MAX_BYTES,
+        maximum=OPERATION_FLOW_EXTERNAL_READONLY_MAX_BYTES,
     ):
         blocking.append("max_bytes_out_of_bounds")
     if not _bounded_int(
         request.timeout_seconds,
         minimum=1,
-        maximum=TWF_EXTERNAL_READONLY_MAX_TIMEOUT_SECONDS,
+        maximum=OPERATION_FLOW_EXTERNAL_READONLY_MAX_TIMEOUT_SECONDS,
     ):
         blocking.append("timeout_seconds_out_of_bounds")
     if not _bounded_int(
         request.redirect_limit,
         minimum=0,
-        maximum=TWF_EXTERNAL_READONLY_MAX_REDIRECT_LIMIT,
+        maximum=OPERATION_FLOW_EXTERNAL_READONLY_MAX_REDIRECT_LIMIT,
     ):
         blocking.append("redirect_limit_out_of_bounds")
 
@@ -281,7 +281,7 @@ def evaluate_twf_external_readonly_network_gate(
         and _present(approval.audit_ref)
         and _present(approval.sanitized_evidence_ref)
     )
-    return TwfExternalReadonlyNetworkGateCandidate(
+    return OperationFlowExternalReadonlyNetworkGateCandidate(
         request_ref=request.request_ref,
         tool_name=request.tool_name,
         tool_origin=request_origin,
@@ -299,7 +299,7 @@ def evaluate_twf_external_readonly_network_gate(
         metadata={
             "candidate_only": True,
             "reference_only": True,
-            "stages": list(TWF_EXTERNAL_READONLY_NETWORK_GATE_STAGES),
+            "stages": list(OPERATION_FLOW_EXTERNAL_READONLY_NETWORK_GATE_STAGES),
             "design_review_status": design_review.status,
             "network_gate_required": True,
             "network_enabled_for_request": request.network_enabled_for_request,
@@ -327,14 +327,14 @@ def evaluate_twf_external_readonly_network_gate(
     )
 
 
-def build_twf_external_readonly_network_gate_summary(
-    gates: Sequence[TwfExternalReadonlyNetworkGateCandidate],
-) -> TwfExternalReadonlyNetworkGateSummaryCandidate:
+def build_operation_flow_external_readonly_network_gate_summary(
+    gates: Sequence[OperationFlowExternalReadonlyNetworkGateCandidate],
+) -> OperationFlowExternalReadonlyNetworkGateSummaryCandidate:
     """Build an aggregate sanitized summary for external-readonly gates."""
 
     allowed = tuple(gate.request_ref for gate in gates if gate.network_gate_open)
     blocked = tuple(gate.request_ref for gate in gates if not gate.network_gate_open)
-    return TwfExternalReadonlyNetworkGateSummaryCandidate(
+    return OperationFlowExternalReadonlyNetworkGateSummaryCandidate(
         status="passed" if not blocked else "blocked",
         allowed_request_refs=tuple(_ordered_unique(allowed)),
         blocked_request_refs=tuple(_ordered_unique(blocked)),
@@ -349,8 +349,8 @@ def build_twf_external_readonly_network_gate_summary(
     )
 
 
-def twf_external_readonly_network_gate_status_dict(
-    gate: TwfExternalReadonlyNetworkGateCandidate,
+def operation_flow_external_readonly_network_gate_status_dict(
+    gate: OperationFlowExternalReadonlyNetworkGateCandidate,
 ) -> dict[str, Any]:
     """Return a JSON-ready sanitized network gate summary."""
 
@@ -373,8 +373,8 @@ def twf_external_readonly_network_gate_status_dict(
     }
 
 
-def twf_external_readonly_network_gate_summary_status_dict(
-    summary: TwfExternalReadonlyNetworkGateSummaryCandidate,
+def operation_flow_external_readonly_network_gate_summary_status_dict(
+    summary: OperationFlowExternalReadonlyNetworkGateSummaryCandidate,
 ) -> dict[str, Any]:
     """Return a JSON-ready sanitized aggregate gate summary."""
 
@@ -385,7 +385,7 @@ def twf_external_readonly_network_gate_summary_status_dict(
         "external_network_call_performed": summary.external_network_call_performed,
         "tool_execution_performed": summary.tool_execution_performed,
         "gates": [
-            twf_external_readonly_network_gate_status_dict(gate)
+            operation_flow_external_readonly_network_gate_status_dict(gate)
             for gate in summary.gates
         ],
         "metadata": dict(summary.metadata),
@@ -394,14 +394,14 @@ def twf_external_readonly_network_gate_summary_status_dict(
 
 def _normalize_operation_family(value: str) -> str:
     normalized = _normalize_token(value)
-    for operations in TWF_EXTERNAL_READONLY_ORIGIN_OPERATIONS.values():
+    for operations in OPERATION_FLOW_EXTERNAL_READONLY_ORIGIN_OPERATIONS.values():
         if normalized in operations:
             return normalized
     tokens = _split_tokens(normalized)
     for token in tokens:
         if any(
             token in operations
-            for operations in TWF_EXTERNAL_READONLY_ORIGIN_OPERATIONS.values()
+            for operations in OPERATION_FLOW_EXTERNAL_READONLY_ORIGIN_OPERATIONS.values()
         ):
             return token
     return normalized
@@ -413,7 +413,7 @@ def _controlled_output_ref_allowed(value: str | None) -> bool:
     ref = str(value).strip()
     if ref.startswith("evidence://external-readonly/"):
         return len(ref) > len("evidence://external-readonly/")
-    if not ref.startswith(f"{TWF_EXTERNAL_READONLY_CONTROLLED_OUTPUT_ROOT}/"):
+    if not ref.startswith(f"{OPERATION_FLOW_EXTERNAL_READONLY_CONTROLLED_OUTPUT_ROOT}/"):
         return False
     if not ref.endswith(".json"):
         return False
@@ -452,7 +452,7 @@ def _raw_secret_keys(raw_config: Mapping[str, Any]) -> tuple[str, ...]:
         key_text = str(key).lower()
         if any(
             marker in key_text
-            for marker in TWF_EXTERNAL_READONLY_SECRET_KEY_MARKERS
+            for marker in OPERATION_FLOW_EXTERNAL_READONLY_SECRET_KEY_MARKERS
         ):
             if value:
                 keys.append(str(key))

@@ -1,4 +1,4 @@
-"""Candidate-only task workflow tool exposure profile mapping helpers."""
+"""Candidate-only operation flow tool exposure profile mapping helpers."""
 
 from __future__ import annotations
 
@@ -13,19 +13,19 @@ from cognition_operation_flows._tools.reference_reader import (
     REFERENCE_READER_TOOL_NAME,
     REFERENCE_READER_TOOLSET_KIND,
     REFERENCE_READER_TOOLSET_NAME,
-    TwfReferenceReaderPolicyCandidate,
+    OperationFlowReferenceReaderPolicyCandidate,
     build_default_reference_reader_policy,
     build_reference_reader_operation_facts,
 )
 from cognition_operation_flows._tools.toolset_admission import (
-    TwfToolOperationFactsCandidate,
-    TwfToolsetInventoryCandidate,
-    build_twf_toolset_inventory,
-    evaluate_twf_toolset_admission,
+    OperationFlowToolOperationFactsCandidate,
+    OperationFlowToolsetInventoryCandidate,
+    build_operation_flow_toolset_inventory,
+    evaluate_operation_flow_toolset_admission,
 )
 
 
-TWF_TOOL_EXPOSURE_CONTROL_STAGES = (
+OPERATION_FLOW_TOOL_EXPOSURE_CONTROL_STAGES = (
     "default_policy",
     "profile_config_mapping",
     "session_narrowing",
@@ -34,13 +34,13 @@ TWF_TOOL_EXPOSURE_CONTROL_STAGES = (
     "risk_review",
     "exposure_summary",
 )
-TWF_TOOL_EXPOSURE_CONFIG_PRECEDENCE = (
+OPERATION_FLOW_TOOL_EXPOSURE_CONFIG_PRECEDENCE = (
     "entrypoint_explicit_args",
     "session_args",
     "profile_config",
     "default_values",
 )
-DEFAULT_TWF_TOOL_EXPOSURE_PROFILE = "readonly_reference"
+DEFAULT_OPERATION_FLOW_TOOL_EXPOSURE_PROFILE = "readonly_reference"
 MANAGED_TOOL_EXPOSURE_PARAMETERS = frozenset(
     {
         "approval_ref",
@@ -65,7 +65,7 @@ RISK_LEVEL_ORDER = {
 
 
 @dataclass(frozen=True)
-class TwfToolsetExposurePolicyCandidate:
+class OperationFlowToolsetExposurePolicyCandidate:
     """Candidate mapping for one toolset exposure policy."""
 
     toolset_name: str
@@ -85,13 +85,13 @@ class TwfToolsetExposurePolicyCandidate:
 
 
 @dataclass(frozen=True)
-class TwfToolExposureProfileCandidate:
-    """Candidate profile/config mapping for task workflow tool exposure."""
+class OperationFlowToolExposureProfileCandidate:
+    """Candidate profile/config mapping for operation flow tool exposure."""
 
     profile_name: str
     source_ref: str | None
     config_precedence: tuple[str, ...]
-    toolsets: tuple[TwfToolsetExposurePolicyCandidate, ...]
+    toolsets: tuple[OperationFlowToolsetExposurePolicyCandidate, ...]
     blocking_reasons: tuple[str, ...] = ()
     warnings: tuple[str, ...] = ()
     status: str = "candidate"
@@ -99,32 +99,32 @@ class TwfToolExposureProfileCandidate:
 
 
 @dataclass(frozen=True)
-class TwfToolExposureResolutionCandidate:
+class OperationFlowToolExposureResolutionCandidate:
     """Resolved candidate exposure after admission and risk review."""
 
-    profile: TwfToolExposureProfileCandidate
-    inventories: tuple[TwfToolsetInventoryCandidate, ...]
+    profile: OperationFlowToolExposureProfileCandidate
+    inventories: tuple[OperationFlowToolsetInventoryCandidate, ...]
     exposed_tool_names: tuple[str, ...]
     blocked_tool_names: tuple[str, ...]
-    reference_reader_policy: TwfReferenceReaderPolicyCandidate | None = None
+    reference_reader_policy: OperationFlowReferenceReaderPolicyCandidate | None = None
     blocking_reasons: tuple[str, ...] = ()
     warnings: tuple[str, ...] = ()
     status: str = "candidate"
     metadata: dict[str, Any] = field(default_factory=dict)
 
 
-def resolve_twf_tool_exposure_profile(
+def resolve_operation_flow_tool_exposure_profile(
     *,
-    profile_name: str = DEFAULT_TWF_TOOL_EXPOSURE_PROFILE,
+    profile_name: str = DEFAULT_OPERATION_FLOW_TOOL_EXPOSURE_PROFILE,
     profile_config: Mapping[str, Any] | None = None,
     repo_root: str | Path | None = None,
     session_args: Mapping[str, Any] | None = None,
     entrypoint_explicit_args: Mapping[str, Any] | None = None,
     operation_facts_by_toolset: Mapping[
-        str, Sequence[TwfToolOperationFactsCandidate]
+        str, Sequence[OperationFlowToolOperationFactsCandidate]
     ]
     | None = None,
-) -> TwfToolExposureResolutionCandidate:
+) -> OperationFlowToolExposureResolutionCandidate:
     """Resolve profile/config tool exposure without loading or executing tools."""
 
     repo_path = Path(repo_root or Path.cwd()).expanduser().resolve()
@@ -139,7 +139,7 @@ def resolve_twf_tool_exposure_profile(
         entrypoint_explicit_args.get("profile_name"),
         session_args.get("profile_name"),
         profile_name,
-        DEFAULT_TWF_TOOL_EXPOSURE_PROFILE,
+        DEFAULT_OPERATION_FLOW_TOOL_EXPOSURE_PROFILE,
     )
     blocking.extend(
         _managed_override_reasons("session_args", session_args)
@@ -150,7 +150,7 @@ def resolve_twf_tool_exposure_profile(
         blocking.append("tool_exposure_profile_missing")
         profile_mapping = _profile_mapping(
             _default_tool_exposure_config(repo_path),
-            DEFAULT_TWF_TOOL_EXPOSURE_PROFILE,
+            DEFAULT_OPERATION_FLOW_TOOL_EXPOSURE_PROFILE,
         )
         warnings.append("default_tool_exposure_profile_used")
 
@@ -161,11 +161,11 @@ def resolve_twf_tool_exposure_profile(
 
     session_selection = _selection_by_toolset(session_args)
     entrypoint_selection = _selection_by_toolset(entrypoint_explicit_args)
-    toolset_policies: list[TwfToolsetExposurePolicyCandidate] = []
-    inventories: list[TwfToolsetInventoryCandidate] = []
+    toolset_policies: list[OperationFlowToolsetExposurePolicyCandidate] = []
+    inventories: list[OperationFlowToolsetInventoryCandidate] = []
     exposed_tool_names: list[str] = []
     blocked_tool_names: list[str] = []
-    reference_reader_policy: TwfReferenceReaderPolicyCandidate | None = None
+    reference_reader_policy: OperationFlowReferenceReaderPolicyCandidate | None = None
 
     for raw_toolset in profile_toolsets:
         policy = _build_toolset_policy(
@@ -176,7 +176,7 @@ def resolve_twf_tool_exposure_profile(
         toolset_policies.append(policy)
         blocking.extend(policy.blocking_reasons)
         warnings.extend(policy.warnings)
-        admission = evaluate_twf_toolset_admission(
+        admission = evaluate_operation_flow_toolset_admission(
             toolset_name=policy.toolset_name,
             toolset_kind=policy.toolset_kind,
             source_ref=policy.source_ref,
@@ -199,7 +199,7 @@ def resolve_twf_tool_exposure_profile(
             operations = (build_reference_reader_operation_facts(),)
         if policy.effective_tool_names and not operations:
             blocking.append(f"operation_facts_missing:{policy.toolset_name}")
-        inventory = build_twf_toolset_inventory(admission, operations)
+        inventory = build_operation_flow_toolset_inventory(admission, operations)
         inventories.append(inventory)
         effective_tool_names = set(policy.effective_tool_names)
         for tool in inventory.tools:
@@ -225,17 +225,17 @@ def resolve_twf_tool_exposure_profile(
             if not _policy_roots_under_repo(reference_reader_policy, repo_path):
                 blocking.append("reference_reader_allowed_roots_outside_repo")
 
-    profile = TwfToolExposureProfileCandidate(
+    profile = OperationFlowToolExposureProfileCandidate(
         profile_name=selected_profile_name,
         source_ref=source_ref,
-        config_precedence=TWF_TOOL_EXPOSURE_CONFIG_PRECEDENCE,
+        config_precedence=OPERATION_FLOW_TOOL_EXPOSURE_CONFIG_PRECEDENCE,
         toolsets=tuple(toolset_policies),
         blocking_reasons=tuple(_ordered_unique(blocking)),
         warnings=tuple(_ordered_unique(warnings)),
         status="resolved" if not blocking else "blocked",
         metadata={
             "candidate_only": True,
-            "stages": list(TWF_TOOL_EXPOSURE_CONTROL_STAGES),
+            "stages": list(OPERATION_FLOW_TOOL_EXPOSURE_CONTROL_STAGES),
             "repo_root": str(repo_path),
             "session_selection_present": bool(session_selection),
             "entrypoint_selection_present": bool(entrypoint_selection),
@@ -244,7 +244,7 @@ def resolve_twf_tool_exposure_profile(
             "does_not_read_config_files": True,
         },
     )
-    return TwfToolExposureResolutionCandidate(
+    return OperationFlowToolExposureResolutionCandidate(
         profile=profile,
         inventories=tuple(inventories),
         exposed_tool_names=tuple(_ordered_unique(exposed_tool_names)),
@@ -255,7 +255,7 @@ def resolve_twf_tool_exposure_profile(
         status=profile.status,
         metadata={
             "candidate_only": True,
-            "config_precedence": list(TWF_TOOL_EXPOSURE_CONFIG_PRECEDENCE),
+            "config_precedence": list(OPERATION_FLOW_TOOL_EXPOSURE_CONFIG_PRECEDENCE),
             "toolset_count": len(toolset_policies),
             "inventory_count": len(inventories),
             "exposed_count": len(_ordered_unique(exposed_tool_names)),
@@ -264,8 +264,8 @@ def resolve_twf_tool_exposure_profile(
     )
 
 
-def twf_tool_exposure_profile_status_dict(
-    resolution: TwfToolExposureResolutionCandidate,
+def operation_flow_tool_exposure_profile_status_dict(
+    resolution: OperationFlowToolExposureResolutionCandidate,
 ) -> dict[str, Any]:
     """Return a sanitized status dict for result packages and evidence."""
 
@@ -319,8 +319,8 @@ def twf_tool_exposure_profile_status_dict(
 def _default_tool_exposure_config(repo_root: Path) -> dict[str, Any]:
     return {
         "profiles": {
-            DEFAULT_TWF_TOOL_EXPOSURE_PROFILE: {
-                "source_ref": "default://twf-tool-exposure/readonly-reference",
+            DEFAULT_OPERATION_FLOW_TOOL_EXPOSURE_PROFILE: {
+                "source_ref": "default://operation_flow-tool-exposure/readonly-reference",
                 "toolsets": [
                     {
                         "toolset_name": REFERENCE_READER_TOOLSET_NAME,
@@ -375,7 +375,7 @@ def _build_toolset_policy(
     *,
     session_selection: Mapping[str, tuple[str, ...]],
     entrypoint_selection: Mapping[str, tuple[str, ...]],
-) -> TwfToolsetExposurePolicyCandidate:
+) -> OperationFlowToolsetExposurePolicyCandidate:
     toolset_name = _first_text(raw_toolset.get("toolset_name"), "unknown_toolset")
     toolset_kind = _first_text(raw_toolset.get("toolset_kind"), "toolset")
     allowlist = tuple(
@@ -413,7 +413,7 @@ def _build_toolset_policy(
     if max_risk_level not in RISK_LEVEL_ORDER:
         warnings.append(f"toolset_max_risk_level_unrecognized:{toolset_name}")
         max_risk_level = "low"
-    return TwfToolsetExposurePolicyCandidate(
+    return OperationFlowToolsetExposurePolicyCandidate(
         toolset_name=toolset_name,
         toolset_kind=toolset_kind,
         source_ref=_optional_text(raw_toolset.get("source_ref")),
@@ -475,7 +475,7 @@ def _build_reference_reader_policy_from_toolset(
     raw_toolset: Mapping[str, Any],
     *,
     repo_root: Path,
-) -> TwfReferenceReaderPolicyCandidate:
+) -> OperationFlowReferenceReaderPolicyCandidate:
     config = raw_toolset.get("reference_reader")
     if not isinstance(config, Mapping):
         config = {}
@@ -504,7 +504,7 @@ def _resolve_root(value: str, repo_root: Path) -> str:
 
 
 def _policy_roots_under_repo(
-    policy: TwfReferenceReaderPolicyCandidate,
+    policy: OperationFlowReferenceReaderPolicyCandidate,
     repo_root: Path,
 ) -> bool:
     return all(

@@ -10,30 +10,30 @@ import re
 from typing import Any
 
 from cognition_operation_flows._core.run_workspace import (
-    TWF_RUN_WORKSPACE_SCHEMA_VERSION,
-    TWF_RUN_WORKSPACE_SUBDIRS,
-    TwfRunWorkspaceStateCandidate,
-    build_twf_run_workspace_policy,
-    cleanup_twf_run_workspace,
-    twf_run_workspace_status_dict,
-    create_twf_run_workspace,
-    finalize_twf_run_workspace,
-    write_twf_run_workspace_json,
-    write_twf_run_workspace_text,
+    OPERATION_FLOW_RUN_WORKSPACE_SCHEMA_VERSION,
+    OPERATION_FLOW_RUN_WORKSPACE_SUBDIRS,
+    OperationFlowRunWorkspaceStateCandidate,
+    build_operation_flow_run_workspace_policy,
+    cleanup_operation_flow_run_workspace,
+    operation_flow_run_workspace_status_dict,
+    create_operation_flow_run_workspace,
+    finalize_operation_flow_run_workspace,
+    write_operation_flow_run_workspace_json,
+    write_operation_flow_run_workspace_text,
 )
 from cognition_operation_flows._core.control import (
-    TwfRunContextCandidate,
-    build_twf_run_context,
-    twf_run_context_status_dict,
-    finalize_twf_run_context,
+    OperationFlowRunContextCandidate,
+    build_operation_flow_run_context,
+    operation_flow_run_context_status_dict,
+    finalize_operation_flow_run_context,
 )
 
 
-TWF_RUN_WORKSPACE_EVIDENCE_AUDIT_WORKFLOW_NAME = (
-    "twf_run_workspace_evidence_audit_workflow"
+OPERATION_FLOW_RUN_WORKSPACE_EVIDENCE_AUDIT_WORKFLOW_NAME = (
+    "operation_flow_run_workspace_evidence_audit_workflow"
 )
-TWF_RUN_WORKSPACE_EVIDENCE_AUDIT_TASK_KIND = "run_workspace_evidence_audit"
-TWF_RUN_WORKSPACE_EVIDENCE_AUDIT_TEMPLATE_VERSION = (
+OPERATION_FLOW_RUN_WORKSPACE_EVIDENCE_AUDIT_TASK_KIND = "run_workspace_evidence_audit"
+OPERATION_FLOW_RUN_WORKSPACE_EVIDENCE_AUDIT_TEMPLATE_VERSION = (
     "run_workspace_evidence_audit_template_v1"
 )
 RUN_WORKSPACE_EVIDENCE_AUDIT_DISPLAY_PREVIEW_LIMIT = 4000
@@ -93,7 +93,7 @@ AUDIT_TERMINAL_SCAN_MAX_BYTES = 8192
 
 
 @dataclass(frozen=True)
-class TwfRunWorkspaceEvidenceAuditWorkflowRequestCandidate:
+class OperationFlowRunWorkspaceEvidenceAuditWorkflowRequestCandidate:
     """Request entering the run workspace evidence audit workflow."""
 
     user_text: str
@@ -120,7 +120,7 @@ class TwfRunWorkspaceEvidenceAuditWorkflowRequestCandidate:
 
 
 @dataclass(frozen=True)
-class TwfRunWorkspaceEvidenceAuditFactsCandidate:
+class OperationFlowRunWorkspaceEvidenceAuditFactsCandidate:
     """Minimal audit intent facts."""
 
     original_text: str
@@ -131,7 +131,7 @@ class TwfRunWorkspaceEvidenceAuditFactsCandidate:
 
 
 @dataclass(frozen=True)
-class TwfRunWorkspaceAuditTargetCandidate:
+class OperationFlowRunWorkspaceAuditTargetCandidate:
     """Resolved audited run workspace target."""
 
     status: str
@@ -147,7 +147,7 @@ class TwfRunWorkspaceAuditTargetCandidate:
 
 
 @dataclass(frozen=True)
-class TwfRunWorkspaceAuditFileCandidate:
+class OperationFlowRunWorkspaceAuditFileCandidate:
     """One audited workspace file observation."""
 
     kind: str
@@ -162,7 +162,7 @@ class TwfRunWorkspaceAuditFileCandidate:
 
 
 @dataclass(frozen=True)
-class TwfRunWorkspaceAuditFindingCandidate:
+class OperationFlowRunWorkspaceAuditFindingCandidate:
     """One sanitized audit finding."""
 
     severity: str
@@ -173,14 +173,14 @@ class TwfRunWorkspaceAuditFindingCandidate:
 
 
 @dataclass(frozen=True)
-class TwfRunWorkspaceEvidenceAuditContextCandidate:
+class OperationFlowRunWorkspaceEvidenceAuditContextCandidate:
     """Sanitized run workspace evidence audit context."""
 
     status: str
     audit_result: str
-    target: TwfRunWorkspaceAuditTargetCandidate
-    files: tuple[TwfRunWorkspaceAuditFileCandidate, ...]
-    findings: tuple[TwfRunWorkspaceAuditFindingCandidate, ...]
+    target: OperationFlowRunWorkspaceAuditTargetCandidate
+    files: tuple[OperationFlowRunWorkspaceAuditFileCandidate, ...]
+    findings: tuple[OperationFlowRunWorkspaceAuditFindingCandidate, ...]
     structure_checks: dict[str, Any]
     reference_checks: dict[str, Any]
     boundary_checks: dict[str, Any]
@@ -190,23 +190,23 @@ class TwfRunWorkspaceEvidenceAuditContextCandidate:
 
 
 @dataclass(frozen=True)
-class TwfRunWorkspaceEvidenceAuditWorkflowResultCandidate:
+class OperationFlowRunWorkspaceEvidenceAuditWorkflowResultCandidate:
     """Final run workspace evidence audit workflow result."""
 
     triggered: bool
     terminal_display_text: str
-    request: TwfRunWorkspaceEvidenceAuditWorkflowRequestCandidate
-    facts: TwfRunWorkspaceEvidenceAuditFactsCandidate
-    audit_context: TwfRunWorkspaceEvidenceAuditContextCandidate
+    request: OperationFlowRunWorkspaceEvidenceAuditWorkflowRequestCandidate
+    facts: OperationFlowRunWorkspaceEvidenceAuditFactsCandidate
+    audit_context: OperationFlowRunWorkspaceEvidenceAuditContextCandidate
     model_call_count: int = 0
     no_live: bool = True
     fail_safe: bool = False
-    task_run_context: TwfRunContextCandidate | None = None
-    run_workspace: TwfRunWorkspaceStateCandidate | None = None
+    task_run_context: OperationFlowRunContextCandidate | None = None
+    run_workspace: OperationFlowRunWorkspaceStateCandidate | None = None
     metadata: dict[str, Any] = field(default_factory=dict)
 
 
-def detect_twf_run_workspace_evidence_audit_request(
+def detect_operation_flow_run_workspace_evidence_audit_request(
     user_text: str,
     *,
     audit_target_requested: bool = False,
@@ -220,9 +220,9 @@ def detect_twf_run_workspace_evidence_audit_request(
     return any(keyword.lower() in lowered for keyword in AUDIT_WORKSPACE_KEYWORDS)
 
 
-def extract_twf_run_workspace_evidence_audit_facts(
-    request: TwfRunWorkspaceEvidenceAuditWorkflowRequestCandidate,
-) -> TwfRunWorkspaceEvidenceAuditFactsCandidate:
+def extract_operation_flow_run_workspace_evidence_audit_facts(
+    request: OperationFlowRunWorkspaceEvidenceAuditWorkflowRequestCandidate,
+) -> OperationFlowRunWorkspaceEvidenceAuditFactsCandidate:
     """Extract bounded run workspace audit intent facts."""
 
     normalized = _compact_text(request.user_text)
@@ -232,9 +232,9 @@ def extract_twf_run_workspace_evidence_audit_facts(
         for keyword in AUDIT_WORKSPACE_KEYWORDS
         if keyword.lower() in lowered
     )
-    return TwfRunWorkspaceEvidenceAuditFactsCandidate(
+    return OperationFlowRunWorkspaceEvidenceAuditFactsCandidate(
         original_text=request.user_text,
-        task_kind=TWF_RUN_WORKSPACE_EVIDENCE_AUDIT_TASK_KIND,
+        task_kind=OPERATION_FLOW_RUN_WORKSPACE_EVIDENCE_AUDIT_TASK_KIND,
         matched_terms=matched_terms,
         audit_focus=tuple(_ordered_unique(request.audit_focus or AUDIT_FOCUS_DEFAULTS)),
         metadata={
@@ -244,26 +244,26 @@ def extract_twf_run_workspace_evidence_audit_facts(
     )
 
 
-def run_twf_run_workspace_evidence_audit_workflow(
-    request: TwfRunWorkspaceEvidenceAuditWorkflowRequestCandidate,
-) -> TwfRunWorkspaceEvidenceAuditWorkflowResultCandidate:
+def run_operation_flow_run_workspace_evidence_audit_workflow(
+    request: OperationFlowRunWorkspaceEvidenceAuditWorkflowRequestCandidate,
+) -> OperationFlowRunWorkspaceEvidenceAuditWorkflowResultCandidate:
     """Run the governed run workspace evidence audit workflow."""
 
-    facts = extract_twf_run_workspace_evidence_audit_facts(request)
+    facts = extract_operation_flow_run_workspace_evidence_audit_facts(request)
     task_context = _build_evidence_audit_task_context(request, facts)
     if not task_context.preflight.allowed:
-        task_context = finalize_twf_run_context(
+        task_context = finalize_operation_flow_run_context(
             task_context,
             status="blocked",
             metadata={"blocked_before_workspace_audit": True},
         )
-        target = TwfRunWorkspaceAuditTargetCandidate(
+        target = OperationFlowRunWorkspaceAuditTargetCandidate(
             status="not_started",
             blocking_reasons=task_context.preflight.blocking_reasons,
             warnings=task_context.preflight.warnings,
         )
         audit_context = _audit_context_from_blocked_target(target)
-        return TwfRunWorkspaceEvidenceAuditWorkflowResultCandidate(
+        return OperationFlowRunWorkspaceEvidenceAuditWorkflowResultCandidate(
             triggered=True,
             terminal_display_text=_preflight_blocked_terminal_display(task_context),
             request=request,
@@ -272,14 +272,14 @@ def run_twf_run_workspace_evidence_audit_workflow(
             fail_safe=True,
             task_run_context=task_context,
             metadata={
-                "workflow": TWF_RUN_WORKSPACE_EVIDENCE_AUDIT_WORKFLOW_NAME,
+                "workflow": OPERATION_FLOW_RUN_WORKSPACE_EVIDENCE_AUDIT_WORKFLOW_NAME,
                 **_task_context_metadata(task_context),
             },
         )
 
-    target = resolve_twf_run_workspace_audit_target(request)
-    audit_context = build_twf_run_workspace_evidence_audit_context(request, facts, target)
-    display = format_twf_run_workspace_evidence_audit_for_terminal(audit_context)
+    target = resolve_operation_flow_run_workspace_audit_target(request)
+    audit_context = build_operation_flow_run_workspace_evidence_audit_context(request, facts, target)
+    display = format_operation_flow_run_workspace_evidence_audit_for_terminal(audit_context)
     run_workspace = _create_audit_output_run_workspace(request, task_context, target)
     if run_workspace is not None and not run_workspace.workspace_created:
         task_context = _finalize_task_context_with_run_workspace(
@@ -291,7 +291,7 @@ def run_twf_run_workspace_evidence_audit_workflow(
                 "failure_stage": "run_workspace",
             },
         )
-        return TwfRunWorkspaceEvidenceAuditWorkflowResultCandidate(
+        return OperationFlowRunWorkspaceEvidenceAuditWorkflowResultCandidate(
             triggered=True,
             terminal_display_text=_workspace_blocked_terminal_display(
                 task_context,
@@ -304,7 +304,7 @@ def run_twf_run_workspace_evidence_audit_workflow(
             task_run_context=task_context,
             run_workspace=run_workspace,
             metadata={
-                "workflow": TWF_RUN_WORKSPACE_EVIDENCE_AUDIT_WORKFLOW_NAME,
+                "workflow": OPERATION_FLOW_RUN_WORKSPACE_EVIDENCE_AUDIT_WORKFLOW_NAME,
                 **_task_context_metadata(task_context),
                 **_run_workspace_metadata(run_workspace),
             },
@@ -318,7 +318,7 @@ def run_twf_run_workspace_evidence_audit_workflow(
         facts=facts,
         audit_context=audit_context,
     )
-    task_context = finalize_twf_run_context(
+    task_context = finalize_operation_flow_run_context(
         task_context,
         status=workflow_status,
         evidence_refs=run_workspace.evidence_refs if run_workspace else (),
@@ -327,13 +327,13 @@ def run_twf_run_workspace_evidence_audit_workflow(
         workspace_created=run_workspace.workspace_created if run_workspace else None,
         retention_policy=run_workspace.retention_policy if run_workspace else None,
         cleanup_policy=run_workspace.cleanup_policy if run_workspace else None,
-        workspace_metadata=twf_run_workspace_status_dict(run_workspace),
+        workspace_metadata=operation_flow_run_workspace_status_dict(run_workspace),
         metadata={
             "audit_result": audit_context.audit_result,
             "audited_workspace_ref": target.workspace_ref,
         },
     )
-    return TwfRunWorkspaceEvidenceAuditWorkflowResultCandidate(
+    return OperationFlowRunWorkspaceEvidenceAuditWorkflowResultCandidate(
         triggered=True,
         terminal_display_text=display,
         request=request,
@@ -342,7 +342,7 @@ def run_twf_run_workspace_evidence_audit_workflow(
         task_run_context=task_context,
         run_workspace=run_workspace,
         metadata={
-            "workflow": TWF_RUN_WORKSPACE_EVIDENCE_AUDIT_WORKFLOW_NAME,
+            "workflow": OPERATION_FLOW_RUN_WORKSPACE_EVIDENCE_AUDIT_WORKFLOW_NAME,
             **_task_context_metadata(task_context),
             **_audit_context_metadata(audit_context),
             **_run_workspace_metadata(run_workspace),
@@ -350,9 +350,9 @@ def run_twf_run_workspace_evidence_audit_workflow(
     )
 
 
-def resolve_twf_run_workspace_audit_target(
-    request: TwfRunWorkspaceEvidenceAuditWorkflowRequestCandidate,
-) -> TwfRunWorkspaceAuditTargetCandidate:
+def resolve_operation_flow_run_workspace_audit_target(
+    request: OperationFlowRunWorkspaceEvidenceAuditWorkflowRequestCandidate,
+) -> OperationFlowRunWorkspaceAuditTargetCandidate:
     """Resolve and validate the audited workspace target without writing to it."""
 
     path_input = str(request.audit_run_workspace_path or "").strip()
@@ -407,7 +407,7 @@ def resolve_twf_run_workspace_audit_target(
             blocking.extend(manifest_blocking)
             warnings.extend(manifest_warnings)
             schema = str(manifest.get("schema_version") or "")
-            if schema != TWF_RUN_WORKSPACE_SCHEMA_VERSION:
+            if schema != OPERATION_FLOW_RUN_WORKSPACE_SCHEMA_VERSION:
                 blocking.append("audit_workspace_schema_version_invalid")
 
     workflow_name = _optional_text(manifest.get("workflow_name")) or expected_workflow
@@ -424,7 +424,7 @@ def resolve_twf_run_workspace_audit_target(
         if manifest_workspace_path != target_path:
             warnings.append("audit_workspace_path_manifest_mismatch")
 
-    return TwfRunWorkspaceAuditTargetCandidate(
+    return OperationFlowRunWorkspaceAuditTargetCandidate(
         status="blocked" if blocking else "resolved",
         workspace_path=str(target_path) if target_path else None,
         workspace_ref=workspace_ref,
@@ -441,11 +441,11 @@ def resolve_twf_run_workspace_audit_target(
     )
 
 
-def build_twf_run_workspace_evidence_audit_context(
-    request: TwfRunWorkspaceEvidenceAuditWorkflowRequestCandidate,
-    facts: TwfRunWorkspaceEvidenceAuditFactsCandidate,
-    target: TwfRunWorkspaceAuditTargetCandidate,
-) -> TwfRunWorkspaceEvidenceAuditContextCandidate:
+def build_operation_flow_run_workspace_evidence_audit_context(
+    request: OperationFlowRunWorkspaceEvidenceAuditWorkflowRequestCandidate,
+    facts: OperationFlowRunWorkspaceEvidenceAuditFactsCandidate,
+    target: OperationFlowRunWorkspaceAuditTargetCandidate,
+) -> OperationFlowRunWorkspaceEvidenceAuditContextCandidate:
     """Build a sanitized audit context for the target workspace."""
 
     if target.status == "blocked":
@@ -466,7 +466,7 @@ def build_twf_run_workspace_evidence_audit_context(
         ]
     )
     audit_result = _audit_result_from_findings(findings)
-    return TwfRunWorkspaceEvidenceAuditContextCandidate(
+    return OperationFlowRunWorkspaceEvidenceAuditContextCandidate(
         status="succeeded",
         audit_result=audit_result,
         target=target,
@@ -484,7 +484,7 @@ def build_twf_run_workspace_evidence_audit_context(
         ),
         warnings=target.warnings,
         metadata={
-            "template_version": TWF_RUN_WORKSPACE_EVIDENCE_AUDIT_TEMPLATE_VERSION,
+            "template_version": OPERATION_FLOW_RUN_WORKSPACE_EVIDENCE_AUDIT_TEMPLATE_VERSION,
             "audit_focus": list(facts.audit_focus),
             "redaction_applied": True,
             "does_not_modify_audited_workspace": True,
@@ -494,8 +494,8 @@ def build_twf_run_workspace_evidence_audit_context(
     )
 
 
-def format_twf_run_workspace_evidence_audit_for_terminal(
-    audit_context: TwfRunWorkspaceEvidenceAuditContextCandidate,
+def format_operation_flow_run_workspace_evidence_audit_for_terminal(
+    audit_context: OperationFlowRunWorkspaceEvidenceAuditContextCandidate,
 ) -> str:
     """Format the audit context for terminal display without raw file content."""
 
@@ -553,11 +553,11 @@ def _audit_workspace_files(
     root: Path,
     manifest: Mapping[str, Any],
 ) -> tuple[
-    tuple[TwfRunWorkspaceAuditFileCandidate, ...],
-    tuple[TwfRunWorkspaceAuditFindingCandidate, ...],
+    tuple[OperationFlowRunWorkspaceAuditFileCandidate, ...],
+    tuple[OperationFlowRunWorkspaceAuditFindingCandidate, ...],
 ]:
-    files: list[TwfRunWorkspaceAuditFileCandidate] = []
-    findings: list[TwfRunWorkspaceAuditFindingCandidate] = []
+    files: list[OperationFlowRunWorkspaceAuditFileCandidate] = []
+    findings: list[OperationFlowRunWorkspaceAuditFindingCandidate] = []
     refs_by_kind = {
         "artifact": tuple(_list_values(manifest.get("artifact_refs"))),
         "result": tuple(_list_values(manifest.get("result_refs"))),
@@ -569,7 +569,7 @@ def _audit_workspace_files(
             relative_path = _relative_path_from_workspace_ref(ref, kind)
             if relative_path is None:
                 findings.append(
-                    TwfRunWorkspaceAuditFindingCandidate(
+                    OperationFlowRunWorkspaceAuditFindingCandidate(
                         severity="medium",
                         code=f"{kind}_ref_invalid",
                         message=f"{kind} ref cannot be mapped to workspace file",
@@ -601,7 +601,7 @@ def _audit_workspace_files(
     for file in files:
         if file.forbidden_markers:
             findings.append(
-                TwfRunWorkspaceAuditFindingCandidate(
+                OperationFlowRunWorkspaceAuditFindingCandidate(
                     severity="high",
                     code="forbidden_marker_detected",
                     message="Forbidden key/path marker detected; value redacted.",
@@ -611,7 +611,7 @@ def _audit_workspace_files(
             )
         if file.json_valid is False:
             findings.append(
-                TwfRunWorkspaceAuditFindingCandidate(
+                OperationFlowRunWorkspaceAuditFindingCandidate(
                     severity="medium",
                     code="json_invalid",
                     message="JSON file is not valid.",
@@ -622,11 +622,11 @@ def _audit_workspace_files(
     return tuple(files), tuple(findings)
 
 
-def _audit_one_file(root: Path, kind: str, relative_path: str) -> TwfRunWorkspaceAuditFileCandidate:
+def _audit_one_file(root: Path, kind: str, relative_path: str) -> OperationFlowRunWorkspaceAuditFileCandidate:
     resolved = _resolve_audit_relative_path(root, relative_path)
     ref = f"{kind}://run-workspace/{relative_path}"
     if resolved is None:
-        return TwfRunWorkspaceAuditFileCandidate(
+        return OperationFlowRunWorkspaceAuditFileCandidate(
             kind=kind,
             relative_path=relative_path,
             exists=False,
@@ -634,14 +634,14 @@ def _audit_one_file(root: Path, kind: str, relative_path: str) -> TwfRunWorkspac
             forbidden_markers=("path_invalid_or_forbidden",),
         )
     if not resolved.exists():
-        return TwfRunWorkspaceAuditFileCandidate(
+        return OperationFlowRunWorkspaceAuditFileCandidate(
             kind=kind,
             relative_path=relative_path,
             exists=False,
             ref=ref,
         )
     if not resolved.is_file():
-        return TwfRunWorkspaceAuditFileCandidate(
+        return OperationFlowRunWorkspaceAuditFileCandidate(
             kind=kind,
             relative_path=relative_path,
             exists=False,
@@ -663,7 +663,7 @@ def _audit_one_file(root: Path, kind: str, relative_path: str) -> TwfRunWorkspac
         else:
             json_valid = True
             markers.extend(_scan_forbidden_json_keys(payload))
-        return TwfRunWorkspaceAuditFileCandidate(
+        return OperationFlowRunWorkspaceAuditFileCandidate(
             kind=kind,
             relative_path=relative_path,
             exists=True,
@@ -675,7 +675,7 @@ def _audit_one_file(root: Path, kind: str, relative_path: str) -> TwfRunWorkspac
         )
     if relative_path == "artifacts/terminal_display.txt":
         markers.extend(_scan_text_markers(resolved, root=root))
-    return TwfRunWorkspaceAuditFileCandidate(
+    return OperationFlowRunWorkspaceAuditFileCandidate(
         kind=kind,
         relative_path=relative_path,
         exists=True,
@@ -689,16 +689,16 @@ def _audit_one_file(root: Path, kind: str, relative_path: str) -> TwfRunWorkspac
 def _audit_structure(
     root: Path,
     manifest: Mapping[str, Any],
-    files: Sequence[TwfRunWorkspaceAuditFileCandidate],
-) -> tuple[dict[str, Any], tuple[TwfRunWorkspaceAuditFindingCandidate, ...]]:
-    findings: list[TwfRunWorkspaceAuditFindingCandidate] = []
+    files: Sequence[OperationFlowRunWorkspaceAuditFileCandidate],
+) -> tuple[dict[str, Any], tuple[OperationFlowRunWorkspaceAuditFindingCandidate, ...]]:
+    findings: list[OperationFlowRunWorkspaceAuditFindingCandidate] = []
     subdir_status = {
-        subdir: (root / subdir).is_dir() for subdir in TWF_RUN_WORKSPACE_SUBDIRS
+        subdir: (root / subdir).is_dir() for subdir in OPERATION_FLOW_RUN_WORKSPACE_SUBDIRS
     }
     for subdir, exists in subdir_status.items():
         if not exists:
             findings.append(
-                TwfRunWorkspaceAuditFindingCandidate(
+                OperationFlowRunWorkspaceAuditFindingCandidate(
                     severity="high",
                     code=f"{subdir}_directory_missing",
                     message=f"Standard workspace subdir missing: {subdir}",
@@ -718,7 +718,7 @@ def _audit_structure(
     for field_name in required_fields:
         if field_name not in manifest:
             findings.append(
-                TwfRunWorkspaceAuditFindingCandidate(
+                OperationFlowRunWorkspaceAuditFindingCandidate(
                     severity="medium",
                     code=f"manifest_{field_name}_missing",
                     message=f"Manifest field missing: {field_name}",
@@ -727,7 +727,7 @@ def _audit_structure(
             )
     if not any(file.kind == "result" and file.exists for file in files):
         findings.append(
-            TwfRunWorkspaceAuditFindingCandidate(
+            OperationFlowRunWorkspaceAuditFindingCandidate(
                 severity="high",
                 code="result_file_missing",
                 message="No result file could be found.",
@@ -749,9 +749,9 @@ def _audit_structure(
 
 def _audit_references(
     manifest: Mapping[str, Any],
-    files: Sequence[TwfRunWorkspaceAuditFileCandidate],
-) -> tuple[dict[str, Any], tuple[TwfRunWorkspaceAuditFindingCandidate, ...]]:
-    findings: list[TwfRunWorkspaceAuditFindingCandidate] = []
+    files: Sequence[OperationFlowRunWorkspaceAuditFileCandidate],
+) -> tuple[dict[str, Any], tuple[OperationFlowRunWorkspaceAuditFindingCandidate, ...]]:
+    findings: list[OperationFlowRunWorkspaceAuditFindingCandidate] = []
     by_kind = {
         "artifact": [file for file in files if file.kind == "artifact"],
         "result": [file for file in files if file.kind == "result"],
@@ -761,7 +761,7 @@ def _audit_references(
         for file in kind_files:
             if not file.exists:
                 findings.append(
-                    TwfRunWorkspaceAuditFindingCandidate(
+                    OperationFlowRunWorkspaceAuditFindingCandidate(
                         severity="high",
                         code=f"{kind}_file_missing",
                         message=f"Referenced {kind} file is missing.",
@@ -781,9 +781,9 @@ def _audit_references(
 
 def _audit_boundaries(
     root: Path,
-    files: Sequence[TwfRunWorkspaceAuditFileCandidate],
-) -> tuple[dict[str, Any], tuple[TwfRunWorkspaceAuditFindingCandidate, ...]]:
-    findings: list[TwfRunWorkspaceAuditFindingCandidate] = []
+    files: Sequence[OperationFlowRunWorkspaceAuditFileCandidate],
+) -> tuple[dict[str, Any], tuple[OperationFlowRunWorkspaceAuditFindingCandidate, ...]]:
+    findings: list[OperationFlowRunWorkspaceAuditFindingCandidate] = []
     sensitive_markers = [
         marker
         for file in files
@@ -811,7 +811,7 @@ def _audit_boundaries(
         elif missing:
             boundary_declarations = "missing:" + ",".join(missing)
             findings.append(
-                TwfRunWorkspaceAuditFindingCandidate(
+                OperationFlowRunWorkspaceAuditFindingCandidate(
                     severity="medium",
                     code="boundary_declaration_missing",
                     message="Expected config explain boundary declaration is missing.",
@@ -823,7 +823,7 @@ def _audit_boundaries(
             boundary_declarations = "present"
     if sensitive_markers:
         findings.append(
-            TwfRunWorkspaceAuditFindingCandidate(
+            OperationFlowRunWorkspaceAuditFindingCandidate(
                 severity="high",
                 code="boundary_sensitive_marker_detected",
                 message="Sensitive or raw marker detected; value redacted.",
@@ -842,10 +842,10 @@ def _audit_boundaries(
 
 
 def _audit_context_from_blocked_target(
-    target: TwfRunWorkspaceAuditTargetCandidate,
-) -> TwfRunWorkspaceEvidenceAuditContextCandidate:
+    target: OperationFlowRunWorkspaceAuditTargetCandidate,
+) -> OperationFlowRunWorkspaceEvidenceAuditContextCandidate:
     findings = tuple(
-        TwfRunWorkspaceAuditFindingCandidate(
+        OperationFlowRunWorkspaceAuditFindingCandidate(
             severity="high",
             code=reason,
             message="Audit target could not be resolved.",
@@ -853,7 +853,7 @@ def _audit_context_from_blocked_target(
         )
         for reason in target.blocking_reasons
     )
-    return TwfRunWorkspaceEvidenceAuditContextCandidate(
+    return OperationFlowRunWorkspaceEvidenceAuditContextCandidate(
         status="succeeded",
         audit_result="blocked",
         target=target,
@@ -870,7 +870,7 @@ def _audit_context_from_blocked_target(
         ),
         warnings=target.warnings,
         metadata={
-            "template_version": TWF_RUN_WORKSPACE_EVIDENCE_AUDIT_TEMPLATE_VERSION,
+            "template_version": OPERATION_FLOW_RUN_WORKSPACE_EVIDENCE_AUDIT_TEMPLATE_VERSION,
             "redaction_applied": True,
             "does_not_modify_audited_workspace": True,
             "does_not_execute_tools": True,
@@ -880,36 +880,36 @@ def _audit_context_from_blocked_target(
 
 
 def _create_audit_output_run_workspace(
-    request: TwfRunWorkspaceEvidenceAuditWorkflowRequestCandidate,
-    task_context: TwfRunContextCandidate,
-    target: TwfRunWorkspaceAuditTargetCandidate,
-) -> TwfRunWorkspaceStateCandidate | None:
+    request: OperationFlowRunWorkspaceEvidenceAuditWorkflowRequestCandidate,
+    task_context: OperationFlowRunContextCandidate,
+    target: OperationFlowRunWorkspaceAuditTargetCandidate,
+) -> OperationFlowRunWorkspaceStateCandidate | None:
     if not request.run_workspace_enabled and not request.run_workspace_root:
         return None
     if request.run_workspace_root and _audit_output_root_inside_target(
         request.run_workspace_root,
         target.workspace_path,
     ):
-        return TwfRunWorkspaceStateCandidate(
+        return OperationFlowRunWorkspaceStateCandidate(
             workspace_ref="run-workspace://blocked/audit-output-overlaps-target",
             workspace_path=str(Path(request.run_workspace_root).expanduser().resolve()),
-            workflow_name=TWF_RUN_WORKSPACE_EVIDENCE_AUDIT_WORKFLOW_NAME,
+            workflow_name=OPERATION_FLOW_RUN_WORKSPACE_EVIDENCE_AUDIT_WORKFLOW_NAME,
             run_id=task_context.run_id,
             workspace_created=False,
             retention_policy=request.run_workspace_retention_policy,
             cleanup_policy=request.run_workspace_cleanup_policy,
             manifest_path=str(Path(request.run_workspace_root) / "manifest.json"),
-            subdirs=TWF_RUN_WORKSPACE_SUBDIRS,
+            subdirs=OPERATION_FLOW_RUN_WORKSPACE_SUBDIRS,
             blocking_reasons=("audit_output_workspace_overlaps_target",),
         )
     workspace_root = request.run_workspace_root or ".cognition-runs"
-    policy = build_twf_run_workspace_policy(
+    policy = build_operation_flow_run_workspace_policy(
         workspace_root=workspace_root,
         retention_policy=request.run_workspace_retention_policy,
         cleanup_policy=request.run_workspace_cleanup_policy,
         max_write_bytes=request.run_workspace_max_write_bytes,
     )
-    return create_twf_run_workspace(
+    return create_operation_flow_run_workspace(
         policy=policy,
         workflow_name=task_context.workflow_name,
         run_id=task_context.run_id,
@@ -917,35 +917,35 @@ def _create_audit_output_run_workspace(
 
 
 def _finalize_evidence_audit_run_workspace(
-    run_workspace: TwfRunWorkspaceStateCandidate | None,
+    run_workspace: OperationFlowRunWorkspaceStateCandidate | None,
     *,
     status: str,
     terminal_display_text: str,
-    facts: TwfRunWorkspaceEvidenceAuditFactsCandidate,
-    audit_context: TwfRunWorkspaceEvidenceAuditContextCandidate,
-) -> TwfRunWorkspaceStateCandidate | None:
+    facts: OperationFlowRunWorkspaceEvidenceAuditFactsCandidate,
+    audit_context: OperationFlowRunWorkspaceEvidenceAuditContextCandidate,
+) -> OperationFlowRunWorkspaceStateCandidate | None:
     if run_workspace is None or not run_workspace.workspace_created:
         return run_workspace
     max_write_bytes = int(run_workspace.metadata.get("max_write_bytes") or 65536)
-    run_workspace, _ = write_twf_run_workspace_json(
+    run_workspace, _ = write_operation_flow_run_workspace_json(
         run_workspace,
         relative_path="evidence/workspace_audit_context.json",
         payload=_audit_context_workspace_payload(audit_context),
         kind="evidence",
         max_write_bytes=max_write_bytes,
     )
-    run_workspace, _ = write_twf_run_workspace_text(
+    run_workspace, _ = write_operation_flow_run_workspace_text(
         run_workspace,
         relative_path="artifacts/terminal_display.txt",
         text=terminal_display_text + "\n",
         kind="artifact",
         max_write_bytes=max_write_bytes,
     )
-    run_workspace, _ = write_twf_run_workspace_json(
+    run_workspace, _ = write_operation_flow_run_workspace_json(
         run_workspace,
         relative_path="results/workflow_result.json",
         payload={
-            "workflow": TWF_RUN_WORKSPACE_EVIDENCE_AUDIT_WORKFLOW_NAME,
+            "workflow": OPERATION_FLOW_RUN_WORKSPACE_EVIDENCE_AUDIT_WORKFLOW_NAME,
             "status": status,
             "audit_result": audit_context.audit_result,
             "task_kind": facts.task_kind,
@@ -954,30 +954,30 @@ def _finalize_evidence_audit_run_workspace(
             "model_call_count": 0,
             "no_live": True,
             "fail_safe": False,
-            "template_version": TWF_RUN_WORKSPACE_EVIDENCE_AUDIT_TEMPLATE_VERSION,
+            "template_version": OPERATION_FLOW_RUN_WORKSPACE_EVIDENCE_AUDIT_TEMPLATE_VERSION,
             "audited_workspace_ref": audit_context.target.workspace_ref,
             "finding_count": len(audit_context.findings),
         },
         kind="result",
         max_write_bytes=max_write_bytes,
     )
-    run_workspace = finalize_twf_run_workspace(
+    run_workspace = finalize_operation_flow_run_workspace(
         run_workspace,
         status=status,
         metadata={
-            "workflow": TWF_RUN_WORKSPACE_EVIDENCE_AUDIT_WORKFLOW_NAME,
+            "workflow": OPERATION_FLOW_RUN_WORKSPACE_EVIDENCE_AUDIT_WORKFLOW_NAME,
             "audit_result": audit_context.audit_result,
             "model_call_count": 0,
             "fail_safe": False,
-            "template_version": TWF_RUN_WORKSPACE_EVIDENCE_AUDIT_TEMPLATE_VERSION,
+            "template_version": OPERATION_FLOW_RUN_WORKSPACE_EVIDENCE_AUDIT_TEMPLATE_VERSION,
         },
     )
-    run_workspace, _ = cleanup_twf_run_workspace(run_workspace, status=status)
+    run_workspace, _ = cleanup_operation_flow_run_workspace(run_workspace, status=status)
     return run_workspace
 
 
 def _audit_context_workspace_payload(
-    audit_context: TwfRunWorkspaceEvidenceAuditContextCandidate,
+    audit_context: OperationFlowRunWorkspaceEvidenceAuditContextCandidate,
 ) -> dict[str, Any]:
     target = audit_context.target
     return {
@@ -1010,12 +1010,12 @@ def _audit_context_workspace_payload(
 
 
 def _build_evidence_audit_task_context(
-    request: TwfRunWorkspaceEvidenceAuditWorkflowRequestCandidate,
-    facts: TwfRunWorkspaceEvidenceAuditFactsCandidate,
-) -> TwfRunContextCandidate:
-    return build_twf_run_context(
-        workflow_name=TWF_RUN_WORKSPACE_EVIDENCE_AUDIT_WORKFLOW_NAME,
-        task_kind=TWF_RUN_WORKSPACE_EVIDENCE_AUDIT_TASK_KIND,
+    request: OperationFlowRunWorkspaceEvidenceAuditWorkflowRequestCandidate,
+    facts: OperationFlowRunWorkspaceEvidenceAuditFactsCandidate,
+) -> OperationFlowRunContextCandidate:
+    return build_operation_flow_run_context(
+        workflow_name=OPERATION_FLOW_RUN_WORKSPACE_EVIDENCE_AUDIT_WORKFLOW_NAME,
+        task_kind=OPERATION_FLOW_RUN_WORKSPACE_EVIDENCE_AUDIT_TASK_KIND,
         session_id=request.chat_session_id,
         turn_index=request.turn_index,
         live_model_allowed=False,
@@ -1037,13 +1037,13 @@ def _build_evidence_audit_task_context(
 
 
 def _finalize_task_context_with_run_workspace(
-    task_context: TwfRunContextCandidate,
+    task_context: OperationFlowRunContextCandidate,
     *,
     status: str,
-    run_workspace: TwfRunWorkspaceStateCandidate | None,
+    run_workspace: OperationFlowRunWorkspaceStateCandidate | None,
     metadata: Mapping[str, Any] | None = None,
-) -> TwfRunContextCandidate:
-    return finalize_twf_run_context(
+) -> OperationFlowRunContextCandidate:
+    return finalize_operation_flow_run_context(
         task_context,
         status=status,
         artifact_refs=_run_workspace_artifact_and_result_refs(run_workspace),
@@ -1052,7 +1052,7 @@ def _finalize_task_context_with_run_workspace(
         workspace_created=run_workspace.workspace_created if run_workspace else None,
         retention_policy=run_workspace.retention_policy if run_workspace else None,
         cleanup_policy=run_workspace.cleanup_policy if run_workspace else None,
-        workspace_metadata=twf_run_workspace_status_dict(run_workspace),
+        workspace_metadata=operation_flow_run_workspace_status_dict(run_workspace),
         metadata=metadata,
     )
 
@@ -1086,7 +1086,7 @@ def _resolve_audit_relative_path(root: Path, relative_path: str) -> Path | None:
     parts = path.parts
     if path.is_absolute() or not parts or ".." in parts:
         return None
-    if parts[0] not in set(TWF_RUN_WORKSPACE_SUBDIRS):
+    if parts[0] not in set(OPERATION_FLOW_RUN_WORKSPACE_SUBDIRS):
         return None
     if _path_has_forbidden_marker(path):
         return None
@@ -1172,7 +1172,7 @@ def _safe_negative_boundary_declaration(key: str, value: Any) -> bool:
 
 
 def _audit_result_from_findings(
-    findings: Sequence[TwfRunWorkspaceAuditFindingCandidate],
+    findings: Sequence[OperationFlowRunWorkspaceAuditFindingCandidate],
 ) -> str:
     if any(finding.severity == "high" for finding in findings):
         return "attention_required"
@@ -1183,7 +1183,7 @@ def _audit_result_from_findings(
 
 def _reference_status(
     refs_value: Any,
-    files: Sequence[TwfRunWorkspaceAuditFileCandidate],
+    files: Sequence[OperationFlowRunWorkspaceAuditFileCandidate],
 ) -> str:
     refs = _list_values(refs_value)
     if refs and all(file.exists for file in files):
@@ -1196,7 +1196,7 @@ def _reference_status(
 
 
 def _recommendation_lines(
-    audit_context: TwfRunWorkspaceEvidenceAuditContextCandidate,
+    audit_context: OperationFlowRunWorkspaceEvidenceAuditContextCandidate,
 ) -> list[str]:
     if audit_context.audit_result == "passed":
         return ["1. 可将该 workspace 作为后续审查输入。"]
@@ -1209,7 +1209,7 @@ def _recommendation_lines(
 
 
 def _preflight_blocked_terminal_display(
-    task_context: TwfRunContextCandidate,
+    task_context: OperationFlowRunContextCandidate,
 ) -> str:
     reasons = ", ".join(task_context.preflight.blocking_reasons)
     return "\n".join(
@@ -1223,8 +1223,8 @@ def _preflight_blocked_terminal_display(
 
 
 def _workspace_blocked_terminal_display(
-    task_context: TwfRunContextCandidate,
-    run_workspace: TwfRunWorkspaceStateCandidate,
+    task_context: OperationFlowRunContextCandidate,
+    run_workspace: OperationFlowRunWorkspaceStateCandidate,
 ) -> str:
     reasons = ", ".join(run_workspace.blocking_reasons)
     return "\n".join(
@@ -1238,14 +1238,14 @@ def _workspace_blocked_terminal_display(
     )
 
 
-def _task_context_metadata(task_context: TwfRunContextCandidate) -> dict[str, Any]:
+def _task_context_metadata(task_context: OperationFlowRunContextCandidate) -> dict[str, Any]:
     return {
-        "task_control": twf_run_context_status_dict(task_context),
+        "operation_control": operation_flow_run_context_status_dict(task_context),
     }
 
 
 def _audit_context_metadata(
-    audit_context: TwfRunWorkspaceEvidenceAuditContextCandidate,
+    audit_context: OperationFlowRunWorkspaceEvidenceAuditContextCandidate,
 ) -> dict[str, Any]:
     return {
         "workspace_audit": {
@@ -1258,14 +1258,14 @@ def _audit_context_metadata(
 
 
 def _run_workspace_metadata(
-    run_workspace: TwfRunWorkspaceStateCandidate | None,
+    run_workspace: OperationFlowRunWorkspaceStateCandidate | None,
 ) -> dict[str, Any]:
-    status = twf_run_workspace_status_dict(run_workspace)
+    status = operation_flow_run_workspace_status_dict(run_workspace)
     return {"run_workspace": status} if status is not None else {}
 
 
 def _run_workspace_artifact_and_result_refs(
-    run_workspace: TwfRunWorkspaceStateCandidate | None,
+    run_workspace: OperationFlowRunWorkspaceStateCandidate | None,
 ) -> tuple[str, ...]:
     if run_workspace is None:
         return ()
@@ -1284,7 +1284,7 @@ def _audit_output_root_inside_target(
 
 
 def _audit_target_requested(
-    request: TwfRunWorkspaceEvidenceAuditWorkflowRequestCandidate,
+    request: OperationFlowRunWorkspaceEvidenceAuditWorkflowRequestCandidate,
 ) -> bool:
     return bool(request.audit_run_workspace_path or request.audit_run_workspace_ref)
 

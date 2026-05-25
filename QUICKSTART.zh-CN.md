@@ -2,19 +2,19 @@
 
 [English](QUICKSTART.md) | 简体中文 · [返回](README.zh-CN.md)
 
-当前版本：`v0.8.0`
+当前发布候选版本：`v0.8.1`
 
 ## 1. 安装
 
 ```bash
 python -m pip install --upgrade pip
-python -m pip install "cognition-system==0.8.0"
+python -m pip install "cognition-system==0.8.1"
 ```
 
 或使用 uv：
 
 ```bash
-uv pip install "cognition-system==0.8.0"
+uv pip install "cognition-system==0.8.1"
 ```
 
 需要 Python `3.14`。
@@ -23,13 +23,14 @@ uv pip install "cognition-system==0.8.0"
 
 ```bash
 cognition --help
-cognition external-readonly ask --help
+cognition-console --help
+cognition-console ask --help
 ```
 
 ## 3. 体验资料问答
 
 ```bash
-cognition external-readonly ask --guided
+cognition-console ask --guided
 ```
 
 示例输入：
@@ -52,6 +53,12 @@ cognition external-readonly ask --guided
 ```
 
 资料不足时，系统会直接说明限制。
+
+兼容 / 技术入口仍然保留：
+
+```bash
+cognition external-readonly ask --guided
+```
 
 ## 5. 配置
 

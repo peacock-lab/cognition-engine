@@ -11,11 +11,17 @@ from schemas import (
     EvidenceSummaryAnswerContextSchema as RootEvidenceSummaryAnswerContextSchema,
     EvidenceSummaryAnswerArtifactSchema as RootEvidenceSummaryAnswerArtifactSchema,
     EvidenceSummaryAnswerFollowUpSeedSchema as RootEvidenceSummaryAnswerFollowUpSeedSchema,
+    EvidenceSummaryAnswerObservabilitySummarySchema as RootEvidenceSummaryAnswerObservabilitySummarySchema,
+    EvidenceSummaryAnswerRunSchema as RootEvidenceSummaryAnswerRunSchema,
     EvidenceSummaryAnswerTraceSchema as RootEvidenceSummaryAnswerTraceSchema,
+    EvidenceSummaryAnswerTraceInspectSchema as RootEvidenceSummaryAnswerTraceInspectSchema,
     GovernedEvidenceDigestSchema as RootGovernedEvidenceDigestSchema,
     validate_evidence_summary_answer_artifact as root_validate_artifact,
     validate_evidence_summary_answer_follow_up_seed as root_validate_follow_up_seed,
+    validate_evidence_summary_answer_observability_summary as root_validate_observability_summary,
+    validate_evidence_summary_answer_run as root_validate_run,
     validate_evidence_summary_answer_trace as root_validate_trace,
+    validate_evidence_summary_answer_trace_inspect as root_validate_trace_inspect,
     validate_governed_evidence_digest as root_validate_governed_evidence_digest,
 )
 from schemas.evidence_summary_answer import (
@@ -23,22 +29,34 @@ from schemas.evidence_summary_answer import (
     EVIDENCE_SUMMARY_ANSWER_ARTIFACT_VERSION,
     EVIDENCE_SUMMARY_ANSWER_CONTEXT_VERSION,
     EVIDENCE_SUMMARY_ANSWER_FOLLOW_UP_SEED_VERSION,
+    EVIDENCE_SUMMARY_ANSWER_OBSERVABILITY_SUMMARY_REF_PREFIX,
+    EVIDENCE_SUMMARY_ANSWER_OBSERVABILITY_SUMMARY_VERSION,
     EVIDENCE_SUMMARY_ANSWER_PRODUCT,
     EVIDENCE_SUMMARY_ANSWER_RESULT_VERSION,
+    EVIDENCE_SUMMARY_ANSWER_RUN_REF_PREFIX,
+    EVIDENCE_SUMMARY_ANSWER_RUN_VERSION,
+    EVIDENCE_SUMMARY_ANSWER_TRACE_INSPECT_REF_PREFIX,
+    EVIDENCE_SUMMARY_ANSWER_TRACE_INSPECT_VERSION,
     EVIDENCE_SUMMARY_ANSWER_TRACE_REF_PREFIX,
     EVIDENCE_SUMMARY_ANSWER_TRACE_VERSION,
     GOVERNED_EVIDENCE_DIGEST_VERSION,
     EvidenceSummaryAnswerArtifactSchema,
     EvidenceSummaryAnswerContextSchema,
     EvidenceSummaryAnswerFollowUpSeedSchema,
+    EvidenceSummaryAnswerObservabilitySummarySchema,
     EvidenceSummaryAnswerResultSchema,
+    EvidenceSummaryAnswerRunSchema,
+    EvidenceSummaryAnswerTraceInspectSchema,
     EvidenceSummaryAnswerTraceSchema,
     GovernedEvidenceDigestSchema,
     validate_evidence_summary_answer_artifact,
     validate_evidence_summary_answer_context,
     validate_evidence_summary_answer_follow_up_seed,
+    validate_evidence_summary_answer_observability_summary,
     validate_evidence_summary_answer_result,
+    validate_evidence_summary_answer_run,
     validate_evidence_summary_answer_trace,
+    validate_evidence_summary_answer_trace_inspect,
     validate_governed_evidence_digest,
 )
 
@@ -98,7 +116,7 @@ def test_evidence_summary_answer_follow_up_seed_accepts_temporary_public_shape()
     assert seed.digest_refs == ["governed-evidence-digest://request-1/digest-1"]
 
 
-def test_evidence_summary_answer_trace_accepts_task_workflow_compatible_shape() -> None:
+def test_evidence_summary_answer_trace_accepts_operation_flow_compatible_shape() -> None:
     trace = validate_evidence_summary_answer_trace(_trace())
 
     assert isinstance(trace, EvidenceSummaryAnswerTraceSchema)
@@ -116,7 +134,7 @@ def test_evidence_summary_answer_trace_accepts_task_workflow_compatible_shape() 
     assert trace.memory_enabled is False
 
 
-def test_evidence_summary_answer_artifact_accepts_task_workflow_compatible_shape() -> None:
+def test_evidence_summary_answer_artifact_accepts_operation_flow_compatible_shape() -> None:
     artifact = validate_evidence_summary_answer_artifact(_artifact())
 
     assert isinstance(artifact, EvidenceSummaryAnswerArtifactSchema)
@@ -134,6 +152,68 @@ def test_evidence_summary_answer_artifact_accepts_task_workflow_compatible_shape
     assert artifact.backed_by_adk_workflow_runtime is False
     assert artifact.durable_session is False
     assert artifact.memory_enabled is False
+
+
+def test_evidence_summary_answer_observability_summary_accepts_safe_shape() -> None:
+    summary = validate_evidence_summary_answer_observability_summary(
+        _observability_summary()
+    )
+
+    assert isinstance(summary, EvidenceSummaryAnswerObservabilitySummarySchema)
+    assert summary.payload_version == (
+        EVIDENCE_SUMMARY_ANSWER_OBSERVABILITY_SUMMARY_VERSION
+    )
+    assert summary.summary_ref.startswith(
+        EVIDENCE_SUMMARY_ANSWER_OBSERVABILITY_SUMMARY_REF_PREFIX
+    )
+    assert summary.status == "success"
+    assert summary.task_compatible is True
+    assert summary.workflow_compatible is True
+    assert summary.runtime_backed is False
+    assert summary.backed_by_adk_task_runtime is False
+    assert summary.backed_by_adk_workflow_runtime is False
+    assert summary.raw_boundary_summary.restricted_payload_absent is True
+
+
+def test_evidence_summary_answer_trace_inspect_accepts_safe_shape() -> None:
+    trace_inspect = validate_evidence_summary_answer_trace_inspect(_trace_inspect())
+
+    assert isinstance(trace_inspect, EvidenceSummaryAnswerTraceInspectSchema)
+    assert trace_inspect.payload_version == EVIDENCE_SUMMARY_ANSWER_TRACE_INSPECT_VERSION
+    assert trace_inspect.trace_inspect_ref.startswith(
+        EVIDENCE_SUMMARY_ANSWER_TRACE_INSPECT_REF_PREFIX
+    )
+    assert trace_inspect.inspect_status == "success"
+    assert trace_inspect.task_compatible is True
+    assert trace_inspect.workflow_compatible is True
+    assert trace_inspect.runtime_backed is False
+    assert trace_inspect.backed_by_adk_task_runtime is False
+    assert trace_inspect.backed_by_adk_workflow_runtime is False
+    assert trace_inspect.durable_session is False
+    assert trace_inspect.memory_enabled is False
+
+
+def test_evidence_summary_answer_run_accepts_product_aggregate_shape() -> None:
+    answer_run = validate_evidence_summary_answer_run(_run())
+
+    assert isinstance(answer_run, EvidenceSummaryAnswerRunSchema)
+    assert answer_run.payload_version == EVIDENCE_SUMMARY_ANSWER_RUN_VERSION
+    assert answer_run.answer_run_ref.startswith(EVIDENCE_SUMMARY_ANSWER_RUN_REF_PREFIX)
+    assert answer_run.answer_run_status == "success"
+    assert answer_run.answer_status == "success"
+    assert answer_run.answer_trace_ref == f"{EVIDENCE_SUMMARY_ANSWER_TRACE_REF_PREFIX}trace-1"
+    assert answer_run.answer_artifact_ref == (
+        f"{EVIDENCE_SUMMARY_ANSWER_ARTIFACT_REF_PREFIX}artifact-1"
+    )
+    assert answer_run.task_compatible is True
+    assert answer_run.workflow_compatible is True
+    assert answer_run.runtime_backed is False
+    assert answer_run.backed_by_adk_task_runtime is False
+    assert answer_run.backed_by_adk_workflow_runtime is False
+    assert answer_run.backed_by_adk_artifact_service is False
+    assert answer_run.backed_by_adk_event_stream is False
+    assert answer_run.durable_session is False
+    assert answer_run.memory_enabled is False
 
 
 def test_follow_up_seed_rejects_durable_session_or_memory_runtime() -> None:
@@ -166,6 +246,12 @@ def test_follow_up_seed_rejects_durable_session_or_memory_runtime() -> None:
         ("artifact", "product", "other"),
         ("artifact", "payload_type", "other"),
         ("artifact", "payload_version", "other"),
+        ("trace_inspect", "product", "other"),
+        ("trace_inspect", "payload_type", "other"),
+        ("trace_inspect", "payload_version", "other"),
+        ("run", "product", "other"),
+        ("run", "payload_type", "other"),
+        ("run", "payload_version", "other"),
         ("follow_up_seed", "product", "other"),
         ("follow_up_seed", "payload_type", "other"),
         ("follow_up_seed", "payload_version", "other"),
@@ -240,6 +326,18 @@ def test_digest_rejects_raw_markers_in_summary_facts(summary_fact: str) -> None:
 
     with pytest.raises(ValidationError):
         validate_governed_evidence_digest(digest)
+
+
+def test_digest_allows_public_package_names_in_summary_facts() -> None:
+    digest = _digest()
+    digest["summary_facts"] = [
+        "README mentions config_contexts and config_assembly as public package names."
+    ]
+
+    model = validate_governed_evidence_digest(digest)
+
+    assert "config_contexts" in model.summary_facts[0]
+    assert "config_assembly" in model.summary_facts[0]
 
 
 def test_context_rejects_evidence_refs_that_do_not_cover_digest_refs() -> None:
@@ -325,6 +423,20 @@ def test_trace_rejects_runtime_backing_or_durable_state() -> None:
         validate_evidence_summary_answer_trace(trace)
 
 
+def test_run_rejects_runtime_backing_or_missing_success_refs() -> None:
+    answer_run = _run()
+    answer_run["backed_by_adk_task_runtime"] = True
+
+    with pytest.raises(ValidationError):
+        validate_evidence_summary_answer_run(answer_run)
+
+    answer_run = _run()
+    answer_run["answer_trace_ref"] = None
+
+    with pytest.raises(ValidationError):
+        validate_evidence_summary_answer_run(answer_run)
+
+
 def test_evidence_summary_answer_schema_has_no_execution_layer_imports() -> None:
     source = (SCHEMA_SOURCE_ROOT / "evidence_summary_answer.py").read_text(
         encoding="utf-8"
@@ -346,10 +458,24 @@ def test_schemas_root_exports_evidence_summary_answer_contracts() -> None:
     assert RootEvidenceSummaryAnswerFollowUpSeedSchema is EvidenceSummaryAnswerFollowUpSeedSchema
     assert RootEvidenceSummaryAnswerTraceSchema is EvidenceSummaryAnswerTraceSchema
     assert RootEvidenceSummaryAnswerArtifactSchema is EvidenceSummaryAnswerArtifactSchema
+    assert (
+        RootEvidenceSummaryAnswerObservabilitySummarySchema
+        is EvidenceSummaryAnswerObservabilitySummarySchema
+    )
+    assert RootEvidenceSummaryAnswerTraceInspectSchema is EvidenceSummaryAnswerTraceInspectSchema
+    assert RootEvidenceSummaryAnswerRunSchema is EvidenceSummaryAnswerRunSchema
     assert root_validate_governed_evidence_digest(_digest()).digest_id == "digest-1"
     assert root_validate_follow_up_seed(_follow_up_seed()).seed_id == "seed-1"
     assert root_validate_trace(_trace()).trace_id == "trace-1"
     assert root_validate_artifact(_artifact()).artifact_id == "artifact-1"
+    assert (
+        root_validate_observability_summary(_observability_summary()).summary_id
+        == "summary-1"
+    )
+    assert root_validate_trace_inspect(_trace_inspect()).trace_inspect_id == (
+        "trace-inspect-1"
+    )
+    assert root_validate_run(_run()).run_id == "run-1"
 
 
 def _validate_payload(payload: dict[str, object]) -> object:
@@ -364,6 +490,12 @@ def _validate_payload(payload: dict[str, object]) -> object:
         return validate_evidence_summary_answer_follow_up_seed(payload)
     if payload_type == "evidence_summary_answer_artifact":
         return validate_evidence_summary_answer_artifact(payload)
+    if payload_type == "evidence_summary_answer_observability_summary":
+        return validate_evidence_summary_answer_observability_summary(payload)
+    if payload_type == "evidence_summary_answer_trace_inspect":
+        return validate_evidence_summary_answer_trace_inspect(payload)
+    if payload_type == "evidence_summary_answer_run":
+        return validate_evidence_summary_answer_run(payload)
     if "digest_ref" in payload:
         return validate_governed_evidence_digest(payload)
     if "digests" in payload:
@@ -372,6 +504,12 @@ def _validate_payload(payload: dict[str, object]) -> object:
         return validate_evidence_summary_answer_follow_up_seed(payload)
     if "artifact_ref" in payload:
         return validate_evidence_summary_answer_artifact(payload)
+    if "summary_ref" in payload:
+        return validate_evidence_summary_answer_observability_summary(payload)
+    if "trace_inspect_ref" in payload:
+        return validate_evidence_summary_answer_trace_inspect(payload)
+    if "answer_run_ref" in payload:
+        return validate_evidence_summary_answer_run(payload)
     return validate_evidence_summary_answer_result(payload)
 
 
@@ -388,6 +526,10 @@ def _payload_for_kind(payload_kind: str) -> dict[str, object]:
         return _artifact()
     if payload_kind == "follow_up_seed":
         return _follow_up_seed()
+    if payload_kind == "trace_inspect":
+        return _trace_inspect()
+    if payload_kind == "run":
+        return _run()
     raise AssertionError(f"unknown payload kind: {payload_kind}")
 
 
@@ -634,5 +776,176 @@ def _artifact() -> dict[str, object]:
         "backed_by_adk_task_runtime": False,
         "backed_by_adk_workflow_runtime": False,
         "raw_boundary_flags": {},
+        "metadata": {"source": "schemas.test"},
+    }
+
+
+def _observability_summary() -> dict[str, object]:
+    return {
+        "product": EVIDENCE_SUMMARY_ANSWER_PRODUCT,
+        "payload_type": "evidence_summary_answer_observability_summary",
+        "payload_version": EVIDENCE_SUMMARY_ANSWER_OBSERVABILITY_SUMMARY_VERSION,
+        "summary_id": "summary-1",
+        "summary_ref": (
+            f"{EVIDENCE_SUMMARY_ANSWER_OBSERVABILITY_SUMMARY_REF_PREFIX}summary-1"
+        ),
+        "request_id": "request-1",
+        "status": "success",
+        "reason": "answer_ready",
+        "user_explanation": "本轮受治理资料问答已形成可返回答案。",
+        "recovery_hints": [],
+        "refs": [
+            {
+                "ref": f"{EVIDENCE_SUMMARY_ANSWER_TRACE_REF_PREFIX}trace-1",
+                "kind": "evidence_summary_answer_trace",
+                "purpose": "answer_trace",
+            }
+        ],
+        "raw_boundary_summary": {
+            "restricted_payload_absent": True,
+            "restricted_boundary_intact": True,
+            "blocked_field_count": 0,
+        },
+        "evaluation_findings_summary": {
+            "finding_count": 0,
+            "quality_blocked": False,
+            "model_called": True,
+        },
+        "task_compatible": True,
+        "workflow_compatible": True,
+        "runtime_backed": False,
+        "backed_by_adk_task_runtime": False,
+        "backed_by_adk_workflow_runtime": False,
+        "durable_session": False,
+        "memory_enabled": False,
+        "metadata": {"source": "schemas.test"},
+    }
+
+
+def _trace_inspect() -> dict[str, object]:
+    return {
+        "product": EVIDENCE_SUMMARY_ANSWER_PRODUCT,
+        "payload_type": "evidence_summary_answer_trace_inspect",
+        "payload_version": EVIDENCE_SUMMARY_ANSWER_TRACE_INSPECT_VERSION,
+        "trace_inspect_id": "trace-inspect-1",
+        "trace_inspect_ref": (
+            f"{EVIDENCE_SUMMARY_ANSWER_TRACE_INSPECT_REF_PREFIX}trace-inspect-1"
+        ),
+        "request_id": "request-1",
+        "inspect_status": "success",
+        "inspect_reason": "answer_ready",
+        "answer_status": "success",
+        "user_explanation": "本轮受治理资料问答已形成可复查解释。",
+        "developer_facts_summary": {
+            "answer_trace_available": True,
+            "answer_artifact_available": True,
+            "observability_summary_available": True,
+        },
+        "refs_summary": {
+            "trace_ref": f"{EVIDENCE_SUMMARY_ANSWER_TRACE_REF_PREFIX}trace-1",
+            "artifact_ref": (
+                f"{EVIDENCE_SUMMARY_ANSWER_ARTIFACT_REF_PREFIX}artifact-1"
+            ),
+            "evidence_ref_count": 1,
+            "additional_ref_count": 1,
+        },
+        "event_facts_summary": {
+            "event_summary_kind": "product_level_summary",
+            "event_stream_enabled": False,
+            "adk_event_runtime_enabled": False,
+        },
+        "artifact_handoff_summary": {
+            "artifact_summary_kind": "product_level_summary",
+            "artifact_service_enabled": False,
+            "export_enabled": False,
+        },
+        "raw_boundary_summary": {
+            "restricted_payload_absent": True,
+            "restricted_boundary_intact": True,
+            "blocked_field_count": 0,
+        },
+        "evaluation_summary": {
+            "evaluation_only": True,
+            "finding_count": 0,
+            "quality_blocked": False,
+        },
+        "governance_summary": {
+            "governance_summary_only": True,
+            "decision_reason": "answer_ready",
+        },
+        "unavailable_reason": None,
+        "recovery_hints": [],
+        "task_compatible": True,
+        "workflow_compatible": True,
+        "runtime_backed": False,
+        "backed_by_adk_task_runtime": False,
+        "backed_by_adk_workflow_runtime": False,
+        "durable_session": False,
+        "memory_enabled": False,
+        "metadata": {"source": "schemas.test"},
+    }
+
+
+def _run() -> dict[str, object]:
+    return {
+        "product": EVIDENCE_SUMMARY_ANSWER_PRODUCT,
+        "payload_type": "evidence_summary_answer_run",
+        "payload_version": EVIDENCE_SUMMARY_ANSWER_RUN_VERSION,
+        "run_id": "run-1",
+        "answer_run_ref": f"{EVIDENCE_SUMMARY_ANSWER_RUN_REF_PREFIX}run-1",
+        "request_id": "request-1",
+        "source_request_id": "request-1",
+        "parent_answer_run_ref": None,
+        "answer_run_status": "success",
+        "answer_status": "success",
+        "readonly_refs_status": "ready",
+        "answer_trace_ref": f"{EVIDENCE_SUMMARY_ANSWER_TRACE_REF_PREFIX}trace-1",
+        "answer_artifact_ref": (
+            f"{EVIDENCE_SUMMARY_ANSWER_ARTIFACT_REF_PREFIX}artifact-1"
+        ),
+        "observability_summary_ref": (
+            f"{EVIDENCE_SUMMARY_ANSWER_OBSERVABILITY_SUMMARY_REF_PREFIX}summary-1"
+        ),
+        "trace_inspect_ref": (
+            f"{EVIDENCE_SUMMARY_ANSWER_TRACE_INSPECT_REF_PREFIX}trace-inspect-1"
+        ),
+        "follow_up_seed_ref": None,
+        "evidence_ref_count": 1,
+        "additional_ref_count": 1,
+        "evidence_refs": [
+            {
+                "ref": "evidence://external-readonly/request-1/fetch-1",
+                "kind": "external_readonly_evidence",
+                "purpose": "answer_context",
+            }
+        ],
+        "additional_refs": [
+            {
+                "ref": "governed-evidence-digest://request-1/digest-1",
+                "kind": "governed_evidence_digest",
+                "purpose": "digest_context",
+            }
+        ],
+        "blocking_reasons": [],
+        "warnings": [],
+        "recovery_hints": [],
+        "unavailable_reason": None,
+        "follow_up": False,
+        "follow_up_turn_index": None,
+        "answer_scoped_transformation": False,
+        "task_compatible": True,
+        "workflow_compatible": True,
+        "runtime_backed": False,
+        "backed_by_adk_task_runtime": False,
+        "backed_by_adk_workflow_runtime": False,
+        "backed_by_adk_artifact_service": False,
+        "backed_by_adk_event_stream": False,
+        "durable_session": False,
+        "memory_enabled": False,
+        "raw_boundary_summary": {
+            "restricted_payload_absent": True,
+            "restricted_boundary_intact": True,
+            "blocked_field_count": 0,
+        },
         "metadata": {"source": "schemas.test"},
     }

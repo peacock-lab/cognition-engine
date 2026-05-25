@@ -1,4 +1,4 @@
-"""Candidate-only Skills capability projections for task workflows."""
+"""Candidate-only Skills capability projections for operation flows."""
 
 from __future__ import annotations
 
@@ -7,38 +7,38 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from cognition_operation_flows._skills.projection_context import (
-    TWF_SKILL_CAPABILITY_ALLOWED_SLOT_USES,
-    TWF_SKILL_CAPABILITY_FORBIDDEN_SLOT_USES,
-    TWF_SKILL_CAPABILITY_REFERENCEABLE_SLOT_STATUSES,
+    OPERATION_FLOW_SKILL_CAPABILITY_ALLOWED_SLOT_USES,
+    OPERATION_FLOW_SKILL_CAPABILITY_FORBIDDEN_SLOT_USES,
+    OPERATION_FLOW_SKILL_CAPABILITY_REFERENCEABLE_SLOT_STATUSES,
 )
 from config_contexts import SkillL1MetadataCandidate, SkillMetadataViewCandidate
 from cognition_operation_flows._tools.reference_reader import REFERENCE_READER_TOOL_NAME
 from cognition_operation_flows._skills.registry_admission import (
-    TWF_SKILL_FORBIDDEN_RAW_KEYS,
-    TWF_SKILL_RESOURCE_POLICIES,
-    TWF_SKILL_RISK_LEVEL_ORDER,
-    TWF_SKILL_SCRIPT_POLICIES,
-    TWF_SKILL_SECRET_KEY_MARKERS,
-    TwfProjectSkillCapabilityDeclarationCandidate,
-    TwfProjectSkillLoadingValidationCandidate,
-    TwfProjectSkillRegistryLoadingGateCandidate,
-    TwfProjectSkillRegistryRecordCandidate,
-    build_twf_project_skill_registry_source,
-    validate_twf_project_skill_registry_loading_gate,
+    OPERATION_FLOW_SKILL_FORBIDDEN_RAW_KEYS,
+    OPERATION_FLOW_SKILL_RESOURCE_POLICIES,
+    OPERATION_FLOW_SKILL_RISK_LEVEL_ORDER,
+    OPERATION_FLOW_SKILL_SCRIPT_POLICIES,
+    OPERATION_FLOW_SKILL_SECRET_KEY_MARKERS,
+    OperationFlowProjectSkillCapabilityDeclarationCandidate,
+    OperationFlowProjectSkillLoadingValidationCandidate,
+    OperationFlowProjectSkillRegistryLoadingGateCandidate,
+    OperationFlowProjectSkillRegistryRecordCandidate,
+    build_operation_flow_project_skill_registry_source,
+    validate_operation_flow_project_skill_registry_loading_gate,
 )
 from cognition_operation_flows._requests.registry import (
-    TWF_CONFIG_PROFILE_EXPLAIN_WORKFLOW_NAME,
-    TWF_PLAN_WORKFLOW_NAME,
-    TWF_REFERENCE_REVIEW_WORKFLOW_NAME,
-    TWF_RUN_WORKSPACE_EVIDENCE_AUDIT_WORKFLOW_NAME,
-    TwfDescriptorCandidate,
-    TwfRegistryCandidate,
-    build_default_twf_registry,
+    OPERATION_FLOW_CONFIG_PROFILE_EXPLAIN_WORKFLOW_NAME,
+    OPERATION_FLOW_PLAN_WORKFLOW_NAME,
+    OPERATION_FLOW_REFERENCE_REVIEW_WORKFLOW_NAME,
+    OPERATION_FLOW_RUN_WORKSPACE_EVIDENCE_AUDIT_WORKFLOW_NAME,
+    OperationFlowDescriptorCandidate,
+    OperationFlowRegistryCandidate,
+    build_default_operation_flow_registry,
 )
-from cognition_operation_flows._tools.loading_validation import TwfToolLoadingGateCandidate
+from cognition_operation_flows._tools.loading_validation import OperationFlowToolLoadingGateCandidate
 
 
-TWF_SKILL_CAPABILITY_PROJECTION_STAGES = (
+OPERATION_FLOW_SKILL_CAPABILITY_PROJECTION_STAGES = (
     "registry_gate_review",
     "capability_declaration_review",
     "tool_dependency_boundary_review",
@@ -49,7 +49,7 @@ TWF_SKILL_CAPABILITY_PROJECTION_STAGES = (
 
 
 @dataclass(frozen=True)
-class TwfSkillCapabilityReviewCandidate:
+class OperationFlowSkillCapabilityReviewCandidate:
     """Candidate-only review for projecting one Skill capability."""
 
     review_id: str
@@ -94,7 +94,7 @@ class TwfSkillCapabilityReviewCandidate:
 
 
 @dataclass(frozen=True)
-class TwfSkillCapabilityProjectionCandidate:
+class OperationFlowSkillCapabilityProjectionCandidate:
     """Sanitized Skill capability projection for workflow-side reference."""
 
     projection_id: str
@@ -137,7 +137,7 @@ class TwfSkillCapabilityProjectionCandidate:
 
 
 @dataclass(frozen=True)
-class TwfWorkflowSkillSlotReferenceCandidate:
+class OperationFlowWorkflowSkillSlotReferenceCandidate:
     """Candidate-only workflow slot reference to a Skill capability projection."""
 
     slot_ref: str
@@ -149,7 +149,7 @@ class TwfWorkflowSkillSlotReferenceCandidate:
     capability_id: str
     reference_mode: str = "projection_summary_only"
     allowed_use: tuple[str, ...] = ("workflow_planning_hint",)
-    forbidden_use: tuple[str, ...] = TWF_SKILL_CAPABILITY_FORBIDDEN_SLOT_USES
+    forbidden_use: tuple[str, ...] = OPERATION_FLOW_SKILL_CAPABILITY_FORBIDDEN_SLOT_USES
     slot_status_candidate: str = "blocked_candidate"
     blocking_reasons: tuple[str, ...] = ()
     warnings: tuple[str, ...] = ()
@@ -165,21 +165,21 @@ class TwfWorkflowSkillSlotReferenceCandidate:
     metadata: dict[str, Any] = field(default_factory=dict)
 
 
-def review_twf_skill_capability_for_projection(
+def review_operation_flow_skill_capability_for_projection(
     *,
-    gate: TwfProjectSkillRegistryLoadingGateCandidate,
-    records: Sequence[TwfProjectSkillRegistryRecordCandidate],
+    gate: OperationFlowProjectSkillRegistryLoadingGateCandidate,
+    records: Sequence[OperationFlowProjectSkillRegistryRecordCandidate],
     skill_id: str,
     capability_id: str,
-    workflow_registry: TwfRegistryCandidate | None = None,
+    workflow_registry: OperationFlowRegistryCandidate | None = None,
     approval_ref: str | None = None,
     audit_ref: str | None = None,
     evidence_refs: Sequence[str] = (),
     max_risk_level: str = "medium",
-) -> TwfSkillCapabilityReviewCandidate:
+) -> OperationFlowSkillCapabilityReviewCandidate:
     """Review one Skill capability for sanitized projection without loading it."""
 
-    registry = workflow_registry or build_default_twf_registry()
+    registry = workflow_registry or build_default_operation_flow_registry()
     descriptor_names = {
         descriptor.workflow_name for descriptor in registry.descriptors
     }
@@ -228,12 +228,12 @@ def review_twf_skill_capability_for_projection(
     normalized_risk = _normalize_risk(capability.risk_level)
     script_policy = _normalize_policy(
         capability.script_policy,
-        TWF_SKILL_SCRIPT_POLICIES,
+        OPERATION_FLOW_SKILL_SCRIPT_POLICIES,
         default="blocked",
     )
     resource_policy = _normalize_policy(
         capability.resource_policy,
-        TWF_SKILL_RESOURCE_POLICIES,
+        OPERATION_FLOW_SKILL_RESOURCE_POLICIES,
         default="blocked",
     )
     if not capability.skill_id.strip():
@@ -295,7 +295,7 @@ def review_twf_skill_capability_for_projection(
         blocking.append("required_tool_dependency_not_satisfied")
 
     status = "approved_candidate" if not blocking else "blocked_candidate"
-    return TwfSkillCapabilityReviewCandidate(
+    return OperationFlowSkillCapabilityReviewCandidate(
         review_id=f"skill-capability-review://{skill_id}/{capability_id}",
         registry_name=gate.registry_name,
         skill_id=skill_id,
@@ -326,7 +326,7 @@ def review_twf_skill_capability_for_projection(
         approval_ref=approval_ref,
         audit_ref=audit_ref,
         metadata={
-            "stages": list(TWF_SKILL_CAPABILITY_PROJECTION_STAGES),
+            "stages": list(OPERATION_FLOW_SKILL_CAPABILITY_PROJECTION_STAGES),
             "candidate_only": True,
             "tool_dependency_summary": list(tool_dependencies),
             "workflow_registry_version": registry.registry_version,
@@ -342,8 +342,8 @@ def review_twf_skill_capability_for_projection(
     )
 
 
-def build_twf_skill_capability_projection(
-    review: TwfSkillCapabilityReviewCandidate,
+def build_operation_flow_skill_capability_projection(
+    review: OperationFlowSkillCapabilityReviewCandidate,
     *,
     projection_id: str | None = None,
     display_summary: str | None = None,
@@ -351,7 +351,7 @@ def build_twf_skill_capability_projection(
     visibility: str = "workflow_visible",
     sensitivity: str = "low",
     confidence: str = "medium",
-) -> TwfSkillCapabilityProjectionCandidate:
+) -> OperationFlowSkillCapabilityProjectionCandidate:
     """Build a sanitized capability projection from a candidate-only review."""
 
     status = (
@@ -364,7 +364,7 @@ def build_twf_skill_capability_projection(
         projection_id
         or f"skill-capability-projection://{review.skill_id}/{review.capability_id}"
     )
-    return TwfSkillCapabilityProjectionCandidate(
+    return OperationFlowSkillCapabilityProjectionCandidate(
         projection_id=resolved_projection_id,
         source_review_id=review.review_id,
         registry_name=review.registry_name,
@@ -432,18 +432,18 @@ def build_twf_skill_capability_projection(
     )
 
 
-def build_twf_workflow_skill_slot_reference(
+def build_operation_flow_workflow_skill_slot_reference(
     *,
-    descriptor: TwfDescriptorCandidate,
-    projection: TwfSkillCapabilityProjectionCandidate,
+    descriptor: OperationFlowDescriptorCandidate,
+    projection: OperationFlowSkillCapabilityProjectionCandidate,
     slot_ref: str | None = None,
     allowed_use: Sequence[str] = ("workflow_planning_hint",),
-) -> TwfWorkflowSkillSlotReferenceCandidate:
+) -> OperationFlowWorkflowSkillSlotReferenceCandidate:
     """Build a read-only workflow slot reference to a capability projection."""
 
     blocking: list[str] = []
     warnings: list[str] = []
-    if descriptor.skills_slot_status not in TWF_SKILL_CAPABILITY_REFERENCEABLE_SLOT_STATUSES:
+    if descriptor.skills_slot_status not in OPERATION_FLOW_SKILL_CAPABILITY_REFERENCEABLE_SLOT_STATUSES:
         blocking.append("workflow_skills_slot_not_reference_only")
     if projection.projection_status_candidate != "approved_candidate":
         blocking.append("projection_not_approved")
@@ -452,14 +452,14 @@ def build_twf_workflow_skill_slot_reference(
     if descriptor.workflow_name in projection.denied_workflow_names:
         blocking.append("workflow_denied_for_projection")
     normalized_allowed_use = tuple(
-        use for use in _ordered_unique(allowed_use) if use in TWF_SKILL_CAPABILITY_ALLOWED_SLOT_USES
+        use for use in _ordered_unique(allowed_use) if use in OPERATION_FLOW_SKILL_CAPABILITY_ALLOWED_SLOT_USES
     )
     if len(normalized_allowed_use) != len(tuple(_ordered_unique(allowed_use))):
         warnings.append("unsupported_allowed_use_ignored")
     if not normalized_allowed_use:
         blocking.append("allowed_use_missing")
     status = "active_candidate" if not blocking else "blocked_candidate"
-    return TwfWorkflowSkillSlotReferenceCandidate(
+    return OperationFlowWorkflowSkillSlotReferenceCandidate(
         slot_ref=slot_ref
         or f"workflow-skill-slot://{descriptor.workflow_name}/{projection.projection_id}",
         workflow_name=descriptor.workflow_name,
@@ -470,7 +470,7 @@ def build_twf_workflow_skill_slot_reference(
         capability_id=projection.capability_id,
         reference_mode="projection_summary_only",
         allowed_use=normalized_allowed_use,
-        forbidden_use=TWF_SKILL_CAPABILITY_FORBIDDEN_SLOT_USES,
+        forbidden_use=OPERATION_FLOW_SKILL_CAPABILITY_FORBIDDEN_SLOT_USES,
         slot_status_candidate=status,
         blocking_reasons=tuple(_ordered_unique(blocking)),
         warnings=tuple(_ordered_unique(warnings)),
@@ -487,16 +487,16 @@ def build_twf_workflow_skill_slot_reference(
     )
 
 
-def build_twf_skill_projection_read_context(
+def build_operation_flow_skill_projection_read_context(
     *,
-    descriptor: TwfDescriptorCandidate,
-    projections: Sequence[TwfSkillCapabilityProjectionCandidate | Mapping[str, Any]],
+    descriptor: OperationFlowDescriptorCandidate,
+    projections: Sequence[OperationFlowSkillCapabilityProjectionCandidate | Mapping[str, Any]],
     slot_references: Sequence[
-        TwfWorkflowSkillSlotReferenceCandidate | Mapping[str, Any]
+        OperationFlowWorkflowSkillSlotReferenceCandidate | Mapping[str, Any]
     ],
     allowed_use_stage: str,
-    tool_loading_gate: TwfToolLoadingGateCandidate | Mapping[str, Any] | None = None,
-) -> TwfSkillProjectionReadContextCandidate:
+    tool_loading_gate: OperationFlowToolLoadingGateCandidate | Mapping[str, Any] | None = None,
+) -> OperationFlowSkillProjectionReadContextCandidate:
     """Build sanitized read-only Skill projection context for one workflow."""
 
     projection_statuses = {
@@ -512,9 +512,9 @@ def build_twf_skill_projection_read_context(
     )
     blocking: list[str] = []
     warnings: list[str] = []
-    if allowed_use_stage not in TWF_SKILL_CAPABILITY_ALLOWED_SLOT_USES:
+    if allowed_use_stage not in OPERATION_FLOW_SKILL_CAPABILITY_ALLOWED_SLOT_USES:
         blocking.append("allowed_use_stage_unsupported")
-    if descriptor.skills_slot_status not in TWF_SKILL_CAPABILITY_REFERENCEABLE_SLOT_STATUSES:
+    if descriptor.skills_slot_status not in OPERATION_FLOW_SKILL_CAPABILITY_REFERENCEABLE_SLOT_STATUSES:
         blocking.append("workflow_skills_slot_not_reference_only")
     if not projection_statuses:
         return _unavailable_read_context(
@@ -610,7 +610,7 @@ def build_twf_skill_projection_read_context(
         for status in combined_statuses
     )
     status = "available_candidate" if not blocking else "blocked_candidate"
-    return TwfSkillProjectionReadContextCandidate(
+    return OperationFlowSkillProjectionReadContextCandidate(
         status=status,
         workflow_name=descriptor.workflow_name,
         workflow_version=descriptor.workflow_version,
@@ -730,8 +730,8 @@ def build_twf_skill_projection_read_context(
     )
 
 
-def twf_skill_capability_review_status_dict(
-    review: TwfSkillCapabilityReviewCandidate,
+def operation_flow_skill_capability_review_status_dict(
+    review: OperationFlowSkillCapabilityReviewCandidate,
 ) -> dict[str, Any]:
     """Return a JSON-ready capability review summary."""
 
@@ -778,8 +778,8 @@ def twf_skill_capability_review_status_dict(
     }
 
 
-def twf_skill_capability_projection_status_dict(
-    projection: TwfSkillCapabilityProjectionCandidate,
+def operation_flow_skill_capability_projection_status_dict(
+    projection: OperationFlowSkillCapabilityProjectionCandidate,
 ) -> dict[str, Any]:
     """Return a JSON-ready sanitized capability projection."""
 
@@ -824,8 +824,8 @@ def twf_skill_capability_projection_status_dict(
     }
 
 
-def twf_workflow_skill_slot_reference_status_dict(
-    reference: TwfWorkflowSkillSlotReferenceCandidate,
+def operation_flow_workflow_skill_slot_reference_status_dict(
+    reference: OperationFlowWorkflowSkillSlotReferenceCandidate,
 ) -> dict[str, Any]:
     """Return a JSON-ready workflow Skill slot reference summary."""
 
@@ -856,8 +856,8 @@ def twf_workflow_skill_slot_reference_status_dict(
     }
 
 
-def twf_skill_projection_read_context_status_dict(
-    read_context: TwfSkillProjectionReadContextCandidate,
+def operation_flow_skill_projection_read_context_status_dict(
+    read_context: OperationFlowSkillProjectionReadContextCandidate,
 ) -> dict[str, Any]:
     """Return a JSON-ready workflow Skill projection read context."""
 
@@ -900,14 +900,14 @@ def twf_skill_projection_read_context_status_dict(
     }
 
 
-def build_twf_skill_projection_status_summary(
+def build_operation_flow_skill_projection_status_summary(
     *,
-    projections: Sequence[TwfSkillCapabilityProjectionCandidate | Mapping[str, Any]],
+    projections: Sequence[OperationFlowSkillCapabilityProjectionCandidate | Mapping[str, Any]],
     slot_references: Sequence[
-        TwfWorkflowSkillSlotReferenceCandidate | Mapping[str, Any]
+        OperationFlowWorkflowSkillSlotReferenceCandidate | Mapping[str, Any]
     ],
     source: str = "cognition_operation_flows._skills.capability_projection",
-) -> TwfSkillProjectionStatusSummaryCandidate:
+) -> OperationFlowSkillProjectionStatusSummaryCandidate:
     """Build a sanitized aggregate status summary for Skill projection refs."""
 
     projection_statuses = tuple(_projection_status_dict(projection) for projection in projections)
@@ -973,7 +973,7 @@ def build_twf_skill_projection_status_summary(
             if blocked_slots or has_runtime_escalation
             else "candidate_only_referenceable"
         )
-    return TwfSkillProjectionStatusSummaryCandidate(
+    return OperationFlowSkillProjectionStatusSummaryCandidate(
         status=status,
         source=source,
         projection_count=len(projection_statuses),
@@ -1055,19 +1055,19 @@ def build_twf_skill_projection_status_summary(
     )
 
 
-def build_default_twf_skill_capability_projection_status_summary() -> (
-    TwfSkillProjectionStatusSummaryCandidate
+def build_default_operation_flow_skill_capability_projection_status_summary() -> (
+    OperationFlowSkillProjectionStatusSummaryCandidate
 ):
     """Build the default four-workflow candidate-only Skill projection summary."""
 
-    registry = build_default_twf_registry()
+    registry = build_default_operation_flow_registry()
     records = _default_skill_capability_records()
-    source = build_twf_project_skill_registry_source(
+    source = build_operation_flow_project_skill_registry_source(
         registry_name="project_skills",
         source_ref="config://skills/project-skills",
         declared_skill_ids=tuple(record.skill_id for record in records),
     )
-    gate = validate_twf_project_skill_registry_loading_gate(
+    gate = validate_operation_flow_project_skill_registry_loading_gate(
         source=source,
         records=records,
         tool_loading_gate=_default_reference_tool_gate(),
@@ -1075,10 +1075,10 @@ def build_default_twf_skill_capability_projection_status_summary() -> (
     descriptors = {
         descriptor.workflow_name: descriptor for descriptor in registry.descriptors
     }
-    projections: list[TwfSkillCapabilityProjectionCandidate] = []
-    slots: list[TwfWorkflowSkillSlotReferenceCandidate] = []
+    projections: list[OperationFlowSkillCapabilityProjectionCandidate] = []
+    slots: list[OperationFlowWorkflowSkillSlotReferenceCandidate] = []
     for sample in _default_skill_capability_samples():
-        review = review_twf_skill_capability_for_projection(
+        review = review_operation_flow_skill_capability_for_projection(
             gate=gate,
             records=records,
             skill_id=sample["skill_id"],
@@ -1086,27 +1086,27 @@ def build_default_twf_skill_capability_projection_status_summary() -> (
             workflow_registry=registry,
             evidence_refs=(sample["evidence_ref"],),
         )
-        projection = build_twf_skill_capability_projection(
+        projection = build_operation_flow_skill_capability_projection(
             review,
             display_summary=sample["display_summary"],
             use_boundary=sample["use_boundary"],
         )
         projections.append(projection)
         slots.append(
-            build_twf_workflow_skill_slot_reference(
+            build_operation_flow_workflow_skill_slot_reference(
                 descriptor=descriptors[sample["workflow_name"]],
                 projection=projection,
                 allowed_use=sample["allowed_use"],
             )
         )
-    return build_twf_skill_projection_status_summary(
+    return build_operation_flow_skill_projection_status_summary(
         projections=projections,
         slot_references=slots,
     )
 
 
-def twf_skill_projection_status_summary_status_dict(
-    summary: TwfSkillProjectionStatusSummaryCandidate,
+def operation_flow_skill_projection_status_summary_status_dict(
+    summary: OperationFlowSkillProjectionStatusSummaryCandidate,
 ) -> dict[str, Any]:
     """Return a JSON-ready Skills projection status summary."""
 
@@ -1145,16 +1145,16 @@ def twf_skill_projection_status_summary_status_dict(
 
 
 def _find_record(
-    records: Sequence[TwfProjectSkillRegistryRecordCandidate],
+    records: Sequence[OperationFlowProjectSkillRegistryRecordCandidate],
     skill_id: str,
-) -> TwfProjectSkillRegistryRecordCandidate | None:
+) -> OperationFlowProjectSkillRegistryRecordCandidate | None:
     return next((record for record in records if record.skill_id == skill_id), None)
 
 
 def _find_validation(
-    validations: Sequence[TwfProjectSkillLoadingValidationCandidate],
+    validations: Sequence[OperationFlowProjectSkillLoadingValidationCandidate],
     skill_id: str,
-) -> TwfProjectSkillLoadingValidationCandidate | None:
+) -> OperationFlowProjectSkillLoadingValidationCandidate | None:
     return next(
         (validation for validation in validations if validation.skill_id == skill_id),
         None,
@@ -1162,9 +1162,9 @@ def _find_validation(
 
 
 def _find_capability(
-    record: TwfProjectSkillRegistryRecordCandidate | None,
+    record: OperationFlowProjectSkillRegistryRecordCandidate | None,
     capability_id: str,
-) -> TwfProjectSkillCapabilityDeclarationCandidate | None:
+) -> OperationFlowProjectSkillCapabilityDeclarationCandidate | None:
     if record is None:
         return None
     return next(
@@ -1181,8 +1181,8 @@ def _empty_capability(
     *,
     skill_id: str,
     capability_id: str,
-) -> TwfProjectSkillCapabilityDeclarationCandidate:
-    return TwfProjectSkillCapabilityDeclarationCandidate(
+) -> OperationFlowProjectSkillCapabilityDeclarationCandidate:
+    return OperationFlowProjectSkillCapabilityDeclarationCandidate(
         skill_id=skill_id,
         capability_id=capability_id,
         capability_name="",
@@ -1214,7 +1214,7 @@ def _forbidden_raw_keys(metadata: Mapping[str, Any]) -> tuple[str, ...]:
     keys: list[str] = []
     for key, value in metadata.items():
         key_text = str(key)
-        if key_text in TWF_SKILL_FORBIDDEN_RAW_KEYS:
+        if key_text in OPERATION_FLOW_SKILL_FORBIDDEN_RAW_KEYS:
             keys.append(key_text)
         if isinstance(value, Mapping):
             keys.extend(_forbidden_raw_keys(value))
@@ -1229,7 +1229,7 @@ def _raw_secret_keys(metadata: Mapping[str, Any]) -> tuple[str, ...]:
         if (
             value
             and not is_negative_boundary_flag
-            and any(marker in key_text for marker in TWF_SKILL_SECRET_KEY_MARKERS)
+            and any(marker in key_text for marker in OPERATION_FLOW_SKILL_SECRET_KEY_MARKERS)
         ):
             keys.append(str(key))
         if isinstance(value, Mapping):
@@ -1247,28 +1247,28 @@ def _default_projection_summary(
 
 
 def _projection_status_dict(
-    projection: TwfSkillCapabilityProjectionCandidate | Mapping[str, Any],
+    projection: OperationFlowSkillCapabilityProjectionCandidate | Mapping[str, Any],
 ) -> dict[str, Any]:
-    if isinstance(projection, TwfSkillCapabilityProjectionCandidate):
-        return twf_skill_capability_projection_status_dict(projection)
+    if isinstance(projection, OperationFlowSkillCapabilityProjectionCandidate):
+        return operation_flow_skill_capability_projection_status_dict(projection)
     return dict(projection)
 
 
 def _slot_status_dict(
-    slot: TwfWorkflowSkillSlotReferenceCandidate | Mapping[str, Any],
+    slot: OperationFlowWorkflowSkillSlotReferenceCandidate | Mapping[str, Any],
 ) -> dict[str, Any]:
-    if isinstance(slot, TwfWorkflowSkillSlotReferenceCandidate):
-        return twf_workflow_skill_slot_reference_status_dict(slot)
+    if isinstance(slot, OperationFlowWorkflowSkillSlotReferenceCandidate):
+        return operation_flow_workflow_skill_slot_reference_status_dict(slot)
     return dict(slot)
 
 
 def _unavailable_read_context(
     *,
-    descriptor: TwfDescriptorCandidate,
+    descriptor: OperationFlowDescriptorCandidate,
     allowed_use_stage: str,
     blocking_reasons: Sequence[str],
-) -> TwfSkillProjectionReadContextCandidate:
-    return TwfSkillProjectionReadContextCandidate(
+) -> OperationFlowSkillProjectionReadContextCandidate:
+    return OperationFlowSkillProjectionReadContextCandidate(
         status="unavailable",
         workflow_name=descriptor.workflow_name,
         workflow_version=descriptor.workflow_version,
@@ -1295,11 +1295,11 @@ def _unavailable_read_context(
 
 
 def _tool_gate_status_dict(
-    tool_loading_gate: TwfToolLoadingGateCandidate | Mapping[str, Any] | None,
+    tool_loading_gate: OperationFlowToolLoadingGateCandidate | Mapping[str, Any] | None,
 ) -> dict[str, Any]:
     if tool_loading_gate is None:
         return {"status": "unavailable", "allowed_tool_names": ()}
-    if isinstance(tool_loading_gate, TwfToolLoadingGateCandidate):
+    if isinstance(tool_loading_gate, OperationFlowToolLoadingGateCandidate):
         return {
             "status": tool_loading_gate.status,
             "risk_gate_status": tool_loading_gate.risk_gate_status,
@@ -1351,7 +1351,7 @@ def _default_skill_capability_samples() -> tuple[dict[str, Any], ...]:
         {
             "skill_id": "skill.plan.design",
             "capability_id": "capability.plan.design",
-            "workflow_name": TWF_PLAN_WORKFLOW_NAME,
+            "workflow_name": OPERATION_FLOW_PLAN_WORKFLOW_NAME,
             "task_kind": "plan_design",
             "display_summary": "方案设计能力投影，用于稳定输出结构、约束和预算项。",
             "use_boundary": "仅作为 plan workflow 的结构化规划提示，不加载 Skill。",
@@ -1361,7 +1361,7 @@ def _default_skill_capability_samples() -> tuple[dict[str, Any], ...]:
         {
             "skill_id": "skill.reference.review",
             "capability_id": "capability.reference.review",
-            "workflow_name": TWF_REFERENCE_REVIEW_WORKFLOW_NAME,
+            "workflow_name": OPERATION_FLOW_REFERENCE_REVIEW_WORKFLOW_NAME,
             "task_kind": "reference_review",
             "display_summary": "资料审查能力投影，用于稳定输出符合性、风险和建议。",
             "use_boundary": "仅作为 reference review workflow 的审查结构提示，不执行工具。",
@@ -1371,7 +1371,7 @@ def _default_skill_capability_samples() -> tuple[dict[str, Any], ...]:
         {
             "skill_id": "skill.config.profile.explain",
             "capability_id": "capability.config.profile.explain",
-            "workflow_name": TWF_CONFIG_PROFILE_EXPLAIN_WORKFLOW_NAME,
+            "workflow_name": OPERATION_FLOW_CONFIG_PROFILE_EXPLAIN_WORKFLOW_NAME,
             "task_kind": "config_profile_explain",
             "display_summary": "配置解释能力投影，用于稳定解释配置优先级和覆盖关系。",
             "use_boundary": "仅作为 config profile explain workflow 的解释结构提示。",
@@ -1381,7 +1381,7 @@ def _default_skill_capability_samples() -> tuple[dict[str, Any], ...]:
         {
             "skill_id": "skill.evidence.audit",
             "capability_id": "capability.evidence.audit",
-            "workflow_name": TWF_RUN_WORKSPACE_EVIDENCE_AUDIT_WORKFLOW_NAME,
+            "workflow_name": OPERATION_FLOW_RUN_WORKSPACE_EVIDENCE_AUDIT_WORKFLOW_NAME,
             "task_kind": "run_workspace_evidence_audit",
             "display_summary": "证据审计能力投影，用于稳定审查 run workspace 证据完整性。",
             "use_boundary": "仅作为 evidence audit workflow 的证据摘要提示。",
@@ -1392,16 +1392,16 @@ def _default_skill_capability_samples() -> tuple[dict[str, Any], ...]:
 
 
 def _default_skill_capability_records() -> tuple[
-    TwfProjectSkillRegistryRecordCandidate, ...
+    OperationFlowProjectSkillRegistryRecordCandidate, ...
 ]:
-    records: list[TwfProjectSkillRegistryRecordCandidate] = []
+    records: list[OperationFlowProjectSkillRegistryRecordCandidate] = []
     for sample in _default_skill_capability_samples():
         required_tools = (
             (REFERENCE_READER_TOOL_NAME,)
-            if sample["workflow_name"] == TWF_REFERENCE_REVIEW_WORKFLOW_NAME
+            if sample["workflow_name"] == OPERATION_FLOW_REFERENCE_REVIEW_WORKFLOW_NAME
             else ()
         )
-        capability = TwfProjectSkillCapabilityDeclarationCandidate(
+        capability = OperationFlowProjectSkillCapabilityDeclarationCandidate(
             skill_id=sample["skill_id"],
             capability_id=sample["capability_id"],
             capability_name=str(sample["display_summary"]).split("，", 1)[0],
@@ -1417,7 +1417,7 @@ def _default_skill_capability_records() -> tuple[
             resource_policy="refs_only",
         )
         records.append(
-            TwfProjectSkillRegistryRecordCandidate(
+            OperationFlowProjectSkillRegistryRecordCandidate(
                 skill_id=sample["skill_id"],
                 metadata_view=SkillMetadataViewCandidate(
                     l1_metadata=SkillL1MetadataCandidate(
@@ -1436,8 +1436,8 @@ def _default_skill_capability_records() -> tuple[
     return tuple(records)
 
 
-def _default_reference_tool_gate() -> TwfToolLoadingGateCandidate:
-    return TwfToolLoadingGateCandidate(
+def _default_reference_tool_gate() -> OperationFlowToolLoadingGateCandidate:
+    return OperationFlowToolLoadingGateCandidate(
         status="passed",
         risk_gate_status="passed",
         validations=(),
@@ -1454,16 +1454,16 @@ def _default_reference_tool_gate() -> TwfToolLoadingGateCandidate:
 
 def _normalize_risk(risk_level: str) -> str:
     normalized = (risk_level or "unknown").strip().lower()
-    return normalized if normalized in TWF_SKILL_RISK_LEVEL_ORDER else "unknown"
+    return normalized if normalized in OPERATION_FLOW_SKILL_RISK_LEVEL_ORDER else "unknown"
 
 
 def _risk_at_or_below(risk_level: str, max_risk_level: str) -> bool:
-    return TWF_SKILL_RISK_LEVEL_ORDER.get(
+    return OPERATION_FLOW_SKILL_RISK_LEVEL_ORDER.get(
         _normalize_risk(risk_level),
-        TWF_SKILL_RISK_LEVEL_ORDER["unknown"],
-    ) <= TWF_SKILL_RISK_LEVEL_ORDER.get(
+        OPERATION_FLOW_SKILL_RISK_LEVEL_ORDER["unknown"],
+    ) <= OPERATION_FLOW_SKILL_RISK_LEVEL_ORDER.get(
         _normalize_risk(max_risk_level),
-        TWF_SKILL_RISK_LEVEL_ORDER["medium"],
+        OPERATION_FLOW_SKILL_RISK_LEVEL_ORDER["medium"],
     )
 
 
@@ -1487,12 +1487,12 @@ def _ordered_unique(values: Sequence[str]) -> list[str]:
     return unique
 
 
-# Canonical read-context/status-summary implementation lives in task_workflows.
+# Canonical read-context/status-summary implementation lives in operation_flows.
 from cognition_operation_flows._skills.projection_context import (  # noqa: E402
-    TwfSkillProjectionStatusSummaryCandidate,
-    TwfSkillProjectionReadContextCandidate,
-    build_twf_skill_projection_status_summary,
-    build_twf_skill_projection_read_context,
-    twf_skill_projection_status_summary_status_dict,
-    twf_skill_projection_read_context_status_dict,
+    OperationFlowSkillProjectionStatusSummaryCandidate,
+    OperationFlowSkillProjectionReadContextCandidate,
+    build_operation_flow_skill_projection_status_summary,
+    build_operation_flow_skill_projection_read_context,
+    operation_flow_skill_projection_status_summary_status_dict,
+    operation_flow_skill_projection_read_context_status_dict,
 )

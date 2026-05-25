@@ -1,4 +1,4 @@
-"""Boundary guards for candidate task workflow descriptors."""
+"""Boundary guards for candidate operation flow descriptors."""
 
 from __future__ import annotations
 
@@ -39,12 +39,12 @@ FORBIDDEN_TASK_WORKFLOW_METADATA_KEYS = frozenset(
 )
 
 
-def validate_task_workflow_metadata_boundary(
+def validate_operation_flow_metadata_boundary(
     value: Any,
     *,
     field_name: str = "metadata",
 ) -> None:
-    """Reject raw payload-like fields from task workflow candidate metadata."""
+    """Reject raw payload-like fields from operation flow candidate metadata."""
 
     violations = [
         f"{field_name} contains forbidden raw payload at {path}."

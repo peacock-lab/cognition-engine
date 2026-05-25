@@ -8,7 +8,7 @@ import re
 from typing import Any
 
 
-TWF_READONLY_TOOL_DESIGN_STAGES = (
+OPERATION_FLOW_READONLY_TOOL_DESIGN_STAGES = (
     "tool_origin_review",
     "operation_family_review",
     "schema_boundary_review",
@@ -16,11 +16,11 @@ TWF_READONLY_TOOL_DESIGN_STAGES = (
     "runtime_closed_review",
     "sanitized_summary",
 )
-TWF_READONLY_TOOL_ALLOWED_ORIGINS = frozenset(
+OPERATION_FLOW_READONLY_TOOL_ALLOWED_ORIGINS = frozenset(
     {"adk_function_tool", "adk_toolset", "mcp_toolset"}
 )
-TWF_READONLY_TOOL_ALLOWED_OPERATIONS = frozenset({"grep", "list", "read", "search"})
-TWF_READONLY_TOOL_FORBIDDEN_OPERATION_TOKENS = frozenset(
+OPERATION_FLOW_READONLY_TOOL_ALLOWED_OPERATIONS = frozenset({"grep", "list", "read", "search"})
+OPERATION_FLOW_READONLY_TOOL_FORBIDDEN_OPERATION_TOKENS = frozenset(
     {
         "call",
         "create",
@@ -40,10 +40,10 @@ TWF_READONLY_TOOL_FORBIDDEN_OPERATION_TOKENS = frozenset(
         "write",
     }
 )
-TWF_READONLY_TOOL_DEFERRED_EXTERNAL_ORIGINS = frozenset(
+OPERATION_FLOW_READONLY_TOOL_DEFERRED_EXTERNAL_ORIGINS = frozenset(
     {"google_search", "url_context"}
 )
-TWF_READONLY_TOOL_SECRET_KEY_MARKERS = (
+OPERATION_FLOW_READONLY_TOOL_SECRET_KEY_MARKERS = (
     "access_token",
     "api_key",
     "credential",
@@ -56,7 +56,7 @@ TWF_READONLY_TOOL_SECRET_KEY_MARKERS = (
 
 
 @dataclass(frozen=True)
-class TwfReadonlyToolDesignCandidate:
+class OperationFlowReadonlyToolDesignCandidate:
     """Sanitized design facts for one future ADK/MCP read-only tool."""
 
     tool_name: str
@@ -86,7 +86,7 @@ class TwfReadonlyToolDesignCandidate:
 
 
 @dataclass(frozen=True)
-class TwfReadonlyToolDesignReviewCandidate:
+class OperationFlowReadonlyToolDesignReviewCandidate:
     """Candidate-only design review for one ADK/MCP read-only tool."""
 
     tool_name: str
@@ -102,16 +102,16 @@ class TwfReadonlyToolDesignReviewCandidate:
 
 
 @dataclass(frozen=True)
-class TwfReadonlyToolDesignSummaryCandidate:
+class OperationFlowReadonlyToolDesignSummaryCandidate:
     """Aggregate sanitized summary for ADK/MCP read-only tool designs."""
 
     status: str
     allowed_tool_names: tuple[str, ...]
     blocked_tool_names: tuple[str, ...]
-    reviews: tuple[TwfReadonlyToolDesignReviewCandidate, ...]
-    allowed_origins: tuple[str, ...] = tuple(sorted(TWF_READONLY_TOOL_ALLOWED_ORIGINS))
+    reviews: tuple[OperationFlowReadonlyToolDesignReviewCandidate, ...]
+    allowed_origins: tuple[str, ...] = tuple(sorted(OPERATION_FLOW_READONLY_TOOL_ALLOWED_ORIGINS))
     allowed_operations: tuple[str, ...] = tuple(
-        sorted(TWF_READONLY_TOOL_ALLOWED_OPERATIONS)
+        sorted(OPERATION_FLOW_READONLY_TOOL_ALLOWED_OPERATIONS)
     )
     runtime_enabled: bool = False
     tool_execution_enabled: bool = False
@@ -121,9 +121,9 @@ class TwfReadonlyToolDesignSummaryCandidate:
     metadata: dict[str, Any] = field(default_factory=dict)
 
 
-def review_twf_readonly_tool_design(
-    design: TwfReadonlyToolDesignCandidate,
-) -> TwfReadonlyToolDesignReviewCandidate:
+def review_operation_flow_readonly_tool_design(
+    design: OperationFlowReadonlyToolDesignCandidate,
+) -> OperationFlowReadonlyToolDesignReviewCandidate:
     """Review one future ADK/MCP tool design without loading or executing it."""
 
     origin = _normalize_token(design.tool_origin)
@@ -135,13 +135,13 @@ def review_twf_readonly_tool_design(
         blocking.append("tool_name_missing")
     if not origin:
         blocking.append("tool_origin_missing")
-    elif origin not in TWF_READONLY_TOOL_ALLOWED_ORIGINS:
+    elif origin not in OPERATION_FLOW_READONLY_TOOL_ALLOWED_ORIGINS:
         blocking.append("tool_origin_not_allowed_for_adk_mcp_readonly")
-        if origin in TWF_READONLY_TOOL_DEFERRED_EXTERNAL_ORIGINS:
+        if origin in OPERATION_FLOW_READONLY_TOOL_DEFERRED_EXTERNAL_ORIGINS:
             warnings.append("external_readonly_tool_origin_deferred")
     if not operation:
         blocking.append("operation_family_missing")
-    elif operation not in TWF_READONLY_TOOL_ALLOWED_OPERATIONS:
+    elif operation not in OPERATION_FLOW_READONLY_TOOL_ALLOWED_OPERATIONS:
         blocking.append("operation_family_not_in_readonly_allowlist")
     if _operation_contains_forbidden_token(design.operation_family):
         blocking.append("operation_family_contains_side_effect_token")
@@ -193,7 +193,7 @@ def review_twf_readonly_tool_design(
     else:
         risk_level = "low"
 
-    return TwfReadonlyToolDesignReviewCandidate(
+    return OperationFlowReadonlyToolDesignReviewCandidate(
         tool_name=design.tool_name,
         tool_origin=origin,
         operation_family=operation,
@@ -206,7 +206,7 @@ def review_twf_readonly_tool_design(
         metadata={
             "candidate_only": True,
             "reference_only": True,
-            "stages": list(TWF_READONLY_TOOL_DESIGN_STAGES),
+            "stages": list(OPERATION_FLOW_READONLY_TOOL_DESIGN_STAGES),
             "input_schema_ref": design.input_schema_ref,
             "output_boundary_ref": design.output_boundary_ref,
             "adapter_boundary_ref": design.adapter_boundary_ref,
@@ -221,19 +221,19 @@ def review_twf_readonly_tool_design(
     )
 
 
-def build_twf_readonly_tool_design_summary(
-    designs: Sequence[TwfReadonlyToolDesignCandidate],
-) -> TwfReadonlyToolDesignSummaryCandidate:
+def build_operation_flow_readonly_tool_design_summary(
+    designs: Sequence[OperationFlowReadonlyToolDesignCandidate],
+) -> OperationFlowReadonlyToolDesignSummaryCandidate:
     """Build an aggregate candidate-only summary for future read-only tools."""
 
-    reviews = tuple(review_twf_readonly_tool_design(design) for design in designs)
+    reviews = tuple(review_operation_flow_readonly_tool_design(design) for design in designs)
     allowed = tuple(
         review.tool_name for review in reviews if review.allowed_for_design
     )
     blocked = tuple(
         review.tool_name for review in reviews if not review.allowed_for_design
     )
-    return TwfReadonlyToolDesignSummaryCandidate(
+    return OperationFlowReadonlyToolDesignSummaryCandidate(
         status="allowed" if not blocked else "blocked",
         allowed_tool_names=tuple(_ordered_unique(allowed)),
         blocked_tool_names=tuple(_ordered_unique(blocked)),
@@ -244,14 +244,14 @@ def build_twf_readonly_tool_design_summary(
             "does_not_open_adk_runtime": True,
             "does_not_open_mcp_runtime": True,
             "does_not_execute_tools": True,
-            "allowed_operation_count": len(TWF_READONLY_TOOL_ALLOWED_OPERATIONS),
+            "allowed_operation_count": len(OPERATION_FLOW_READONLY_TOOL_ALLOWED_OPERATIONS),
             "review_count": len(reviews),
         },
     )
 
 
-def twf_readonly_tool_design_review_status_dict(
-    review: TwfReadonlyToolDesignReviewCandidate,
+def operation_flow_readonly_tool_design_review_status_dict(
+    review: OperationFlowReadonlyToolDesignReviewCandidate,
 ) -> dict[str, Any]:
     """Return a JSON-ready sanitized review summary."""
 
@@ -269,8 +269,8 @@ def twf_readonly_tool_design_review_status_dict(
     }
 
 
-def twf_readonly_tool_design_summary_status_dict(
-    summary: TwfReadonlyToolDesignSummaryCandidate,
+def operation_flow_readonly_tool_design_summary_status_dict(
+    summary: OperationFlowReadonlyToolDesignSummaryCandidate,
 ) -> dict[str, Any]:
     """Return a JSON-ready sanitized aggregate summary."""
 
@@ -286,7 +286,7 @@ def twf_readonly_tool_design_summary_status_dict(
         "agent_runtime_enabled": summary.agent_runtime_enabled,
         "skills_runtime_enabled": summary.skills_runtime_enabled,
         "reviews": [
-            twf_readonly_tool_design_review_status_dict(review)
+            operation_flow_readonly_tool_design_review_status_dict(review)
             for review in summary.reviews
         ],
         "metadata": dict(summary.metadata),
@@ -295,25 +295,25 @@ def twf_readonly_tool_design_summary_status_dict(
 
 def _normalize_operation_family(value: str) -> str:
     normalized = _normalize_token(value)
-    if normalized in TWF_READONLY_TOOL_ALLOWED_OPERATIONS:
+    if normalized in OPERATION_FLOW_READONLY_TOOL_ALLOWED_OPERATIONS:
         return normalized
     tokens = _split_operation_tokens(normalized)
     for token in tokens:
-        if token in TWF_READONLY_TOOL_ALLOWED_OPERATIONS:
+        if token in OPERATION_FLOW_READONLY_TOOL_ALLOWED_OPERATIONS:
             return token
     return normalized
 
 
 def _operation_contains_forbidden_token(value: str) -> bool:
     tokens = _split_operation_tokens(_normalize_token(value))
-    return any(token in TWF_READONLY_TOOL_FORBIDDEN_OPERATION_TOKENS for token in tokens)
+    return any(token in OPERATION_FLOW_READONLY_TOOL_FORBIDDEN_OPERATION_TOKENS for token in tokens)
 
 
 def _raw_secret_keys(raw_config: Mapping[str, Any]) -> tuple[str, ...]:
     keys: list[str] = []
     for key, value in raw_config.items():
         key_text = str(key).lower()
-        if any(marker in key_text for marker in TWF_READONLY_TOOL_SECRET_KEY_MARKERS):
+        if any(marker in key_text for marker in OPERATION_FLOW_READONLY_TOOL_SECRET_KEY_MARKERS):
             if value:
                 keys.append(str(key))
         if isinstance(value, Mapping):

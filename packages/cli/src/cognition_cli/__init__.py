@@ -1,4 +1,4 @@
-"""Candidate CLI package for the Cognition System."""
+"""Command-line channel adapter for the Cognition System."""
 
 from __future__ import annotations
 

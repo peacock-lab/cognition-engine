@@ -13,11 +13,14 @@ def run_cli(argv: Sequence[str] | None = None, **kwargs: Any) -> int:
     from product_runtime_assembly.cognition_run import (
         execute_cognition_run_with_default_runtime,
     )
-    from product_runtime_assembly.external_readonly_answer_provider_factory import (
-        build_external_readonly_answer_default_llm_invocation_service_factory,
+    from product_runtime_assembly.external_readonly_ask_provider_factory import (
+        build_external_readonly_ask_default_llm_invocation_service_factory,
     )
-    from product_runtime_assembly.twf_provider_factory import (
-        build_twf_default_llm_invocation_service_factory,
+    from product_runtime_assembly.deepseek_credentials import (
+        build_default_deepseek_credential_store,
+    )
+    from product_runtime_assembly.operation_flow_provider_factory import (
+        build_operation_flow_default_llm_invocation_service_factory,
     )
 
     kwargs.setdefault(
@@ -25,22 +28,20 @@ def run_cli(argv: Sequence[str] | None = None, **kwargs: Any) -> int:
         execute_cognition_run_with_default_runtime,
     )
     kwargs.setdefault(
-        "twf_llm_invocation_service_factory",
-        build_twf_default_llm_invocation_service_factory(
-            metadata={"source": "product_runtime_assembly.entrypoints.cognition"},
-        ),
-    )
-    kwargs.setdefault(
-        "external_readonly_answer_llm_invocation_service_factory",
-        build_external_readonly_answer_default_llm_invocation_service_factory(
+        "operation_flow_llm_invocation_service_factory",
+        build_operation_flow_default_llm_invocation_service_factory(
             metadata={"source": "product_runtime_assembly.entrypoints.cognition"},
         ),
     )
     kwargs.setdefault(
         "external_readonly_ask_llm_invocation_service_factory",
-        build_external_readonly_answer_default_llm_invocation_service_factory(
+        build_external_readonly_ask_default_llm_invocation_service_factory(
             metadata={"source": "product_runtime_assembly.entrypoints.cognition"},
         ),
+    )
+    kwargs.setdefault(
+        "external_readonly_ask_provider_credential_store_factory",
+        build_default_deepseek_credential_store,
     )
     return _run_cli(argv, **kwargs)
 

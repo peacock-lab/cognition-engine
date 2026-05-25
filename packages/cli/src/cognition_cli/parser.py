@@ -322,23 +322,18 @@ def build_parser() -> argparse.ArgumentParser:
     )
     external_readonly_ask_parser.add_argument(
         "--envelope-ref",
-        default="evidence://external-readonly/envelope/cli-ask",
     )
     external_readonly_ask_parser.add_argument(
         "--evidence-ref",
-        default="evidence://external-readonly/item/cli-ask",
     )
     external_readonly_ask_parser.add_argument(
         "--controlled-output-ref",
-        default="outputs/external-readonly/cli-ask.json",
     )
     external_readonly_ask_parser.add_argument(
         "--sanitized-evidence-ref",
-        default="evidence://external-readonly/cli-ask",
     )
     external_readonly_ask_parser.add_argument(
         "--governance-summary-ref",
-        default="summary://external-readonly/cli-ask",
     )
     external_readonly_ask_parser.add_argument("--source-title")
     external_readonly_ask_parser.add_argument(
@@ -378,7 +373,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     external_readonly_ask_parser.add_argument(
         "--model-name",
-        help="Controlled-live model name; defaults to RuntimeLiveLlmConfigView.",
+        help="Controlled-live model name; prefer the whitelisted --model alias.",
     )
     external_readonly_ask_parser.add_argument(
         "--model",
@@ -454,75 +449,6 @@ def build_parser() -> argparse.ArgumentParser:
         default="text",
     )
     external_readonly_ask_parser.add_argument("--json", action="store_true")
-
-    external_readonly_answer_parser = external_readonly_subparsers.add_parser(
-        "answer",
-        help="Run an explicit governed LLM smoke over archived evidence refs.",
-        description=(
-            "Run an explicit governed LLM smoke over archived external-readonly "
-            "evidence refs without fetch/search or default chat/run changes."
-        ),
-    )
-    external_readonly_answer_parser.add_argument(
-        "--evidence-path",
-        dest="evidence_paths",
-        action="append",
-        default=[],
-        help="Archived evidence-output JSON path under outputs/external-readonly/.",
-    )
-    external_readonly_answer_parser.add_argument("--question", required=True)
-    external_readonly_answer_parser.add_argument(
-        "--request-id",
-        default="external-readonly-answer-request://cli/answer",
-    )
-    external_readonly_answer_parser.add_argument(
-        "--model-name",
-        help="Controlled-live model name; defaults to RuntimeLiveLlmConfigView.",
-    )
-    external_readonly_answer_parser.add_argument(
-        "--config-root",
-        type=Path,
-        default=Path(".") / "config",
-    )
-    external_readonly_answer_parser.add_argument("--environment", default="local")
-    external_readonly_answer_parser.add_argument("--profile")
-    external_readonly_answer_parser.add_argument(
-        "--request-live-llm",
-        action="store_true",
-    )
-    external_readonly_answer_parser.add_argument(
-        "--request-ollama",
-        action="store_true",
-    )
-    external_readonly_answer_parser.add_argument(
-        "--allow-live-llm",
-        action="store_true",
-    )
-    external_readonly_answer_parser.add_argument(
-        "--allow-ollama",
-        action="store_true",
-    )
-    external_readonly_answer_parser.add_argument("--live-llm-approval-ref")
-    external_readonly_answer_parser.add_argument("--ollama-api-base")
-    external_readonly_answer_parser.add_argument(
-        "--live-llm-timeout-seconds",
-        type=int,
-    )
-    external_readonly_answer_parser.add_argument(
-        "--live-llm-max-tokens",
-        type=int,
-    )
-    external_readonly_answer_parser.add_argument(
-        "--answer-preview-limit",
-        type=int,
-        default=CHAT_RESPONSE_PREVIEW_LIMIT,
-    )
-    external_readonly_answer_parser.add_argument(
-        "--format",
-        choices=("text", "json"),
-        default="text",
-    )
-    external_readonly_answer_parser.add_argument("--json", action="store_true")
 
     config_parser = subparsers.add_parser(
         "config",

@@ -1,14 +1,16 @@
 [project]
 name = "cognition-system-product-application-assembly"
-version = "0.8.0"
+version = "0.8.1"
 description = "Product application assembly package for Cognition System."
-readme = { text = "Cognition System v0.8.0 public product application assembly package. See the version-specific public README in the release repository for usage and boundary notes.", content-type = "text/markdown" }
+readme = { text = "Cognition System v0.8.1 public product application assembly package. See the version-specific public README in the release repository for usage and boundary notes.", content-type = "text/markdown" }
 requires-python = ">=3.14"
 dependencies = [
-  "cognition-system-behavior-contracts==0.8.0",
-  "cognition-system-composition==0.8.0",
-  "cognition-system-product-gateway==0.8.0",
-  "cognition-system-schemas==0.8.0",
+  "cognition-system-behavior-contracts==0.8.1",
+  "cognition-system-composition==0.8.1",
+  "cognition-system-config-contexts==0.8.1",
+  "cognition-system-evaluation==0.8.1",
+  "cognition-system-product-gateway==0.8.1",
+  "cognition-system-schemas==0.8.1",
 ]
 
 [build-system]
@@ -21,5 +23,7 @@ packages = ["src/product_application_assembly"]
 [tool.uv.sources]
 cognition-system-behavior-contracts = { workspace = true }
 cognition-system-composition = { workspace = true }
+cognition-system-config-contexts = { workspace = true }
+cognition-system-evaluation = { workspace = true }
 cognition-system-product-gateway = { workspace = true }
 cognition-system-schemas = { workspace = true }

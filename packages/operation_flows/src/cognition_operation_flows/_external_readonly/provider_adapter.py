@@ -7,17 +7,17 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from cognition_operation_flows._external_readonly.evidence import (
-    TwfExternalReadonlyEvidenceEnvelopeCandidate,
-    TwfExternalReadonlyEvidenceItemCandidate,
-    build_twf_external_readonly_evidence_envelope,
-    twf_external_readonly_evidence_envelope_status_dict,
+    OperationFlowExternalReadonlyEvidenceEnvelopeCandidate,
+    OperationFlowExternalReadonlyEvidenceItemCandidate,
+    build_operation_flow_external_readonly_evidence_envelope,
+    operation_flow_external_readonly_evidence_envelope_status_dict,
 )
 from cognition_operation_flows._external_readonly.network_gate import (
-    TwfExternalReadonlyNetworkGateCandidate,
+    OperationFlowExternalReadonlyNetworkGateCandidate,
 )
 
 
-TWF_EXTERNAL_READONLY_PROVIDER_ADAPTER_STAGES = (
+OPERATION_FLOW_EXTERNAL_READONLY_PROVIDER_ADAPTER_STAGES = (
     "network_gate_binding",
     "provider_profile_review",
     "provider_request_review",
@@ -25,15 +25,15 @@ TWF_EXTERNAL_READONLY_PROVIDER_ADAPTER_STAGES = (
     "evidence_envelope_build",
     "sanitized_adapter_summary",
 )
-TWF_EXTERNAL_READONLY_FAKE_PROVIDER_KINDS = frozenset(
+OPERATION_FLOW_EXTERNAL_READONLY_FAKE_PROVIDER_KINDS = frozenset(
     {"fake_fetch", "fake_search", "fake_url_context"}
 )
-TWF_EXTERNAL_READONLY_PROVIDER_KIND_OPERATIONS = {
+OPERATION_FLOW_EXTERNAL_READONLY_PROVIDER_KIND_OPERATIONS = {
     "fake_fetch": frozenset({"fetch", "read"}),
     "fake_search": frozenset({"search"}),
     "fake_url_context": frozenset({"fetch", "read"}),
 }
-TWF_EXTERNAL_READONLY_PROVIDER_SECRET_KEY_MARKERS = (
+OPERATION_FLOW_EXTERNAL_READONLY_PROVIDER_SECRET_KEY_MARKERS = (
     "access_token",
     "api_key",
     "authorization",
@@ -49,7 +49,7 @@ TWF_EXTERNAL_READONLY_PROVIDER_SECRET_KEY_MARKERS = (
 
 
 @dataclass(frozen=True)
-class TwfExternalReadonlyProviderProfileCandidate:
+class OperationFlowExternalReadonlyProviderProfileCandidate:
     """Provider profile facts for a future external-readonly adapter."""
 
     provider_name: str
@@ -63,7 +63,7 @@ class TwfExternalReadonlyProviderProfileCandidate:
 
 
 @dataclass(frozen=True)
-class TwfExternalReadonlyProviderRequestCandidate:
+class OperationFlowExternalReadonlyProviderRequestCandidate:
     """Provider-neutral request facts passed after the network gate."""
 
     request_ref: str
@@ -77,7 +77,7 @@ class TwfExternalReadonlyProviderRequestCandidate:
 
 
 @dataclass(frozen=True)
-class TwfExternalReadonlyFakeProviderRecordCandidate:
+class OperationFlowExternalReadonlyFakeProviderRecordCandidate:
     """One fake provider record already sanitized before envelope projection."""
 
     source_url: str
@@ -96,7 +96,7 @@ class TwfExternalReadonlyFakeProviderRecordCandidate:
 
 
 @dataclass(frozen=True)
-class TwfExternalReadonlyProviderAdapterResultCandidate:
+class OperationFlowExternalReadonlyProviderAdapterResultCandidate:
     """Sanitized result for a provider-neutral fake adapter run."""
 
     status: str
@@ -104,7 +104,7 @@ class TwfExternalReadonlyProviderAdapterResultCandidate:
     provider_kind: str
     request_ref: str
     operation_family: str
-    envelope: TwfExternalReadonlyEvidenceEnvelopeCandidate | None
+    envelope: OperationFlowExternalReadonlyEvidenceEnvelopeCandidate | None
     allowed_for_model_context: bool
     provider_network_call_performed: bool = False
     external_network_call_performed: bool = False
@@ -115,13 +115,13 @@ class TwfExternalReadonlyProviderAdapterResultCandidate:
     metadata: dict[str, Any] = field(default_factory=dict)
 
 
-def run_twf_external_readonly_fake_provider_adapter(
+def run_operation_flow_external_readonly_fake_provider_adapter(
     *,
-    gate: TwfExternalReadonlyNetworkGateCandidate,
-    profile: TwfExternalReadonlyProviderProfileCandidate,
-    request: TwfExternalReadonlyProviderRequestCandidate,
-    records: Sequence[TwfExternalReadonlyFakeProviderRecordCandidate],
-) -> TwfExternalReadonlyProviderAdapterResultCandidate:
+    gate: OperationFlowExternalReadonlyNetworkGateCandidate,
+    profile: OperationFlowExternalReadonlyProviderProfileCandidate,
+    request: OperationFlowExternalReadonlyProviderRequestCandidate,
+    records: Sequence[OperationFlowExternalReadonlyFakeProviderRecordCandidate],
+) -> OperationFlowExternalReadonlyProviderAdapterResultCandidate:
     """Project fake provider records into an evidence envelope without I/O."""
 
     provider_kind = _normalize_token(profile.provider_kind)
@@ -137,7 +137,7 @@ def run_twf_external_readonly_fake_provider_adapter(
         blocking.append("provider_request_operation_mismatch")
     if not _present(profile.provider_name):
         blocking.append("provider_name_required")
-    if provider_kind not in TWF_EXTERNAL_READONLY_FAKE_PROVIDER_KINDS:
+    if provider_kind not in OPERATION_FLOW_EXTERNAL_READONLY_FAKE_PROVIDER_KINDS:
         blocking.append("provider_kind_not_fake")
     if not profile.fake_provider:
         blocking.append("fake_provider_required_for_465")
@@ -151,7 +151,7 @@ def run_twf_external_readonly_fake_provider_adapter(
     supported = tuple(_normalize_token(item) for item in profile.supported_operations)
     if operation not in supported:
         blocking.append("provider_operation_not_supported")
-    allowed_for_kind = TWF_EXTERNAL_READONLY_PROVIDER_KIND_OPERATIONS.get(
+    allowed_for_kind = OPERATION_FLOW_EXTERNAL_READONLY_PROVIDER_KIND_OPERATIONS.get(
         provider_kind,
         frozenset(),
     )
@@ -185,7 +185,7 @@ def run_twf_external_readonly_fake_provider_adapter(
         )
         for index, record in enumerate(records, start=1)
     )
-    envelope = build_twf_external_readonly_evidence_envelope(
+    envelope = build_operation_flow_external_readonly_evidence_envelope(
         gate=gate,
         items=items,
         envelope_ref=request.envelope_ref,
@@ -197,7 +197,7 @@ def run_twf_external_readonly_fake_provider_adapter(
         )
 
     allowed = not blocking
-    return TwfExternalReadonlyProviderAdapterResultCandidate(
+    return OperationFlowExternalReadonlyProviderAdapterResultCandidate(
         status="completed" if allowed else "blocked",
         provider_name=profile.provider_name,
         provider_kind=provider_kind,
@@ -214,7 +214,7 @@ def run_twf_external_readonly_fake_provider_adapter(
         metadata={
             "candidate_only": True,
             "reference_only": True,
-            "stages": list(TWF_EXTERNAL_READONLY_PROVIDER_ADAPTER_STAGES),
+            "stages": list(OPERATION_FLOW_EXTERNAL_READONLY_PROVIDER_ADAPTER_STAGES),
             "provider_supported_operations": list(supported),
             "network_gate_status": gate.status,
             "network_gate_open": gate.network_gate_open,
@@ -228,8 +228,8 @@ def run_twf_external_readonly_fake_provider_adapter(
     )
 
 
-def twf_external_readonly_provider_adapter_result_status_dict(
-    result: TwfExternalReadonlyProviderAdapterResultCandidate,
+def operation_flow_external_readonly_provider_adapter_result_status_dict(
+    result: OperationFlowExternalReadonlyProviderAdapterResultCandidate,
 ) -> dict[str, Any]:
     """Return a JSON-ready sanitized provider adapter summary."""
 
@@ -247,7 +247,7 @@ def twf_external_readonly_provider_adapter_result_status_dict(
         "blocking_reasons": list(result.blocking_reasons),
         "warnings": list(result.warnings),
         "envelope": (
-            twf_external_readonly_evidence_envelope_status_dict(result.envelope)
+            operation_flow_external_readonly_evidence_envelope_status_dict(result.envelope)
             if result.envelope is not None
             else None
         ),
@@ -256,13 +256,13 @@ def twf_external_readonly_provider_adapter_result_status_dict(
 
 
 def _evidence_item_from_record(
-    record: TwfExternalReadonlyFakeProviderRecordCandidate,
+    record: OperationFlowExternalReadonlyFakeProviderRecordCandidate,
     *,
     provider_name: str,
     item_type: str,
     index: int,
-) -> TwfExternalReadonlyEvidenceItemCandidate:
-    return TwfExternalReadonlyEvidenceItemCandidate(
+) -> OperationFlowExternalReadonlyEvidenceItemCandidate:
+    return OperationFlowExternalReadonlyEvidenceItemCandidate(
         evidence_ref=record.evidence_ref
         or f"evidence://external-readonly/{provider_name}/{index}",
         source_url=record.source_url,
@@ -294,7 +294,7 @@ def _raw_secret_keys(raw_config: Mapping[str, Any]) -> tuple[str, ...]:
         key_text = str(key).lower()
         if any(
             marker in key_text
-            for marker in TWF_EXTERNAL_READONLY_PROVIDER_SECRET_KEY_MARKERS
+            for marker in OPERATION_FLOW_EXTERNAL_READONLY_PROVIDER_SECRET_KEY_MARKERS
         ):
             if value:
                 keys.append(str(key))

@@ -27,7 +27,11 @@ PRODUCT_APPLICATION_EVIDENCE_SUMMARY_ANSWER_ANSWERABILITY_PREFLIGHT_POLICY_REF =
 EVIDENCE_SUMMARY_ANSWER_PREFLIGHT_LONG_SUMMARY_EVIDENCE_TOO_BRIEF_REASON = (
     "long_summary_request_evidence_too_brief"
 )
+EVIDENCE_SUMMARY_ANSWER_PREFLIGHT_OVER_SCOPE_REQUEST_REASON = (
+    "over_scope_generation_request"
+)
 EVIDENCE_SUMMARY_ANSWER_PREFLIGHT_LONG_SUMMARY_MIN_REQUESTED_CHARS = 100
+EVIDENCE_SUMMARY_ANSWER_PREFLIGHT_OVER_SCOPE_MIN_REQUESTED_CHARS = 2000
 EVIDENCE_SUMMARY_ANSWER_PREFLIGHT_EVIDENCE_BREVITY_MIN_CHARS = 160
 EVIDENCE_SUMMARY_ANSWER_PREFLIGHT_EVIDENCE_BREVITY_RATIO_DENOMINATOR = 3
 EVIDENCE_SUMMARY_ANSWER_CHINESE_LENGTH_REQUEST_RE = re.compile(r"(\d{2,5})\s*字")
@@ -175,21 +179,33 @@ def build_evidence_summary_answer_answerability_preflight_facts(
         and requested_chars
         >= EVIDENCE_SUMMARY_ANSWER_PREFLIGHT_LONG_SUMMARY_MIN_REQUESTED_CHARS
     )
-    preflight_required = (
+    evidence_too_brief_preflight_required = (
         long_summary_requested
         and threshold is not None
         and fact_count > 0
         and effective_evidence_chars < threshold
     )
+    over_scope_requested = _over_scope_generation_requested(
+        question,
+        requested_chars=requested_chars,
+    )
+    over_scope_preflight_required = fact_count > 0 and over_scope_requested
+    preflight_required = (
+        evidence_too_brief_preflight_required or over_scope_preflight_required
+    )
+    preflight_reason = None
+    if evidence_too_brief_preflight_required:
+        preflight_reason = (
+            EVIDENCE_SUMMARY_ANSWER_PREFLIGHT_LONG_SUMMARY_EVIDENCE_TOO_BRIEF_REASON
+        )
+    elif over_scope_preflight_required:
+        preflight_reason = EVIDENCE_SUMMARY_ANSWER_PREFLIGHT_OVER_SCOPE_REQUEST_REASON
     return {
         "answerability_preflight": True,
         "preflight_required": preflight_required,
-        "preflight_reason": (
-            EVIDENCE_SUMMARY_ANSWER_PREFLIGHT_LONG_SUMMARY_EVIDENCE_TOO_BRIEF_REASON
-            if preflight_required
-            else None
-        ),
+        "preflight_reason": preflight_reason,
         "long_summary_requested": long_summary_requested,
+        "over_scope_requested": over_scope_requested,
         "requested_chars": requested_chars,
         "evidence_total_chars": evidence_chars,
         "summary_fact_chars": fact_chars,
@@ -228,9 +244,17 @@ def _constrained_evidence_brevity_answer(
     facts: Mapping[str, Any],
 ) -> str:
     requested_chars = facts.get("requested_chars")
+    preflight_reason = str(facts.get("preflight_reason") or "")
     if _has_cjk(user_question):
         evidence_summary = _cjk_summary_fact_sentence(digests)
         requested_text = f"约{requested_chars}字" if requested_chars else "所请求篇幅"
+        if preflight_reason == EVIDENCE_SUMMARY_ANSWER_PREFLIGHT_OVER_SCOPE_REQUEST_REASON:
+            evidence_summary = _limit_sentence_chars(evidence_summary, max_chars=420)
+            return (
+                "当前请求超出了受治理证据可直接支持的输出范围，无法在不添加"
+                "未证实信息的情况下生成完整白皮书、未来路线图或大篇幅扩写。"
+                f"基于现有证据，可确认的内容是：{evidence_summary}"
+            )
         return (
             "当前受治理证据内容很短，无法在不添加未证实信息的情况下生成"
             f"{requested_text}的摘要或改写。"
@@ -240,6 +264,14 @@ def _constrained_evidence_brevity_answer(
     requested_text = f"about {requested_chars} characters" if requested_chars else (
         "the requested length"
     )
+    if preflight_reason == EVIDENCE_SUMMARY_ANSWER_PREFLIGHT_OVER_SCOPE_REQUEST_REASON:
+        evidence_summary = _limit_sentence_chars(evidence_summary, max_chars=420)
+        return (
+            "The request exceeds what the governed evidence can directly support. "
+            "It cannot produce a full white paper, future roadmap, or long rewrite "
+            "without adding unsupported details. "
+            f"Based on the available evidence: {evidence_summary}"
+        )
     return (
         "The governed evidence is too brief to produce a summary or rewrite of "
         f"{requested_text} without adding unsupported details. "
@@ -279,6 +311,20 @@ def _cjk_summary_fact_sentence(
     return _summary_fact_sentence(digests)
 
 
+def _limit_sentence_chars(value: str, *, max_chars: int) -> str:
+    if len(value) <= max_chars:
+        return value
+    prefix = value[:max_chars].rstrip()
+    min_boundary = min(max_chars // 2, 120)
+    boundary = max(
+        prefix.rfind(marker)
+        for marker in ("。", "！", "？", ".", "!", "?", "；", ";", "\n")
+    )
+    if boundary >= min_boundary:
+        return prefix[: boundary + 1].strip()
+    return prefix.rstrip("；;，,。. ") + "……"
+
+
 def _preflight_metadata(
     context: EvidenceSummaryAnswerContextSchema,
     facts: Mapping[str, Any],
@@ -296,6 +342,7 @@ def _preflight_metadata(
         "answerability_preflight": True,
         "answerability_preflight_reason": str(facts.get("preflight_reason") or ""),
         "requested_chars": int(facts.get("requested_chars") or 0),
+        "over_scope_requested": bool(facts.get("over_scope_requested") or False),
         "effective_evidence_chars": int(facts.get("effective_evidence_chars") or 0),
         "evidence_brevity_threshold_chars": int(
             facts.get("evidence_brevity_threshold_chars") or 0
@@ -417,6 +464,29 @@ def _requested_chinese_chars(question: str) -> int | None:
     if not matches:
         return None
     return max(int(item) for item in matches)
+
+
+def _over_scope_generation_requested(
+    question: str,
+    *,
+    requested_chars: int | None,
+) -> bool:
+    lowered = question.lower()
+    has_over_scope_keyword = any(
+        marker in question
+        for marker in (
+            "完整产品白皮书",
+            "白皮书",
+            "未来路线图",
+            "路线图",
+        )
+    )
+    if requested_chars is not None and (
+        requested_chars
+        >= EVIDENCE_SUMMARY_ANSWER_PREFLIGHT_OVER_SCOPE_MIN_REQUESTED_CHARS
+    ):
+        return True
+    return has_over_scope_keyword or "white paper" in lowered or "roadmap" in lowered
 
 
 def _non_negative_int(value: Any, field_name: str) -> int:

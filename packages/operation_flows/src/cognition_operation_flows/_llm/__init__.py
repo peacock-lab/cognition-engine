@@ -1,1 +1,1 @@
-"""Private task workflow LLM invocation helpers."""
+"""Private operation flow LLM invocation helpers."""

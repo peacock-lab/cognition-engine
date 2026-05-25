@@ -1,6 +1,6 @@
 [project]
 name = "cognition-system-evaluation"
-version = "0.8.0"
+version = "0.8.1"
 readme = { text = "Cognition System evaluation public package candidate. See the version-specific public README in the release repository for usage and boundary notes.", content-type = "text/markdown" }
 description = "Evaluation contracts and helpers for Cognition System."
 requires-python = ">=3.14"

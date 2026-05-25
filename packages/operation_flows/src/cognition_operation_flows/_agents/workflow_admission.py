@@ -1,4 +1,4 @@
-"""Candidate-only admission gate for task workflow agent workflows."""
+"""Candidate-only admission gate for operation flow agent workflows."""
 
 from __future__ import annotations
 
@@ -8,7 +8,7 @@ import re
 from typing import Any
 
 from cognition_operation_flows._core.control import MANAGED_GOVERNANCE_PARAMETERS
-from cognition_operation_flows._tools.loading_validation import TwfToolLoadingGateCandidate
+from cognition_operation_flows._tools.loading_validation import OperationFlowToolLoadingGateCandidate
 
 
 AGENT_WORKFLOW_LOADING_VALIDATION_STAGES = (
@@ -133,7 +133,7 @@ class AgentTeamAdmissionCandidate:
 
 @dataclass(frozen=True)
 class AgentWorkflowLoadingGateCandidate:
-    """Aggregate loading gate for a candidate task workflow agent workflow."""
+    """Aggregate loading gate for a candidate operation flow agent workflow."""
 
     status: str
     risk_gate_status: str
@@ -176,7 +176,7 @@ def build_agent_workflow_descriptor(
     agent_team_kind: str = "single_agent_candidate",
     workflow_version: str = "v0.7.0-candidate",
     display_name: str | None = None,
-    description: str = "Candidate task workflow agent workflow descriptor.",
+    description: str = "Candidate operation flow agent workflow descriptor.",
     default_risk_level: str = "medium",
     default_output_budget: int | None = None,
     live_gate_policy: str = "no_live_or_controlled_live_boundary",
@@ -239,7 +239,7 @@ def evaluate_agent_team_admission(
     handoff_policy_declared: bool,
     handoff_policy_kind: str = "none",
     model_policy_ref: str | None = None,
-    tool_loading_gate: TwfToolLoadingGateCandidate | None = None,
+    tool_loading_gate: OperationFlowToolLoadingGateCandidate | None = None,
     input_schema_ref: str | None = None,
     output_boundary_ref: str | None = None,
     failure_policy_ref: str | None = None,
@@ -252,7 +252,7 @@ def evaluate_agent_team_admission(
     raw_config: Mapping[str, Any] | None = None,
     metadata: Mapping[str, Any] | None = None,
 ) -> AgentTeamAdmissionCandidate:
-    """Evaluate an agent team before it can become a task workflow engine."""
+    """Evaluate an agent team before it can become a operation flow engine."""
 
     normalized_team_kind = _normalize_agent_team_kind(agent_team_kind)
     normalized_risk = _normalize_risk(risk_level)
@@ -592,7 +592,7 @@ def agent_workflow_evidence_projection_status_dict(
 
 def _role_blocking_reasons(
     roles: Sequence[AgentRoleDeclarationCandidate],
-    tool_loading_gate: TwfToolLoadingGateCandidate | None,
+    tool_loading_gate: OperationFlowToolLoadingGateCandidate | None,
 ) -> list[str]:
     blocking: list[str] = []
     allowed_tools = set(tool_loading_gate.allowed_tool_names if tool_loading_gate else ())

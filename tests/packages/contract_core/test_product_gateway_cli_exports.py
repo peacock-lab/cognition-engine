@@ -4,13 +4,13 @@ import re
 from pathlib import Path
 
 from behavior_contracts.product_gateway_cli import (
-    ProductGatewayCliTaskWorkflowHeaderGuard,
+    ProductGatewayCliOperationFlowHeaderGuard,
 )
 from schemas.product_gateway_cli import (
-    ProductGatewayCliTwfExecutionInputSchema,
-    ProductGatewayCliTwfExecutionResultSchema,
-    ProductGatewayCliTwfLatestPlanSnapshotSchema,
-    ProductGatewayCliTwfRouteInputSchema,
+    ProductGatewayCliOperationFlowExecutionInputSchema,
+    ProductGatewayCliOperationFlowExecutionResultSchema,
+    ProductGatewayCliOperationFlowLatestPlanSnapshotSchema,
+    ProductGatewayCliOperationFlowRouteInputSchema,
 )
 
 from contract_core import product_gateway_cli
@@ -24,37 +24,37 @@ CONTRACT_CORE_SOURCE_ROOT = (
 
 def test_product_gateway_cli_facade_reexports_contracts() -> None:
     assert (
-        product_gateway_cli.ProductGatewayCliTwfRouteInputSchema
-        is ProductGatewayCliTwfRouteInputSchema
+        product_gateway_cli.ProductGatewayCliOperationFlowRouteInputSchema
+        is ProductGatewayCliOperationFlowRouteInputSchema
     )
     assert (
-        product_gateway_cli.ProductGatewayCliTaskWorkflowHeaderGuard
-        is ProductGatewayCliTaskWorkflowHeaderGuard
+        product_gateway_cli.ProductGatewayCliOperationFlowHeaderGuard
+        is ProductGatewayCliOperationFlowHeaderGuard
     )
     assert (
-        product_gateway_cli.ProductGatewayCliTwfExecutionInputSchema
-        is ProductGatewayCliTwfExecutionInputSchema
+        product_gateway_cli.ProductGatewayCliOperationFlowExecutionInputSchema
+        is ProductGatewayCliOperationFlowExecutionInputSchema
     )
     assert (
-        product_gateway_cli.ProductGatewayCliTwfExecutionResultSchema
-        is ProductGatewayCliTwfExecutionResultSchema
+        product_gateway_cli.ProductGatewayCliOperationFlowExecutionResultSchema
+        is ProductGatewayCliOperationFlowExecutionResultSchema
     )
     assert (
-        product_gateway_cli.ProductGatewayCliTwfLatestPlanSnapshotSchema
-        is ProductGatewayCliTwfLatestPlanSnapshotSchema
+        product_gateway_cli.ProductGatewayCliOperationFlowLatestPlanSnapshotSchema
+        is ProductGatewayCliOperationFlowLatestPlanSnapshotSchema
     )
 
 
 def test_product_gateway_cli_facade_exports_are_explicit() -> None:
     expected_exports = {
-        "PRODUCT_GATEWAY_CLI_TWF_PLAN_WORKFLOW_NAME",
-        "ProductGatewayCliTwfRouteInputSchema",
-        "ProductGatewayCliTwfRouteProjectionSchema",
-        "ProductGatewayCliTwfRequestDraftInputSchema",
-        "ProductGatewayCliTwfExecutionInputSchema",
-        "ProductGatewayCliTwfExecutionResultSchema",
-        "ProductGatewayCliTwfLatestPlanSnapshotSchema",
-        "ProductGatewayCliTwfStatusSummaryPersistenceSchema",
+        "PRODUCT_GATEWAY_CLI_OPERATION_FLOW_PLAN_WORKFLOW_NAME",
+        "ProductGatewayCliOperationFlowRouteInputSchema",
+        "ProductGatewayCliOperationFlowRouteProjectionSchema",
+        "ProductGatewayCliOperationFlowRequestDraftInputSchema",
+        "ProductGatewayCliOperationFlowExecutionInputSchema",
+        "ProductGatewayCliOperationFlowExecutionResultSchema",
+        "ProductGatewayCliOperationFlowLatestPlanSnapshotSchema",
+        "ProductGatewayCliOperationFlowStatusSummaryPersistenceSchema",
         "validate_product_gateway_cli_surface_guards",
     }
 

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from collections.abc import Mapping
 from typing import Any
 
@@ -155,6 +156,12 @@ class ExternalReadonlyGovernedSummaryFactsContentGuard:
             if fact_evidence_ref != evidence_ref:
                 violations.append("facts must use the bundle evidence_ref.")
 
+            metadata = fact.get("metadata")
+            if isinstance(metadata, Mapping):
+                violations.extend(_chunk_metadata_violations(index - 1, metadata))
+            elif metadata is not None:
+                violations.append(f"facts[{index - 1}].metadata must be a mapping.")
+
         fact_count = payload.get("fact_count")
         if fact_count != len(facts):
             violations.append("fact_count must equal the number of facts.")
@@ -284,6 +291,90 @@ def _raw_boundary_flag_violations(
     ]
 
 
+def _chunk_metadata_violations(
+    fact_position: int,
+    metadata: Mapping[str, Any],
+) -> list[str]:
+    chunk_keys = {
+        "source_item_index",
+        "chunk_index",
+        "chunk_count",
+        "source_char_start",
+        "source_char_end",
+        "source_excerpt_chars",
+        "chunking_strategy_ref",
+    }
+    if not any(key in metadata for key in chunk_keys):
+        return []
+
+    violations: list[str] = []
+    source_item_index = metadata.get("source_item_index")
+    chunk_index = metadata.get("chunk_index")
+    chunk_count = metadata.get("chunk_count")
+    source_char_start = metadata.get("source_char_start")
+    source_char_end = metadata.get("source_char_end")
+    source_excerpt_chars = metadata.get("source_excerpt_chars")
+    chunking_strategy_ref = metadata.get("chunking_strategy_ref")
+
+    if not isinstance(source_item_index, int) or source_item_index < 1:
+        violations.append(
+            f"facts[{fact_position}].metadata.source_item_index must be >= 1."
+        )
+    if not isinstance(chunk_index, int) or chunk_index < 1:
+        violations.append(
+            f"facts[{fact_position}].metadata.chunk_index must be >= 1."
+        )
+    if not isinstance(chunk_count, int) or chunk_count < 1:
+        violations.append(
+            f"facts[{fact_position}].metadata.chunk_count must be >= 1."
+        )
+    if (
+        isinstance(chunk_index, int)
+        and isinstance(chunk_count, int)
+        and chunk_index > chunk_count
+    ):
+        violations.append(
+            f"facts[{fact_position}].metadata.chunk_index must not exceed "
+            "chunk_count."
+        )
+    if not isinstance(source_char_start, int) or source_char_start < 0:
+        violations.append(
+            f"facts[{fact_position}].metadata.source_char_start must be >= 0."
+        )
+    if not isinstance(source_char_end, int):
+        violations.append(
+            f"facts[{fact_position}].metadata.source_char_end must be an integer."
+        )
+    elif (
+        isinstance(source_char_start, int)
+        and source_char_end <= source_char_start
+    ):
+        violations.append(
+            f"facts[{fact_position}].metadata.source_char_end must be greater "
+            "than source_char_start."
+        )
+    if not isinstance(source_excerpt_chars, int) or source_excerpt_chars < 1:
+        violations.append(
+            f"facts[{fact_position}].metadata.source_excerpt_chars must be >= 1."
+        )
+    elif (
+        isinstance(source_char_end, int)
+        and source_excerpt_chars < source_char_end
+    ):
+        violations.append(
+            f"facts[{fact_position}].metadata.source_excerpt_chars must cover "
+            "source_char_end."
+        )
+    if chunking_strategy_ref is not None and not _is_nonempty_string(
+        chunking_strategy_ref
+    ):
+        violations.append(
+            f"facts[{fact_position}].metadata.chunking_strategy_ref must be a "
+            "nonempty string."
+        )
+    return violations
+
+
 def _host_has_path_or_query(value: str) -> bool:
     if not value.strip():
         return True
@@ -314,31 +405,41 @@ def _is_runtime_module(module_name: str) -> bool:
 
 def _looks_like_forbidden_marker(value: str) -> bool:
     lowered = value.lower()
-    return any(
+    if any(
         marker in lowered
         for marker in (
-            "api_key",
-            "authorization",
-            "authorization:",
-            "config_context",
             "config context value",
             "full productgatewayresponse",
-            "full_product_gateway_response",
-            "observability_candidate_body",
-            "prompt_or_messages",
             "raw html",
             "raw payload",
             "raw provider response",
+            "set-cookie",
+        )
+    ):
+        return True
+    return any(
+        _contains_forbidden_token(lowered, marker)
+        for marker in (
+            "api_key",
+            "authorization",
+            "config_context",
+            "full_product_gateway_response",
+            "observability_candidate_body",
+            "prompt_or_messages",
             "raw_payload",
             "raw_provider_response",
             "response_headers",
             "response_text",
             "sanitized_excerpt",
             "sanitized_excerpt_preview",
-            "set-cookie",
             "system_prompt",
         )
     )
+
+
+def _contains_forbidden_token(value: str, marker: str) -> bool:
+    pattern = rf"(?<![a-z0-9_]){re.escape(marker)}(?![a-z0-9_])"
+    return re.search(pattern, value) is not None
 
 
 __all__ = [

@@ -1,4 +1,4 @@
-"""Candidate-only task workflow toolset admission and tool risk review helpers."""
+"""Candidate-only operation flow toolset admission and tool risk review helpers."""
 
 from __future__ import annotations
 
@@ -8,7 +8,7 @@ import re
 from typing import Any
 
 
-TWF_TOOLSET_CONTROL_STAGES = (
+OPERATION_FLOW_TOOLSET_CONTROL_STAGES = (
     "toolset_admission",
     "tool_inventory",
     "operation_facts",
@@ -64,8 +64,8 @@ SECRET_KEY_MARKERS = (
 
 
 @dataclass(frozen=True)
-class TwfToolsetAdmissionCandidate:
-    """Candidate admission review for a dynamic or static task workflow toolset."""
+class OperationFlowToolsetAdmissionCandidate:
+    """Candidate admission review for a dynamic or static operation flow toolset."""
 
     toolset_name: str
     toolset_kind: str
@@ -82,7 +82,7 @@ class TwfToolsetAdmissionCandidate:
 
 
 @dataclass(frozen=True)
-class TwfToolOperationFactsCandidate:
+class OperationFlowToolOperationFactsCandidate:
     """Sanitized operation facts for one generated or declared tool."""
 
     tool_name: str
@@ -101,8 +101,8 @@ class TwfToolOperationFactsCandidate:
 
 
 @dataclass(frozen=True)
-class TwfToolRiskReviewCandidate:
-    """Risk review for one tool operation before task workflow exposure."""
+class OperationFlowToolRiskReviewCandidate:
+    """Risk review for one tool operation before operation flow exposure."""
 
     tool_name: str
     risk_level: str
@@ -115,30 +115,30 @@ class TwfToolRiskReviewCandidate:
 
 
 @dataclass(frozen=True)
-class TwfToolCandidate:
+class OperationFlowToolCandidate:
     """Candidate tool exposure after selection and risk review."""
 
     tool_name: str
     selected: bool
     exposed: bool
-    operation_facts: TwfToolOperationFactsCandidate
-    risk_review: TwfToolRiskReviewCandidate
+    operation_facts: OperationFlowToolOperationFactsCandidate
+    risk_review: OperationFlowToolRiskReviewCandidate
     metadata: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass(frozen=True)
-class TwfToolsetInventoryCandidate:
+class OperationFlowToolsetInventoryCandidate:
     """Sanitized toolset inventory after admission and per-tool review."""
 
-    admission: TwfToolsetAdmissionCandidate
-    tools: tuple[TwfToolCandidate, ...]
+    admission: OperationFlowToolsetAdmissionCandidate
+    tools: tuple[OperationFlowToolCandidate, ...]
     exposed_tool_names: tuple[str, ...]
     blocked_tool_names: tuple[str, ...]
     warnings: tuple[str, ...] = ()
     metadata: dict[str, Any] = field(default_factory=dict)
 
 
-def evaluate_twf_toolset_admission(
+def evaluate_operation_flow_toolset_admission(
     *,
     toolset_name: str,
     toolset_kind: str,
@@ -149,7 +149,7 @@ def evaluate_twf_toolset_admission(
     execution_credential_ref: str | None = None,
     dynamic_toolset: bool | None = None,
     raw_config: Mapping[str, Any] | None = None,
-) -> TwfToolsetAdmissionCandidate:
+) -> OperationFlowToolsetAdmissionCandidate:
     """Evaluate candidate-only toolset admission without loading the toolset."""
 
     normalized_kind = _normalize_token(toolset_kind)
@@ -177,7 +177,7 @@ def evaluate_twf_toolset_admission(
         warnings.append("discovery_credential_ref_not_declared")
     if execution_credential_ref is None:
         warnings.append("execution_credential_ref_not_declared")
-    return TwfToolsetAdmissionCandidate(
+    return OperationFlowToolsetAdmissionCandidate(
         toolset_name=toolset_name,
         toolset_kind=normalized_kind,
         source_ref=source_ref,
@@ -195,7 +195,7 @@ def evaluate_twf_toolset_admission(
             "raw_credential_key_count": len(raw_secret_keys),
         },
         metadata={
-            "stages": list(TWF_TOOLSET_CONTROL_STAGES),
+            "stages": list(OPERATION_FLOW_TOOLSET_CONTROL_STAGES),
             "candidate_only": True,
             "does_not_load_toolset": True,
             "does_not_execute_tools": True,
@@ -203,10 +203,10 @@ def evaluate_twf_toolset_admission(
     )
 
 
-def review_twf_tool_operation_risk(
-    operation_facts: TwfToolOperationFactsCandidate,
-) -> TwfToolRiskReviewCandidate:
-    """Review one operation for readonly task workflow exposure."""
+def review_operation_flow_tool_operation_risk(
+    operation_facts: OperationFlowToolOperationFactsCandidate,
+) -> OperationFlowToolRiskReviewCandidate:
+    """Review one operation for readonly operation flow exposure."""
 
     identity_tokens = _operation_identity_tokens(operation_facts)
     method = (operation_facts.http_method or "").upper()
@@ -240,7 +240,7 @@ def review_twf_tool_operation_risk(
         risk_level = "high" if has_side_effect_method or has_side_effect_token else "medium"
         if has_identity:
             blocking.append("tool_not_readonly")
-    return TwfToolRiskReviewCandidate(
+    return OperationFlowToolRiskReviewCandidate(
         tool_name=operation_facts.tool_name,
         risk_level="blocked" if blocking and not has_identity else risk_level,
         readonly_operation=readonly_operation,
@@ -260,23 +260,23 @@ def review_twf_tool_operation_risk(
     )
 
 
-def build_twf_toolset_inventory(
-    admission: TwfToolsetAdmissionCandidate,
-    operations: Sequence[TwfToolOperationFactsCandidate],
-) -> TwfToolsetInventoryCandidate:
+def build_operation_flow_toolset_inventory(
+    admission: OperationFlowToolsetAdmissionCandidate,
+    operations: Sequence[OperationFlowToolOperationFactsCandidate],
+) -> OperationFlowToolsetInventoryCandidate:
     """Build a selected, readonly-safe inventory for a candidate toolset."""
 
     selected_names = set(admission.selected_tool_names or admission.allowlist_tool_names)
-    tools: list[TwfToolCandidate] = []
+    tools: list[OperationFlowToolCandidate] = []
     warnings: list[str] = list(admission.warnings)
     for operation in operations:
         selected = operation.tool_name in selected_names
-        review = review_twf_tool_operation_risk(operation)
+        review = review_operation_flow_tool_operation_risk(operation)
         exposed = admission.admitted and selected and review.allowed_for_readonly
         if selected and not review.allowed_for_readonly:
             warnings.append(f"selected_tool_blocked:{operation.tool_name}")
         tools.append(
-            TwfToolCandidate(
+            OperationFlowToolCandidate(
                 tool_name=operation.tool_name,
                 selected=selected,
                 exposed=exposed,
@@ -296,7 +296,7 @@ def build_twf_toolset_inventory(
         for tool in tools
         if tool.selected and not tool.exposed
     )
-    return TwfToolsetInventoryCandidate(
+    return OperationFlowToolsetInventoryCandidate(
         admission=admission,
         tools=tuple(tools),
         exposed_tool_names=exposed_tool_names,
@@ -311,8 +311,8 @@ def build_twf_toolset_inventory(
     )
 
 
-def twf_toolset_inventory_status_dict(
-    inventory: TwfToolsetInventoryCandidate,
+def operation_flow_toolset_inventory_status_dict(
+    inventory: OperationFlowToolsetInventoryCandidate,
 ) -> dict[str, Any]:
     """Return a sanitized status dict for task result metadata."""
 
@@ -352,7 +352,7 @@ def twf_toolset_inventory_status_dict(
 
 
 def _operation_identity_tokens(
-    operation_facts: TwfToolOperationFactsCandidate,
+    operation_facts: OperationFlowToolOperationFactsCandidate,
 ) -> tuple[str, ...]:
     parts = (
         operation_facts.operation_id,

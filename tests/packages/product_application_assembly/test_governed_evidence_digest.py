@@ -64,6 +64,33 @@ def test_digest_builder_maps_ready_governed_facts_to_answerable_digest() -> None
     assert "model_context_items" not in str(status)
 
 
+def test_digest_builder_propagates_safe_chunk_lineage_summary() -> None:
+    facts = _ready_facts()
+    facts.metadata.update(
+        {
+            "chunked": True,
+            "fact_slice_count": 3,
+            "chunked_source_item_count": 1,
+            "chunking_strategy_ref": (
+                "policy://external-readonly/chunking/fact-slice-v1"
+            ),
+        }
+    )
+
+    digest = build_governed_evidence_digest_from_external_readonly_facts(facts)
+    status = governed_evidence_digest_status_dict(digest)
+
+    assert digest.metadata["upstream_chunked"] is True
+    assert digest.metadata["upstream_fact_slice_count"] == 3
+    assert digest.metadata["upstream_chunked_source_item_count"] == 1
+    assert (
+        digest.metadata["upstream_chunking_strategy_ref"]
+        == "policy://external-readonly/chunking/fact-slice-v1"
+    )
+    assert validate_governed_evidence_digest(status).status == "ready"
+    assert validate_evidence_summary_answer_guards(status).passed is True
+
+
 def test_digest_builder_accepts_mapping_input() -> None:
     digest = build_governed_evidence_digest_from_external_readonly_facts(
         _ready_facts().model_dump(mode="json"),
@@ -74,6 +101,21 @@ def test_digest_builder_accepts_mapping_input() -> None:
     assert digest.digest_ref == "governed-evidence-digest://digest-599"
     assert digest.status == "ready"
     assert digest.answerability == "answerable"
+
+
+def test_digest_builder_allows_public_package_names_in_facts() -> None:
+    facts = _ready_facts()
+    facts.facts[0].fact_text = (
+        "CHANGELOG mentions config_contexts and config_assembly as public packages."
+    )
+
+    digest = build_governed_evidence_digest_from_external_readonly_facts(facts)
+    status = governed_evidence_digest_status_dict(digest)
+
+    assert digest.status == "ready"
+    assert "config_contexts" in digest.summary_facts[0]
+    assert validate_governed_evidence_digest(status).status == "ready"
+    assert validate_evidence_summary_answer_guards(status).passed is True
 
 
 def test_digest_builder_maps_blocked_facts_to_blocked_digest() -> None:

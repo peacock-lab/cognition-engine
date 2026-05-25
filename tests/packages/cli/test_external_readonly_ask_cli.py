@@ -47,14 +47,14 @@ ASK_SOURCE = (
     / "external_readonly"
     / "ask.py"
 )
+PARSER_SOURCE = REPO_ROOT / "packages" / "cli" / "src" / "cognition_cli" / "parser.py"
 KEYCHAIN_SOURCE = (
     REPO_ROOT
     / "packages"
-    / "cli"
+    / "product_runtime_assembly"
     / "src"
-    / "cognition_cli"
-    / "credentials"
-    / "deepseek_keychain.py"
+    / "product_runtime_assembly"
+    / "deepseek_credentials.py"
 )
 
 
@@ -118,6 +118,13 @@ def test_external_readonly_ask_requires_explicit_gates_before_refs(
     assert payload["answer_artifact_unavailable_reason"] == (
         "answer_artifact_requires_answer_context"
     )
+    assert payload["trace_inspect_ref"].startswith(
+        "evidence-summary-answer-trace-inspect://"
+    )
+    assert payload["trace_inspect_status"] == "unavailable"
+    assert payload["trace_inspect_unavailable_reason"] == (
+        "trace_inspect_requires_answer_context"
+    )
     assert payload["failure_explanation"] == (
         "当前请求缺少必要输入或显式授权，尚未进入模型回答。"
     )
@@ -180,6 +187,11 @@ def test_external_readonly_ask_invokes_product_path_from_archive(
     assert payload["product_response_summary"]["entry_kind"] == "external_readonly_ask"
     assert payload["product_response_summary"]["llm_call_enabled"] is False
     assert payload["product_response_summary"]["refs_only"] is True
+    assert payload["answer_run_ref"].startswith("evidence-summary-answer-run://")
+    assert payload["answer_run_status"] == "success"
+    assert payload["evidence_summary_answer_run"]["task_compatible"] is True
+    assert payload["evidence_summary_answer_run"]["workflow_compatible"] is True
+    assert payload["evidence_summary_answer_run"]["runtime_backed"] is False
     assert payload["answer_trace_ref"].startswith("evidence-summary-answer-trace://")
     assert payload["answer_trace_status"] == "success"
     assert payload["answer_artifact_ref"].startswith(
@@ -205,12 +217,40 @@ def test_external_readonly_ask_invokes_product_path_from_archive(
         is False
     )
     assert (
+        payload["product_response_summary"]["answer_run_ref"]
+        == payload["answer_run_ref"]
+    )
+    assert (
         payload["product_response_summary"]["answer_trace_ref"]
         == payload["answer_trace_ref"]
     )
     assert (
         payload["product_response_summary"]["answer_artifact_ref"]
         == payload["answer_artifact_ref"]
+    )
+    assert payload["trace_inspect_ref"].startswith(
+        "evidence-summary-answer-trace-inspect://"
+    )
+    assert payload["trace_inspect_status"] == "success"
+    assert (
+        payload["product_response_summary"]["trace_inspect_ref"]
+        == payload["trace_inspect_ref"]
+    )
+    assert payload["trace_inspect_summary"]["runtime_backed"] is False
+    assert payload["trace_inspect_summary"]["task_compatible"] is True
+    assert payload["trace_inspect_summary"]["workflow_compatible"] is True
+    assert payload["trace_inspect_summary"]["raw_boundary_summary"] == {
+        "restricted_payload_absent": True,
+        "restricted_boundary_intact": True,
+        "blocked_field_count": 0,
+    }
+    assert (
+        payload["evidence_summary_answer_trace_inspect"]["inspect_status"]
+        == "success"
+    )
+    assert (
+        payload["evidence_summary_answer_trace_inspect"]["runtime_backed"]
+        is False
     )
     assert payload["answer"].startswith("该资料可作为后续审查引用")
     assert payload["failure_explanation"] is None
@@ -233,7 +273,7 @@ def test_external_readonly_ask_invokes_product_path_from_archive(
         "evidence_summary_answer_generation"
     )
     assert request.metadata["service_ref"] == (
-        "service://cognition-cli/external-readonly-ask/generation"
+        "service://product-application-assembly/external-readonly-ask/action"
     )
     assert "smoke_only" not in request.metadata
     assert context["user_question"] == "这条资料是否可用于后续审查？"
@@ -501,7 +541,6 @@ def test_external_readonly_ask_prompt_provider_key_stores_in_fake_store(
     monkeypatch.chdir(tmp_path)
     monkeypatch.delenv("DEEPSEEK_API_KEY", raising=False)
     fake_store = _FakeCredentialStore()
-    monkeypatch.setattr(ask_module, "_deepseek_credential_store", lambda: fake_store)
     monkeypatch.setattr(ask_module, "_provider_key_prompt_available", lambda: True)
     monkeypatch.setattr(
         ask_module,
@@ -539,6 +578,7 @@ def test_external_readonly_ask_prompt_provider_key_stores_in_fake_store(
             "--prompt-provider-key",
         ],
         external_readonly_ask_llm_invocation_service_factory=factory,
+        external_readonly_ask_provider_credential_store_factory=lambda: fake_store,
     )
 
     captured = capsys.readouterr()
@@ -565,7 +605,6 @@ def test_external_readonly_ask_uses_stored_provider_key_without_prompt(
     monkeypatch.chdir(tmp_path)
     monkeypatch.delenv("DEEPSEEK_API_KEY", raising=False)
     fake_store = _FakeCredentialStore(load_value="placeholder-stored-value")
-    monkeypatch.setattr(ask_module, "_deepseek_credential_store", lambda: fake_store)
     monkeypatch.setattr(
         ask_module,
         "_read_provider_key_secret",
@@ -598,6 +637,7 @@ def test_external_readonly_ask_uses_stored_provider_key_without_prompt(
             "--json",
         ],
         external_readonly_ask_llm_invocation_service_factory=factory,
+        external_readonly_ask_provider_credential_store_factory=lambda: fake_store,
     )
 
     payload = json.loads(capsys.readouterr().out)
@@ -623,7 +663,6 @@ def test_external_readonly_ask_stored_provider_key_blocks_missing(
     monkeypatch.chdir(tmp_path)
     monkeypatch.delenv("DEEPSEEK_API_KEY", raising=False)
     fake_store = _FakeCredentialStore(load_value=None)
-    monkeypatch.setattr(ask_module, "_deepseek_credential_store", lambda: fake_store)
     monkeypatch.setattr(
         ask_module,
         "_read_provider_key_secret",
@@ -652,6 +691,7 @@ def test_external_readonly_ask_stored_provider_key_blocks_missing(
             "--json",
         ],
         external_readonly_ask_llm_invocation_service_factory=_RaisingFactory(),
+        external_readonly_ask_provider_credential_store_factory=lambda: fake_store,
     )
 
     payload = json.loads(capsys.readouterr().out)
@@ -770,7 +810,6 @@ def test_external_readonly_ask_prompt_provider_key_blocks_unavailable_store(
     monkeypatch.chdir(tmp_path)
     monkeypatch.delenv("DEEPSEEK_API_KEY", raising=False)
     fake_store = _FakeCredentialStore(save_status="unavailable")
-    monkeypatch.setattr(ask_module, "_deepseek_credential_store", lambda: fake_store)
     monkeypatch.setattr(ask_module, "_provider_key_prompt_available", lambda: True)
     monkeypatch.setattr(
         ask_module,
@@ -804,6 +843,7 @@ def test_external_readonly_ask_prompt_provider_key_blocks_unavailable_store(
             "--prompt-provider-key",
         ],
         external_readonly_ask_llm_invocation_service_factory=_RaisingFactory(),
+        external_readonly_ask_provider_credential_store_factory=lambda: fake_store,
     )
 
     output = capsys.readouterr().out
@@ -1017,6 +1057,61 @@ def test_external_readonly_ask_can_fetch_then_answer_with_fake_transport(
     assert context["summary_facts"] == ["Example Domain is for documentation examples."]
 
 
+def test_external_readonly_ask_fetch_long_evidence_exposes_lineage_summary(
+    capsys: Any,
+) -> None:
+    long_fact = _long_fact_text()
+    service = _FakeLlmService(
+        "这份公开资料说明 Cognition System 的定位、使用方式和安全边界。"
+    )
+    factory = _FakeFactory(service)
+    args = _parse_ask_args(
+        "--source-url",
+        "https://raw.githubusercontent.com/peacock-lab/cognition-engine/main/README.zh-CN.md",
+        "--confirm-external-readonly-fetch",
+        REQUIRED_EXTERNAL_READONLY_FETCH_CONFIRMATION,
+        "--question",
+        "请基于这份公开资料说明 Cognition System 当前能做什么。",
+        "--operator-approved",
+        "--approval-ref",
+        "approval://external-readonly/cli-ask",
+        "--runtime-fetch-approval-ref",
+        "approval://external-readonly/runtime-fetch/cli-ask",
+        "--audit-ref",
+        "audit://external-readonly/cli-ask",
+        "--network-gate-open",
+        "--allow-runtime-fetch",
+        "--request-live-llm",
+        "--request-ollama",
+        "--allow-live-llm",
+        "--allow-ollama",
+        "--live-llm-approval-ref",
+        "approval://external-readonly-ask/unit",
+        "--ollama-api-base",
+        "http://127.0.0.1:11434",
+        "--json",
+    )
+
+    exit_code = external_readonly_ask_command(
+        args,
+        fetch_executor=lambda _: _fake_fetch_success_execution(fact=long_fact),
+        llm_invocation_service_factory=factory,
+    )
+
+    payload = json.loads(capsys.readouterr().out)
+    assert exit_code == 0
+    assert payload["status"] == "success"
+    assert payload["evidence_lineage_summary"]["evidence_chunked"] is True
+    assert payload["evidence_lineage_summary"]["summary_fact_count"] > 1
+    assert payload["product_response_summary"]["metadata"]["evidence_chunked"] is True
+    assert payload["answer_trace_summary"]["evidence_chunked"] is True
+    assert payload["answer_artifact_summary"]["evidence_chunked"] is True
+    assert service.request is not None
+    context = service.request.metadata["evidence_summary_answer_context"]
+    assert len(context["summary_facts"]) > 1
+    assert all(len(fact) <= 500 for fact in context["summary_facts"])
+
+
 def test_external_readonly_ask_follow_up_reuses_same_evidence_bridge() -> None:
     service = _FakeLlmService(
         "这个页面说明 Example Domain 用于文档示例，证据见 evidence://external-readonly/item/cli-ask。"
@@ -1089,6 +1184,507 @@ def test_external_readonly_ask_follow_up_reuses_same_evidence_bridge() -> None:
         "memory_enabled=false"
     ) in text_output
     assert "system_context" not in json.dumps(payload, ensure_ascii=False)
+
+
+def test_external_readonly_ask_follow_up_can_transform_previous_answer() -> None:
+    first_answer = "认知系统可以在明确授权下读取外部只读资料，并给出可复查回答。"
+    translated_answer = (
+        "Cognition System can read external read-only material with explicit "
+        "authorization and provide reviewable answers."
+    )
+    service = _FakeLlmService([first_answer, translated_answer])
+    factory = _FakeFactory(service)
+    fetch_count = 0
+    args = _parse_ask_args(
+        "--source-url",
+        "https://example.com/reference",
+        "--confirm-external-readonly-fetch",
+        REQUIRED_EXTERNAL_READONLY_FETCH_CONFIRMATION,
+        "--question",
+        "这份资料主要说明了什么？",
+        "--follow-up-question",
+        "请将以上信息翻译成英文",
+        "--operator-approved",
+        "--approval-ref",
+        "approval://external-readonly/cli-ask",
+        "--runtime-fetch-approval-ref",
+        "approval://external-readonly/runtime-fetch/cli-ask",
+        "--audit-ref",
+        "audit://external-readonly/cli-ask",
+        "--network-gate-open",
+        "--allow-runtime-fetch",
+        "--request-live-llm",
+        "--request-ollama",
+        "--allow-live-llm",
+        "--allow-ollama",
+        "--live-llm-approval-ref",
+        "approval://external-readonly-ask/unit",
+        "--ollama-api-base",
+        "http://127.0.0.1:11434",
+        "--json",
+    )
+
+    def fake_fetch(_: Any) -> ExternalReadonlyFetchGatewayExecutionResult:
+        nonlocal fetch_count
+        fetch_count += 1
+        return _fake_fetch_success_execution()
+
+    exit_code, payload = ask_module.build_external_readonly_ask_cli_output(
+        args,
+        fetch_executor=fake_fetch,
+        llm_invocation_service_factory=factory,
+    )
+
+    assert exit_code == 0
+    assert fetch_count == 1
+    assert len(service.requests) == 2
+    transform_request = service.requests[1]
+    transform_context = transform_request.metadata["evidence_summary_answer_context"]
+    assert transform_request.metadata["answer_scoped_transformation"] is True
+    assert transform_context["summary_facts"] == [first_answer]
+    assert transform_context["user_question"] == "请将以上信息翻译成英文"
+    assert payload["status"] == "success"
+    assert payload["answer"] == translated_answer
+    assert payload["answer_scoped_transformation"] is True
+    assert payload["follow_up"] is False
+    assert (
+        payload["observability_summary_unavailable_reason"]
+        == "answer_scoped_transformation_uses_previous_answer"
+    )
+    assert payload["trace_inspect_status"] == "unavailable"
+    assert (
+        payload["trace_inspect_unavailable_reason"]
+        == "answer_scoped_transformation_uses_previous_answer"
+    )
+    assert payload["safe_observability_summary"] == {}
+    assert (
+        payload["observability_explanation"]
+        == "本轮只是基于上一轮可见答案做变换，不重新抓取资料或生成新的证据问答运行摘要。"
+    )
+    assert payload["turn_count"] == 2
+    assert payload["turns"][1]["answer"] == translated_answer
+    text_output = ask_module._text_output(payload)
+    assert "answer_scoped_transformation: true" in text_output
+    assert "answer_trace_unavailable_reason: answer_scoped_transformation" in text_output
+    assert (
+        "observability_summary_unavailable_reason: "
+        "answer_scoped_transformation_uses_previous_answer"
+    ) in text_output
+    assert (
+        "trace_inspect_unavailable_reason: "
+        "answer_scoped_transformation_uses_previous_answer"
+    ) in text_output
+    assert "observability_explanation: 本轮只是基于上一轮可见答案做变换" in text_output
+
+
+def test_external_readonly_ask_follow_up_transforms_above_statement() -> None:
+    first_answer = "认知系统可以在明确授权下读取外部只读资料，并给出可复查回答。"
+    translated_answer = (
+        "Cognition System can read external read-only material with explicit "
+        "authorization and provide reviewable answers."
+    )
+    service = _FakeLlmService([first_answer, translated_answer])
+    factory = _FakeFactory(service)
+    args = _parse_ask_args(
+        "--source-url",
+        "https://example.com/reference",
+        "--confirm-external-readonly-fetch",
+        REQUIRED_EXTERNAL_READONLY_FETCH_CONFIRMATION,
+        "--question",
+        "这份资料主要说明了什么？",
+        "--follow-up-question",
+        "请使用英文回复上述表述",
+        "--operator-approved",
+        "--approval-ref",
+        "approval://external-readonly/cli-ask",
+        "--runtime-fetch-approval-ref",
+        "approval://external-readonly/runtime-fetch/cli-ask",
+        "--audit-ref",
+        "audit://external-readonly/cli-ask",
+        "--network-gate-open",
+        "--allow-runtime-fetch",
+        "--request-live-llm",
+        "--request-ollama",
+        "--allow-live-llm",
+        "--allow-ollama",
+        "--live-llm-approval-ref",
+        "approval://external-readonly-ask/unit",
+        "--ollama-api-base",
+        "http://127.0.0.1:11434",
+        "--json",
+    )
+
+    exit_code, payload = ask_module.build_external_readonly_ask_cli_output(
+        args,
+        fetch_executor=lambda _: _fake_fetch_success_execution(fact=_long_fact_text()),
+        llm_invocation_service_factory=factory,
+    )
+
+    assert exit_code == 0
+    assert len(service.requests) == 2
+    assert service.requests[1].metadata["answer_scoped_transformation"] is True
+    assert payload["answer"] == translated_answer
+    assert payload["answer_scoped_transformation"] is True
+
+
+def test_external_readonly_ask_follow_up_formats_previous_answer() -> None:
+    first_answer = (
+        "认知系统适合在明确授权下读取外部资料，并输出可复查的回答。"
+        "它默认不会静默联网或保存密钥。"
+    )
+    service = _FakeLlmService([first_answer, "unused model formatting answer"])
+    factory = _FakeFactory(service)
+    args = _parse_ask_args(
+        "--source-url",
+        "https://example.com/reference",
+        "--confirm-external-readonly-fetch",
+        REQUIRED_EXTERNAL_READONLY_FETCH_CONFIRMATION,
+        "--question",
+        "这份资料主要说明了什么？",
+        "--follow-up-question",
+        "你给我的答案，可否做个排版优化吗",
+        "--operator-approved",
+        "--approval-ref",
+        "approval://external-readonly/cli-ask",
+        "--runtime-fetch-approval-ref",
+        "approval://external-readonly/runtime-fetch/cli-ask",
+        "--audit-ref",
+        "audit://external-readonly/cli-ask",
+        "--network-gate-open",
+        "--allow-runtime-fetch",
+        "--request-live-llm",
+        "--request-ollama",
+        "--allow-live-llm",
+        "--allow-ollama",
+        "--live-llm-approval-ref",
+        "approval://external-readonly-ask/unit",
+        "--ollama-api-base",
+        "http://127.0.0.1:11434",
+        "--json",
+    )
+
+    exit_code, payload = ask_module.build_external_readonly_ask_cli_output(
+        args,
+        fetch_executor=lambda _: _fake_fetch_success_execution(fact=_long_fact_text()),
+        llm_invocation_service_factory=factory,
+    )
+
+    assert exit_code == 0
+    assert len(service.requests) == 1
+    assert payload["status"] == "success"
+    assert "## 排版优化" in payload["answer"]
+    assert "- 认知系统适合在明确授权下读取外部资料" in payload["answer"]
+    assert payload["answer_scoped_transformation"] is True
+    assert payload["llm_call_attempted"] is False
+    assert payload["llm_runtime_call_performed"] is False
+
+
+def test_external_readonly_ask_follow_up_formats_above_reply_content() -> None:
+    first_answer = "认知系统可以读取受控外部资料。它会输出可复查回答。"
+    service = _FakeLlmService([first_answer, "unused model formatting answer"])
+    factory = _FakeFactory(service)
+    args = _parse_ask_args(
+        "--source-url",
+        "https://example.com/reference",
+        "--confirm-external-readonly-fetch",
+        REQUIRED_EXTERNAL_READONLY_FETCH_CONFIRMATION,
+        "--question",
+        "这份资料主要说明了什么？",
+        "--follow-up-question",
+        "请将以上回复内容做个排版",
+        "--operator-approved",
+        "--approval-ref",
+        "approval://external-readonly/cli-ask",
+        "--runtime-fetch-approval-ref",
+        "approval://external-readonly/runtime-fetch/cli-ask",
+        "--audit-ref",
+        "audit://external-readonly/cli-ask",
+        "--network-gate-open",
+        "--allow-runtime-fetch",
+        "--request-live-llm",
+        "--request-ollama",
+        "--allow-live-llm",
+        "--allow-ollama",
+        "--live-llm-approval-ref",
+        "approval://external-readonly-ask/unit",
+        "--ollama-api-base",
+        "http://127.0.0.1:11434",
+        "--json",
+    )
+
+    exit_code, payload = ask_module.build_external_readonly_ask_cli_output(
+        args,
+        fetch_executor=lambda _: _fake_fetch_success_execution(fact=_long_fact_text()),
+        llm_invocation_service_factory=factory,
+    )
+
+    assert exit_code == 0
+    assert len(service.requests) == 1
+    assert payload["status"] == "success"
+    assert payload["answer_scoped_transformation"] is True
+    assert payload["llm_call_attempted"] is False
+    assert "## 排版优化" in payload["answer"]
+    assert "- 认知系统可以读取受控外部资料" in payload["answer"]
+
+
+def test_external_readonly_ask_follow_up_three_point_summary_uses_previous_answer() -> None:
+    first_answer = (
+        "认知系统可以读取受控外部资料并回答问题。"
+        "它要求用户明确授权抓取资料和调用模型。"
+        "它不会把当前追问冒充为长期记忆。"
+    )
+    service = _FakeLlmService([first_answer, "unused model summary answer"])
+    factory = _FakeFactory(service)
+    args = _parse_ask_args(
+        "--source-url",
+        "https://example.com/reference",
+        "--confirm-external-readonly-fetch",
+        REQUIRED_EXTERNAL_READONLY_FETCH_CONFIRMATION,
+        "--question",
+        "这份资料主要说明了什么？",
+        "--follow-up-question",
+        "请基于以上答案内容做个三点式摘要",
+        "--operator-approved",
+        "--approval-ref",
+        "approval://external-readonly/cli-ask",
+        "--runtime-fetch-approval-ref",
+        "approval://external-readonly/runtime-fetch/cli-ask",
+        "--audit-ref",
+        "audit://external-readonly/cli-ask",
+        "--network-gate-open",
+        "--allow-runtime-fetch",
+        "--request-live-llm",
+        "--request-ollama",
+        "--allow-live-llm",
+        "--allow-ollama",
+        "--live-llm-approval-ref",
+        "approval://external-readonly-ask/unit",
+        "--ollama-api-base",
+        "http://127.0.0.1:11434",
+        "--json",
+    )
+
+    exit_code, payload = ask_module.build_external_readonly_ask_cli_output(
+        args,
+        fetch_executor=lambda _: _fake_fetch_success_execution(fact=_long_fact_text()),
+        llm_invocation_service_factory=factory,
+    )
+
+    assert exit_code == 0
+    assert len(service.requests) == 1
+    assert payload["status"] == "success"
+    assert payload["answer_scoped_transformation"] is True
+    assert payload["follow_up"] is False
+    assert payload["llm_call_attempted"] is False
+    assert payload["llm_runtime_call_performed"] is False
+    assert "1. 认知系统可以读取受控外部资料并回答问题" in payload["answer"]
+    assert "2. 它要求用户明确授权抓取资料和调用模型" in payload["answer"]
+    assert "3. 它不会把当前追问冒充为长期记忆" in payload["answer"]
+
+
+def test_external_readonly_ask_answer_transform_allows_requested_korean_output() -> None:
+    first_answer = "认知系统可以在明确授权下读取外部只读资料，并给出可复查回答。"
+    korean_answer = (
+        "Cognition System은 명시적 승인 아래 외부 읽기 전용 자료를 읽고, "
+        "근거를 확인할 수 있는 답변을 제공하는 시스템입니다."
+    )
+    service = _FakeLlmService([first_answer, korean_answer])
+    factory = _FakeFactory(service)
+    args = _parse_ask_args(
+        "--source-url",
+        "https://example.com/reference",
+        "--confirm-external-readonly-fetch",
+        REQUIRED_EXTERNAL_READONLY_FETCH_CONFIRMATION,
+        "--question",
+        "这份资料主要说明了什么？",
+        "--follow-up-question",
+        "帮我做个简短摘要100字以内，用韩语输出",
+        "--operator-approved",
+        "--approval-ref",
+        "approval://external-readonly/cli-ask",
+        "--runtime-fetch-approval-ref",
+        "approval://external-readonly/runtime-fetch/cli-ask",
+        "--audit-ref",
+        "audit://external-readonly/cli-ask",
+        "--network-gate-open",
+        "--allow-runtime-fetch",
+        "--request-live-llm",
+        "--request-ollama",
+        "--allow-live-llm",
+        "--allow-ollama",
+        "--live-llm-approval-ref",
+        "approval://external-readonly-ask/unit",
+        "--ollama-api-base",
+        "http://127.0.0.1:11434",
+        "--json",
+    )
+
+    exit_code, payload = ask_module.build_external_readonly_ask_cli_output(
+        args,
+        fetch_executor=lambda _: _fake_fetch_success_execution(fact=_long_fact_text()),
+        llm_invocation_service_factory=factory,
+    )
+
+    assert exit_code == 0
+    assert payload["status"] == "success"
+    assert payload["answer"] == korean_answer
+    assert payload["answer_scoped_transformation"] is True
+
+
+def test_external_readonly_ask_answer_transform_rejects_wrong_requested_korean_output() -> None:
+    first_answer = "认知系统可以在明确授权下读取外部只读资料，并给出可复查回答。"
+    wrong_language_answer = "认知系统可以读取外部只读资料，并给出可复查回答。"
+    service = _FakeLlmService([first_answer, wrong_language_answer])
+    factory = _FakeFactory(service)
+    args = _parse_ask_args(
+        "--source-url",
+        "https://example.com/reference",
+        "--confirm-external-readonly-fetch",
+        REQUIRED_EXTERNAL_READONLY_FETCH_CONFIRMATION,
+        "--question",
+        "这份资料主要说明了什么？",
+        "--follow-up-question",
+        "帮我做个简短摘要100字以内，用韩语输出",
+        "--operator-approved",
+        "--approval-ref",
+        "approval://external-readonly/cli-ask",
+        "--runtime-fetch-approval-ref",
+        "approval://external-readonly/runtime-fetch/cli-ask",
+        "--audit-ref",
+        "audit://external-readonly/cli-ask",
+        "--network-gate-open",
+        "--allow-runtime-fetch",
+        "--request-live-llm",
+        "--request-ollama",
+        "--allow-live-llm",
+        "--allow-ollama",
+        "--live-llm-approval-ref",
+        "approval://external-readonly-ask/unit",
+        "--ollama-api-base",
+        "http://127.0.0.1:11434",
+        "--json",
+    )
+
+    exit_code, payload = ask_module.build_external_readonly_ask_cli_output(
+        args,
+        fetch_executor=lambda _: _fake_fetch_success_execution(fact=_long_fact_text()),
+        llm_invocation_service_factory=factory,
+    )
+
+    assert exit_code == 4
+    assert payload["status"] == "failed"
+    assert payload["answer"] is None
+    assert payload["answer_scoped_transformation"] is True
+    assert payload["blocking_reasons"] == (
+        "answer_scoped_transformation_quality_violation",
+    )
+
+
+def test_external_readonly_ask_answer_transform_rejects_mixed_chinese_korean_output() -> None:
+    first_answer = "认知系统可以在明确授权下读取外部只读资料，并给出可复查回答。"
+    mixed_language_answer = (
+        "Cognition System（认知系统）은 승인된 외부 자료를 읽고 "
+        "근거를 확인할 수 있는 답변을 제공합니다."
+    )
+    service = _FakeLlmService([first_answer, mixed_language_answer])
+    factory = _FakeFactory(service)
+    args = _parse_ask_args(
+        "--source-url",
+        "https://example.com/reference",
+        "--confirm-external-readonly-fetch",
+        REQUIRED_EXTERNAL_READONLY_FETCH_CONFIRMATION,
+        "--question",
+        "这份资料主要说明了什么？",
+        "--follow-up-question",
+        "做个100字摘要，韩文输出",
+        "--operator-approved",
+        "--approval-ref",
+        "approval://external-readonly/cli-ask",
+        "--runtime-fetch-approval-ref",
+        "approval://external-readonly/runtime-fetch/cli-ask",
+        "--audit-ref",
+        "audit://external-readonly/cli-ask",
+        "--network-gate-open",
+        "--allow-runtime-fetch",
+        "--request-live-llm",
+        "--request-ollama",
+        "--allow-live-llm",
+        "--allow-ollama",
+        "--live-llm-approval-ref",
+        "approval://external-readonly-ask/unit",
+        "--ollama-api-base",
+        "http://127.0.0.1:11434",
+        "--json",
+    )
+
+    exit_code, payload = ask_module.build_external_readonly_ask_cli_output(
+        args,
+        fetch_executor=lambda _: _fake_fetch_success_execution(fact=_long_fact_text()),
+        llm_invocation_service_factory=factory,
+    )
+
+    assert exit_code == 4
+    assert payload["status"] == "failed"
+    assert payload["answer_scoped_transformation"] is True
+    assert payload["blocking_reasons"] == (
+        "answer_scoped_transformation_quality_violation",
+    )
+
+
+def test_external_readonly_ask_follow_up_allows_requested_english_output() -> None:
+    first_answer = "认知系统可以在明确授权下读取外部只读资料，并给出可复查回答。"
+    english_answer = (
+        "Cognition System is a governed AI collaboration system. It can read "
+        "authorized public material, answer questions with reviewable evidence, "
+        "and explain safety boundaries such as no silent network access or "
+        "silent model calls."
+    )
+    service = _FakeLlmService([first_answer, english_answer])
+    factory = _FakeFactory(service)
+    args = _parse_ask_args(
+        "--source-url",
+        "https://example.com/reference",
+        "--confirm-external-readonly-fetch",
+        REQUIRED_EXTERNAL_READONLY_FETCH_CONFIRMATION,
+        "--question",
+        "这份资料主要说明了什么？",
+        "--follow-up-question",
+        (
+            "请基于这份公开资料，用300到500字说明 Cognition System 当前能做什么、"
+            "如何使用，以及它的安全边界。要求英文输出"
+        ),
+        "--operator-approved",
+        "--approval-ref",
+        "approval://external-readonly/cli-ask",
+        "--runtime-fetch-approval-ref",
+        "approval://external-readonly/runtime-fetch/cli-ask",
+        "--audit-ref",
+        "audit://external-readonly/cli-ask",
+        "--network-gate-open",
+        "--allow-runtime-fetch",
+        "--request-live-llm",
+        "--request-ollama",
+        "--allow-live-llm",
+        "--allow-ollama",
+        "--live-llm-approval-ref",
+        "approval://external-readonly-ask/unit",
+        "--ollama-api-base",
+        "http://127.0.0.1:11434",
+        "--json",
+    )
+
+    exit_code, payload = ask_module.build_external_readonly_ask_cli_output(
+        args,
+        fetch_executor=lambda _: _fake_fetch_success_execution(fact=_long_fact_text()),
+        llm_invocation_service_factory=factory,
+    )
+
+    assert exit_code == 0
+    assert payload["status"] == "success"
+    assert payload["answer"] == english_answer
+    assert payload["follow_up"] is True
+    assert payload["follow_up_turn_index"] == 1
+    assert payload.get("answer_scoped_transformation") is not True
 
 
 def test_external_readonly_ask_follow_up_quality_violation_stops_chain() -> None:
@@ -1444,6 +2040,57 @@ def test_external_readonly_ask_follow_up_100_char_summary_preflight_skips_second
     assert unused_second_answer not in serialized
 
 
+def test_external_readonly_ask_initial_over_scope_preflight_skips_llm() -> None:
+    service = _FakeLlmService("unused model answer")
+    factory = _FakeFactory(service)
+    long_fact = (
+        "Cognition System is a controlled product for evidence-based answers. "
+        "The public guide explains installation, usage, and safety boundaries. "
+    ) * 20
+    args = _parse_ask_args(
+        "--source-url",
+        "https://example.com/reference",
+        "--confirm-external-readonly-fetch",
+        REQUIRED_EXTERNAL_READONLY_FETCH_CONFIRMATION,
+        "--question",
+        "请基于这份资料生成3000字完整产品白皮书，并补充未来路线图。",
+        "--operator-approved",
+        "--approval-ref",
+        "approval://external-readonly/cli-ask",
+        "--runtime-fetch-approval-ref",
+        "approval://external-readonly/runtime-fetch/cli-ask",
+        "--audit-ref",
+        "audit://external-readonly/cli-ask",
+        "--network-gate-open",
+        "--allow-runtime-fetch",
+        "--request-live-llm",
+        "--request-ollama",
+        "--allow-live-llm",
+        "--allow-ollama",
+        "--live-llm-approval-ref",
+        "approval://external-readonly-ask/unit",
+        "--ollama-api-base",
+        "http://127.0.0.1:11434",
+        "--json",
+    )
+
+    exit_code, payload = ask_module.build_external_readonly_ask_cli_output(
+        args,
+        fetch_executor=lambda _: _fake_fetch_success_execution(fact=long_fact),
+        llm_invocation_service_factory=factory,
+    )
+
+    assert exit_code == 0
+    assert payload["status"] == "success"
+    assert "超出了受治理证据可直接支持的输出范围" in payload["answer"]
+    assert payload["llm_call_attempted"] is False
+    assert payload["llm_runtime_call_performed"] is False
+    assert payload["evidence_summary_answer_result"]["metadata"][
+        "answerability_preflight_reason"
+    ] == "over_scope_generation_request"
+    assert len(service.requests) == 0
+
+
 def test_external_readonly_ask_guided_deepseek_url_uses_stored_key(
     monkeypatch: Any,
 ) -> None:
@@ -1463,7 +2110,6 @@ def test_external_readonly_ask_guided_deepseek_url_uses_stored_key(
     monkeypatch.setattr(ask_module, "_guided_confirm", lambda _prompt: True)
     monkeypatch.setattr(ask_module, "_read_guided_provider_key_mode", lambda: "stored")
     fake_store = _FakeCredentialStore(load_value="placeholder-guided-stored-value")
-    monkeypatch.setattr(ask_module, "_deepseek_credential_store", lambda: fake_store)
     service = _FakeLlmService(
         "这个页面说明 Example Domain 用于文档示例，证据见 evidence://external-readonly/item/cli-ask。"
     )
@@ -1482,6 +2128,7 @@ def test_external_readonly_ask_guided_deepseek_url_uses_stored_key(
         args,
         fetch_executor=fake_fetch,
         llm_invocation_service_factory=factory,
+        provider_credential_store_factory=lambda: fake_store,
     )
 
     assert exit_code == 0
@@ -1601,7 +2248,6 @@ def test_external_readonly_ask_guided_deepseek_url_stores_key_in_fake_store(
         lambda: "store",
     )
     fake_store = _FakeCredentialStore()
-    monkeypatch.setattr(ask_module, "_deepseek_credential_store", lambda: fake_store)
     service = _FakeLlmService(
         "这个页面说明 Example Domain 用于文档示例，证据见 evidence://external-readonly/item/cli-ask。"
     )
@@ -1620,6 +2266,7 @@ def test_external_readonly_ask_guided_deepseek_url_stores_key_in_fake_store(
         args,
         fetch_executor=fake_fetch,
         llm_invocation_service_factory=factory,
+        provider_credential_store_factory=lambda: fake_store,
     )
 
     assert exit_code == 0
@@ -1659,12 +2306,12 @@ def test_external_readonly_ask_guided_deepseek_stored_key_missing_blocks(
     monkeypatch.setattr(ask_module, "_guided_confirm", lambda _prompt: True)
     monkeypatch.setattr(ask_module, "_read_guided_provider_key_mode", lambda: "stored")
     fake_store = _FakeCredentialStore(load_value=None)
-    monkeypatch.setattr(ask_module, "_deepseek_credential_store", lambda: fake_store)
     args = _parse_ask_args("--guided", "--evidence-path", evidence_path)
 
     exit_code, payload = ask_module.build_external_readonly_ask_cli_output(
         args,
         llm_invocation_service_factory=_RaisingFactory(),
+        provider_credential_store_factory=lambda: fake_store,
     )
 
     assert exit_code == 3
@@ -1707,12 +2354,12 @@ def test_external_readonly_ask_guided_deepseek_store_unavailable_blocks(
         lambda: "store",
     )
     fake_store = _FakeCredentialStore(save_status="unavailable")
-    monkeypatch.setattr(ask_module, "_deepseek_credential_store", lambda: fake_store)
     args = _parse_ask_args("--guided", "--evidence-path", evidence_path)
 
     exit_code, payload = ask_module.build_external_readonly_ask_cli_output(
         args,
         llm_invocation_service_factory=_RaisingFactory(),
+        provider_credential_store_factory=lambda: fake_store,
     )
 
     assert exit_code == 3
@@ -1912,6 +2559,136 @@ def test_external_readonly_ask_guided_follow_up_decline_does_not_call_model_agai
     assert payload["guided_follow_up_prompted"] is True
     assert payload["follow_up_declined"] is True
     assert payload["follow_up_available"] is True
+
+
+def test_external_readonly_ask_guided_follow_up_empty_input_keeps_loop(
+    monkeypatch: Any,
+) -> None:
+    confirm_choices = iter((True, True))
+    follow_up_decisions = iter(
+        (
+            ("continue", None),
+            ("question", "它适合用于什么场景？"),
+            ("decline", None),
+        )
+    )
+    follow_up_questions = iter(("",))
+    monkeypatch.setattr(ask_module, "_guided_prompt_available", lambda: True)
+    monkeypatch.setattr(ask_module, "_guided_follow_up_prompt_available", lambda: True)
+    monkeypatch.setattr(
+        ask_module,
+        "_read_guided_source",
+        lambda: "https://example.com/reference",
+    )
+    monkeypatch.setattr(
+        ask_module,
+        "_read_guided_question",
+        lambda: "这个网页主要说明了什么？",
+    )
+    monkeypatch.setattr(ask_module, "_read_guided_model_alias", lambda: "gemma4")
+    monkeypatch.setattr(
+        ask_module,
+        "_guided_confirm",
+        lambda _prompt: next(confirm_choices),
+    )
+    monkeypatch.setattr(
+        ask_module,
+        "_read_guided_follow_up_decision",
+        lambda: next(follow_up_decisions),
+    )
+    monkeypatch.setattr(
+        ask_module,
+        "_read_guided_follow_up_question",
+        lambda: next(follow_up_questions),
+    )
+    service = _FakeLlmService(
+        [
+            "这个页面说明 Example Domain 用于文档示例，证据见 evidence://external-readonly/item/cli-ask。",
+            "它适合用于文档示例，不应用于实际操作。",
+        ]
+    )
+    factory = _FakeFactory(service)
+    args = _parse_ask_args("--guided")
+
+    exit_code, payload = ask_module.build_external_readonly_ask_cli_output(
+        args,
+        fetch_executor=lambda _: _fake_fetch_success_execution(),
+        llm_invocation_service_factory=factory,
+    )
+
+    assert exit_code == 0
+    assert len(service.requests) == 2
+    assert payload["status"] == "success"
+    assert payload["turn_count"] == 2
+    assert payload["follow_up_declined"] is True
+
+
+def test_external_readonly_ask_guided_session_summary_is_local(
+    monkeypatch: Any,
+) -> None:
+    confirm_choices = iter((True, True))
+    follow_up_decisions = iter(
+        (
+            ("question", "请将我们今天的交流内容做个总结，要求300字"),
+            ("decline", None),
+        )
+    )
+    monkeypatch.setattr(ask_module, "_guided_prompt_available", lambda: True)
+    monkeypatch.setattr(ask_module, "_guided_follow_up_prompt_available", lambda: True)
+    monkeypatch.setattr(
+        ask_module,
+        "_read_guided_source",
+        lambda: "https://example.com/reference",
+    )
+    monkeypatch.setattr(
+        ask_module,
+        "_read_guided_question",
+        lambda: "这个网页主要说明了什么？",
+    )
+    monkeypatch.setattr(ask_module, "_read_guided_model_alias", lambda: "gemma4")
+    monkeypatch.setattr(
+        ask_module,
+        "_guided_confirm",
+        lambda _prompt: next(confirm_choices),
+    )
+    monkeypatch.setattr(
+        ask_module,
+        "_read_guided_follow_up_decision",
+        lambda: next(follow_up_decisions),
+    )
+    service = _FakeLlmService(
+        "这个页面说明 Example Domain 用于文档示例，证据见 evidence://external-readonly/item/cli-ask。"
+    )
+    factory = _FakeFactory(service)
+    args = _parse_ask_args("--guided")
+
+    exit_code, payload = ask_module.build_external_readonly_ask_cli_output(
+        args,
+        fetch_executor=lambda _: _fake_fetch_success_execution(),
+        llm_invocation_service_factory=factory,
+    )
+
+    assert exit_code == 0
+    assert len(service.requests) == 1
+    assert payload["status"] == "success"
+    assert payload["guided_session_operation_summary"] is True
+    assert payload["summary_scope"] == (
+        "current_process_only; durable_session=false; memory_enabled=false"
+    )
+    assert payload["llm_call_attempted"] is False
+    assert payload["llm_runtime_call_performed"] is False
+    assert "本次 --guided 进程内" in payload["answer"]
+    assert "不读取长期 Memory" in payload["answer"]
+    assert payload["turn_count"] == 2
+    assert payload["follow_up_declined"] is True
+
+
+def test_read_guided_follow_up_decision_blank_input_continues(
+    monkeypatch: Any,
+) -> None:
+    monkeypatch.setattr(ask_module, "_read_guided_line", lambda _prompt: "")
+
+    assert ask_module._read_guided_follow_up_decision() == ("continue", None)
 
 
 def test_external_readonly_ask_guided_follow_up_keyboard_interrupt_exits_cleanly(
@@ -2433,6 +3210,75 @@ def test_external_readonly_ask_blocks_legacy_archive_without_provider_call(
     )
 
 
+def test_external_readonly_ask_transport_block_has_observability_explanation(
+    capsys: Any,
+) -> None:
+    args = _parse_ask_args(
+        "--source-url",
+        "https://example.com/reference",
+        "--confirm-external-readonly-fetch",
+        REQUIRED_EXTERNAL_READONLY_FETCH_CONFIRMATION,
+        "--question",
+        "这份资料主要说明了什么？",
+        "--operator-approved",
+        "--approval-ref",
+        "approval://external-readonly/cli-ask",
+        "--runtime-fetch-approval-ref",
+        "approval://external-readonly/runtime-fetch/cli-ask",
+        "--audit-ref",
+        "audit://external-readonly/cli-ask",
+        "--network-gate-open",
+        "--allow-runtime-fetch",
+        "--request-live-llm",
+        "--request-ollama",
+        "--allow-live-llm",
+        "--allow-ollama",
+        "--live-llm-approval-ref",
+        "approval://external-readonly-ask/unit",
+    )
+
+    def fake_fetch(_: Any) -> ExternalReadonlyFetchGatewayExecutionResult:
+        response = ProductGatewayResponse(
+            request_id="external-readonly-ask-request://cli/ask/fetch",
+            entry_kind=ProductGatewayEntryKind.EXTERNAL_READONLY_FETCH,
+            status=ProductGatewayStatus.BLOCKED,
+            exit_code=3,
+            blocking_reasons=["transport_error", "http_status_not_success"],
+            warnings=["content_type_missing"],
+            metadata={
+                "runtime_fetch_performed": True,
+                "transport_called": True,
+                "external_network_call_performed": True,
+            },
+        )
+        return ExternalReadonlyFetchGatewayExecutionResult(
+            product_request=None,  # type: ignore[arg-type]
+            product_response=response,
+            runtime_result=None,  # type: ignore[arg-type]
+        )
+
+    exit_code, payload = ask_module.build_external_readonly_ask_cli_output(
+        args,
+        fetch_executor=fake_fetch,
+        llm_invocation_service_factory=_RaisingFactory(),
+    )
+
+    text_output = ask_module._text_output(payload)
+
+    assert exit_code == 3
+    assert payload["status"] == "blocked"
+    assert payload["safe_observability_summary"]["reason"] == "transport_error"
+    assert (
+        payload["safe_observability_summary"]["user_explanation"]
+        == "本轮未能成功读取外部资料，可能是网络、远端服务或 URL 临时不可用导致。请稍后重试，或确认 URL 可访问。"
+    )
+    assert "observability_reason: transport_error" in text_output
+    assert "observability_explanation: 本轮未能成功读取外部资料" in text_output
+    assert "llm_call_attempted: false" in text_output
+    assert "transport_error" in text_output
+    assert capsys.readouterr().out == ""
+
+
 def test_external_readonly_ask_explains_quality_violation_in_json(
     tmp_path: Path,
     monkeypatch: Any,
@@ -2529,14 +3375,36 @@ def test_external_readonly_ask_quality_violation_text_output_has_hints_and_refs(
 
 def test_external_readonly_ask_cli_keeps_product_boundary() -> None:
     source = ASK_SOURCE.read_text(encoding="utf-8")
+    parser_source = PARSER_SOURCE.read_text(encoding="utf-8")
+    action_source = (
+        Path("packages")
+        / "product_application_assembly"
+        / "src"
+        / "product_application_assembly"
+        / "evidence_summary_answer_ask_action.py"
+    ).read_text(encoding="utf-8")
 
-    assert "execute_external_readonly_ask_gateway_request" in source
-    assert "execute_external_readonly_fetch_gateway_request" in source
+    assert "assemble_evidence_summary_answer_product_output" not in source
+    assert "build_evidence_summary_answer_context(" not in source
+    assert "build_evidence_summary_answer_llm_invocation_request(" not in source
+    assert "build_evidence_summary_answer_result_from_llm_invocation_result(" not in source
+    assert "assemble_evidence_summary_answer_product_output" in action_source
+    assert "execute_external_readonly_ask_gateway_request" not in source
+    assert "execute_external_readonly_fetch_gateway_request" not in source
+    assert "build_external_readonly_ask_bridge_from_source_url" not in source
     assert "runtime_container" not in source
     assert "from composition" not in source
     assert "product_runtime_assembly" not in source
     assert "ProductGatewayResponse" not in source
     assert "sanitized_excerpt_preview" not in source
+    assert (
+        'default="evidence://external-readonly/envelope/cli-ask"'
+        not in parser_source
+    )
+    assert 'default="evidence://external-readonly/item/cli-ask"' not in parser_source
+    assert 'default="outputs/external-readonly/cli-ask.json"' not in parser_source
+    assert 'default="evidence://external-readonly/cli-ask"' not in parser_source
+    assert 'default="summary://external-readonly/cli-ask"' not in parser_source
 
 
 def test_deepseek_keychain_store_does_not_shell_out_with_key() -> None:
@@ -2708,8 +3576,10 @@ def _parse_ask_args(*items: str) -> Namespace:
     return build_parser().parse_args(["external-readonly", "ask", *items])
 
 
-def _fake_fetch_success_execution() -> ExternalReadonlyFetchGatewayExecutionResult:
-    fact = "Example Domain is for documentation examples."
+def _fake_fetch_success_execution(
+    *,
+    fact: str = "Example Domain is for documentation examples.",
+) -> ExternalReadonlyFetchGatewayExecutionResult:
     envelope = ExternalReadonlyEvidenceEnvelope(
         envelope_ref="evidence://external-readonly/envelope/cli-ask",
         request_ref="external-readonly-ask-request://cli/ask/fetch",
@@ -2840,6 +3710,15 @@ def _external_readonly_archive(
             evidence_ref=evidence_ref,
         )
     return archive
+
+
+def _long_fact_text() -> str:
+    sentence = (
+        "Cognition System is published as a controlled evidence understanding "
+        "product that supports reviewable document question answering, governed "
+        "answer traces, safe runtime boundaries, and terminal-first user testing."
+    )
+    return "\n".join(f"{index}. {sentence}" for index in range(1, 38))
 
 
 def _governed_summary_facts(

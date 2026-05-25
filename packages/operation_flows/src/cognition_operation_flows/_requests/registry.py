@@ -1,4 +1,4 @@
-"""Registry and router candidates for governed task workflows."""
+"""Registry and router candidates for governed operation flows."""
 
 from __future__ import annotations
 
@@ -7,34 +7,34 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from cognition_operation_flows._core.control import (
-    TWF_CONFIG_PRECEDENCE,
-    TWF_CONTROL_STAGES,
+    OPERATION_FLOW_CONFIG_PRECEDENCE,
+    OPERATION_FLOW_CONTROL_STAGES,
     MANAGED_GOVERNANCE_PARAMETERS,
 )
 from cognition_operation_flows._requests.intent_detectors import (
-    TWF_CONFIG_PROFILE_EXPLAIN_TASK_KIND,
-    TWF_CONFIG_PROFILE_EXPLAIN_WORKFLOW_NAME,
-    TWF_REFERENCE_REVIEW_TASK_KIND,
-    TWF_REFERENCE_REVIEW_WORKFLOW_NAME,
-    TWF_RUN_WORKSPACE_EVIDENCE_AUDIT_TASK_KIND,
-    TWF_RUN_WORKSPACE_EVIDENCE_AUDIT_WORKFLOW_NAME,
+    OPERATION_FLOW_CONFIG_PROFILE_EXPLAIN_TASK_KIND,
+    OPERATION_FLOW_CONFIG_PROFILE_EXPLAIN_WORKFLOW_NAME,
+    OPERATION_FLOW_REFERENCE_REVIEW_TASK_KIND,
+    OPERATION_FLOW_REFERENCE_REVIEW_WORKFLOW_NAME,
+    OPERATION_FLOW_RUN_WORKSPACE_EVIDENCE_AUDIT_TASK_KIND,
+    OPERATION_FLOW_RUN_WORKSPACE_EVIDENCE_AUDIT_WORKFLOW_NAME,
     CONFIG_PROFILE_EXPLAIN_DISPLAY_PREVIEW_LIMIT,
     PLAN_DISPLAY_PREVIEW_LIMIT,
     RUN_WORKSPACE_EVIDENCE_AUDIT_DISPLAY_PREVIEW_LIMIT,
-    detect_twf_config_profile_explain_request,
-    detect_twf_plan_request,
-    detect_twf_reference_review_request,
-    detect_twf_run_workspace_evidence_audit_request,
+    detect_operation_flow_config_profile_explain_request,
+    detect_operation_flow_plan_request,
+    detect_operation_flow_reference_review_request,
+    detect_operation_flow_run_workspace_evidence_audit_request,
 )
 
 
-TWF_PLAN_WORKFLOW_NAME = "twf_plan_workflow"
-TWF_PLAN_TASK_KIND = "plan_design"
+OPERATION_FLOW_PLAN_WORKFLOW_NAME = "operation_flow_plan_workflow"
+OPERATION_FLOW_PLAN_TASK_KIND = "plan_design"
 
 
 @dataclass(frozen=True)
-class TwfDescriptorCandidate:
-    """Static descriptor for a task workflow exposed to the router."""
+class OperationFlowDescriptorCandidate:
+    """Static descriptor for a operation flow exposed to the router."""
 
     workflow_name: str
     workflow_version: str
@@ -62,8 +62,8 @@ class TwfDescriptorCandidate:
 
 
 @dataclass(frozen=True)
-class TwfTurnRequestCandidate:
-    """Input facts used by the task workflow router for one turn."""
+class OperationFlowTurnRequestCandidate:
+    """Input facts used by the operation flow router for one turn."""
 
     user_text: str
     chat_session_id: str | None = None
@@ -79,8 +79,8 @@ class TwfTurnRequestCandidate:
 
 
 @dataclass(frozen=True)
-class TwfRouteCandidate:
-    """Routing decision for a task workflow turn."""
+class OperationFlowRouteCandidate:
+    """Routing decision for a operation flow turn."""
 
     matched: bool
     workflow_name: str | None = None
@@ -99,30 +99,30 @@ class TwfRouteCandidate:
 
 
 @dataclass(frozen=True)
-class TwfRegistryCandidate:
-    """Registry of local task workflow descriptors."""
+class OperationFlowRegistryCandidate:
+    """Registry of local operation flow descriptors."""
 
-    descriptors: tuple[TwfDescriptorCandidate, ...]
+    descriptors: tuple[OperationFlowDescriptorCandidate, ...]
     registry_version: str = "v0.7.0-candidate"
     metadata: dict[str, Any] = field(default_factory=dict)
 
 
-def build_twf_plan_workflow_descriptor() -> TwfDescriptorCandidate:
+def build_operation_flow_plan_workflow_descriptor() -> OperationFlowDescriptorCandidate:
     """Build the descriptor for the current integrated plan workflow."""
 
-    return TwfDescriptorCandidate(
-        workflow_name=TWF_PLAN_WORKFLOW_NAME,
+    return OperationFlowDescriptorCandidate(
+        workflow_name=OPERATION_FLOW_PLAN_WORKFLOW_NAME,
         workflow_version="v0.7.0-candidate",
-        task_kind=TWF_PLAN_TASK_KIND,
-        display_name="Plan task workflow",
+        task_kind=OPERATION_FLOW_PLAN_TASK_KIND,
+        display_name="Plan operation flow",
         description="Plan/design workflow for structured product-entry tasks.",
         runtime_status="integrated",
         execution_engine="local_python_workflow",
         default_risk_level="low",
         default_output_budget=PLAN_DISPLAY_PREVIEW_LIMIT,
         live_gate_policy="controlled_live_or_no_live_boundary",
-        config_precedence=TWF_CONFIG_PRECEDENCE,
-        control_stages=TWF_CONTROL_STAGES,
+        config_precedence=OPERATION_FLOW_CONFIG_PRECEDENCE,
+        control_stages=OPERATION_FLOW_CONTROL_STAGES,
         managed_governance_parameters=tuple(sorted(MANAGED_GOVERNANCE_PARAMETERS)),
         required_governance_refs=(
             "approval_ref",
@@ -136,28 +136,28 @@ def build_twf_plan_workflow_descriptor() -> TwfDescriptorCandidate:
         skills_slot_status="candidate_only_frozen",
         agent_slot_status="not_integrated",
         metadata={
-            "detector": "detect_twf_plan_request",
+            "detector": "detect_operation_flow_plan_request",
             "route_source": "cognition_operation_flows._requests.intent_detectors",
         },
     )
 
 
-def build_twf_reference_review_workflow_descriptor() -> TwfDescriptorCandidate:
+def build_operation_flow_reference_review_workflow_descriptor() -> OperationFlowDescriptorCandidate:
     """Build the descriptor for the integrated reference review workflow."""
 
-    return TwfDescriptorCandidate(
-        workflow_name=TWF_REFERENCE_REVIEW_WORKFLOW_NAME,
+    return OperationFlowDescriptorCandidate(
+        workflow_name=OPERATION_FLOW_REFERENCE_REVIEW_WORKFLOW_NAME,
         workflow_version="v0.7.0-candidate",
-        task_kind=TWF_REFERENCE_REVIEW_TASK_KIND,
-        display_name="Reference review task workflow",
+        task_kind=OPERATION_FLOW_REFERENCE_REVIEW_TASK_KIND,
+        display_name="Reference review operation flow",
         description="Reference-backed review workflow for governed document tasks.",
         runtime_status="integrated",
         execution_engine="local_python_workflow",
         default_risk_level="low",
         default_output_budget=PLAN_DISPLAY_PREVIEW_LIMIT,
         live_gate_policy="controlled_live_or_no_live_boundary",
-        config_precedence=TWF_CONFIG_PRECEDENCE,
-        control_stages=TWF_CONTROL_STAGES,
+        config_precedence=OPERATION_FLOW_CONFIG_PRECEDENCE,
+        control_stages=OPERATION_FLOW_CONTROL_STAGES,
         managed_governance_parameters=tuple(sorted(MANAGED_GOVERNANCE_PARAMETERS)),
         required_governance_refs=(
             "approval_ref",
@@ -171,37 +171,37 @@ def build_twf_reference_review_workflow_descriptor() -> TwfDescriptorCandidate:
         skills_slot_status="candidate_only_frozen",
         agent_slot_status="not_integrated",
         metadata={
-            "detector": "detect_twf_reference_review_request",
+            "detector": "detect_operation_flow_reference_review_request",
             "route_source": "cognition_operation_flows._requests.intent_detectors",
         },
     )
 
 
-def build_twf_config_profile_explain_workflow_descriptor() -> (
-    TwfDescriptorCandidate
+def build_operation_flow_config_profile_explain_workflow_descriptor() -> (
+    OperationFlowDescriptorCandidate
 ):
     """Build the descriptor for the integrated config profile explain workflow."""
 
-    return TwfDescriptorCandidate(
-        workflow_name=TWF_CONFIG_PROFILE_EXPLAIN_WORKFLOW_NAME,
+    return OperationFlowDescriptorCandidate(
+        workflow_name=OPERATION_FLOW_CONFIG_PROFILE_EXPLAIN_WORKFLOW_NAME,
         workflow_version="v0.7.0-candidate",
-        task_kind=TWF_CONFIG_PROFILE_EXPLAIN_TASK_KIND,
-        display_name="Config profile explain task workflow",
-        description="Configuration explanation workflow for task controls.",
+        task_kind=OPERATION_FLOW_CONFIG_PROFILE_EXPLAIN_TASK_KIND,
+        display_name="Config profile explain operation flow",
+        description="Configuration explanation workflow for operation controls.",
         runtime_status="integrated_candidate",
         execution_engine="local_python_workflow",
         default_risk_level="low",
         default_output_budget=CONFIG_PROFILE_EXPLAIN_DISPLAY_PREVIEW_LIMIT,
         live_gate_policy="no_live_first",
-        config_precedence=TWF_CONFIG_PRECEDENCE,
-        control_stages=TWF_CONTROL_STAGES,
+        config_precedence=OPERATION_FLOW_CONFIG_PRECEDENCE,
+        control_stages=OPERATION_FLOW_CONTROL_STAGES,
         managed_governance_parameters=tuple(sorted(MANAGED_GOVERNANCE_PARAMETERS)),
         workspace_supported=True,
         status_projection="unchanged",
         skills_slot_status="candidate_only_frozen",
         agent_slot_status="not_integrated",
         metadata={
-            "detector": "detect_twf_config_profile_explain_request",
+            "detector": "detect_operation_flow_config_profile_explain_request",
             "route_source": "cognition_operation_flows._requests.intent_detectors",
             "does_not_execute_tools": True,
             "does_not_call_model": True,
@@ -209,31 +209,31 @@ def build_twf_config_profile_explain_workflow_descriptor() -> (
     )
 
 
-def build_twf_run_workspace_evidence_audit_workflow_descriptor() -> (
-    TwfDescriptorCandidate
+def build_operation_flow_run_workspace_evidence_audit_workflow_descriptor() -> (
+    OperationFlowDescriptorCandidate
 ):
     """Build the descriptor for the integrated run workspace audit workflow."""
 
-    return TwfDescriptorCandidate(
-        workflow_name=TWF_RUN_WORKSPACE_EVIDENCE_AUDIT_WORKFLOW_NAME,
+    return OperationFlowDescriptorCandidate(
+        workflow_name=OPERATION_FLOW_RUN_WORKSPACE_EVIDENCE_AUDIT_WORKFLOW_NAME,
         workflow_version="v0.7.0-candidate",
-        task_kind=TWF_RUN_WORKSPACE_EVIDENCE_AUDIT_TASK_KIND,
-        display_name="Run workspace evidence audit task workflow",
+        task_kind=OPERATION_FLOW_RUN_WORKSPACE_EVIDENCE_AUDIT_TASK_KIND,
+        display_name="Run workspace evidence audit operation flow",
         description="Read-only audit workflow for run workspace evidence layers.",
         runtime_status="integrated_candidate",
         execution_engine="local_python_workflow",
         default_risk_level="low",
         default_output_budget=RUN_WORKSPACE_EVIDENCE_AUDIT_DISPLAY_PREVIEW_LIMIT,
         live_gate_policy="no_live_first",
-        config_precedence=TWF_CONFIG_PRECEDENCE,
-        control_stages=TWF_CONTROL_STAGES,
+        config_precedence=OPERATION_FLOW_CONFIG_PRECEDENCE,
+        control_stages=OPERATION_FLOW_CONTROL_STAGES,
         managed_governance_parameters=tuple(sorted(MANAGED_GOVERNANCE_PARAMETERS)),
         workspace_supported=True,
         status_projection="unchanged",
         skills_slot_status="candidate_only_frozen",
         agent_slot_status="not_integrated",
         metadata={
-            "detector": "detect_twf_run_workspace_evidence_audit_request",
+            "detector": "detect_operation_flow_run_workspace_evidence_audit_request",
             "route_source": "cognition_operation_flows._requests.intent_detectors",
             "does_not_execute_tools": True,
             "does_not_call_model": True,
@@ -242,15 +242,15 @@ def build_twf_run_workspace_evidence_audit_workflow_descriptor() -> (
     )
 
 
-def build_default_twf_registry() -> TwfRegistryCandidate:
+def build_default_operation_flow_registry() -> OperationFlowRegistryCandidate:
     """Build the default local registry used by cognition chat."""
 
-    return TwfRegistryCandidate(
+    return OperationFlowRegistryCandidate(
         descriptors=(
-            build_twf_reference_review_workflow_descriptor(),
-            build_twf_config_profile_explain_workflow_descriptor(),
-            build_twf_run_workspace_evidence_audit_workflow_descriptor(),
-            build_twf_plan_workflow_descriptor(),
+            build_operation_flow_reference_review_workflow_descriptor(),
+            build_operation_flow_config_profile_explain_workflow_descriptor(),
+            build_operation_flow_run_workspace_evidence_audit_workflow_descriptor(),
+            build_operation_flow_plan_workflow_descriptor(),
         ),
         metadata={
             "source": "cognition_operation_flows._requests.registry",
@@ -259,19 +259,19 @@ def build_default_twf_registry() -> TwfRegistryCandidate:
     )
 
 
-def list_twf_descriptors(
-    registry: TwfRegistryCandidate,
-) -> tuple[TwfDescriptorCandidate, ...]:
+def list_operation_flow_descriptors(
+    registry: OperationFlowRegistryCandidate,
+) -> tuple[OperationFlowDescriptorCandidate, ...]:
     """Return registered descriptors in router order."""
 
     return registry.descriptors
 
 
-def route_twf_turn(
-    registry: TwfRegistryCandidate,
-    request: TwfTurnRequestCandidate,
-) -> TwfRouteCandidate:
-    """Route a turn to at most one registered task workflow."""
+def route_operation_flow_turn(
+    registry: OperationFlowRegistryCandidate,
+    request: OperationFlowTurnRequestCandidate,
+) -> OperationFlowRouteCandidate:
+    """Route a turn to at most one registered operation flow."""
 
     matches = tuple(
         route
@@ -285,7 +285,7 @@ def route_twf_turn(
         route for route in matches if route.confidence == "high"
     )
     if len(high_confidence_matches) > 1:
-        return TwfRouteCandidate(
+        return OperationFlowRouteCandidate(
             matched=False,
             route_reason="ambiguous_route",
             confidence="none",
@@ -302,7 +302,7 @@ def route_twf_turn(
         return high_confidence_matches[0]
     if matches:
         return matches[0]
-    return TwfRouteCandidate(
+    return OperationFlowRouteCandidate(
         matched=False,
         route_reason="no_registered_workflow_matched",
         confidence="none",
@@ -314,8 +314,8 @@ def route_twf_turn(
     )
 
 
-def twf_descriptor_status_dict(
-    descriptor: TwfDescriptorCandidate,
+def operation_flow_descriptor_status_dict(
+    descriptor: OperationFlowDescriptorCandidate,
 ) -> dict[str, Any]:
     """Return a JSON-ready descriptor summary."""
 
@@ -338,8 +338,8 @@ def twf_descriptor_status_dict(
     }
 
 
-def twf_route_status_dict(
-    route: TwfRouteCandidate,
+def operation_flow_route_status_dict(
+    route: OperationFlowRouteCandidate,
 ) -> dict[str, Any]:
     """Return a JSON-ready route summary."""
 
@@ -360,8 +360,8 @@ def twf_route_status_dict(
     }
 
 
-def twf_registry_status_dict(
-    registry: TwfRegistryCandidate,
+def operation_flow_registry_status_dict(
+    registry: OperationFlowRegistryCandidate,
 ) -> dict[str, Any]:
     """Return a JSON-ready registry summary."""
 
@@ -372,25 +372,25 @@ def twf_registry_status_dict(
             descriptor.workflow_name for descriptor in registry.descriptors
         ],
         "descriptors": [
-            twf_descriptor_status_dict(descriptor)
+            operation_flow_descriptor_status_dict(descriptor)
             for descriptor in registry.descriptors
         ],
     }
 
 
 def _route_descriptor(
-    descriptor: TwfDescriptorCandidate,
-    request: TwfTurnRequestCandidate,
-) -> TwfRouteCandidate:
-    if descriptor.workflow_name == TWF_REFERENCE_REVIEW_WORKFLOW_NAME:
+    descriptor: OperationFlowDescriptorCandidate,
+    request: OperationFlowTurnRequestCandidate,
+) -> OperationFlowRouteCandidate:
+    if descriptor.workflow_name == OPERATION_FLOW_REFERENCE_REVIEW_WORKFLOW_NAME:
         return _route_reference_review(descriptor, request)
-    if descriptor.workflow_name == TWF_CONFIG_PROFILE_EXPLAIN_WORKFLOW_NAME:
+    if descriptor.workflow_name == OPERATION_FLOW_CONFIG_PROFILE_EXPLAIN_WORKFLOW_NAME:
         return _route_config_profile_explain(descriptor, request)
-    if descriptor.workflow_name == TWF_RUN_WORKSPACE_EVIDENCE_AUDIT_WORKFLOW_NAME:
+    if descriptor.workflow_name == OPERATION_FLOW_RUN_WORKSPACE_EVIDENCE_AUDIT_WORKFLOW_NAME:
         return _route_run_workspace_evidence_audit(descriptor, request)
-    if descriptor.workflow_name == TWF_PLAN_WORKFLOW_NAME:
+    if descriptor.workflow_name == OPERATION_FLOW_PLAN_WORKFLOW_NAME:
         return _route_plan(descriptor, request)
-    return TwfRouteCandidate(
+    return OperationFlowRouteCandidate(
         matched=False,
         workflow_name=descriptor.workflow_name,
         workflow_version=descriptor.workflow_version,
@@ -403,17 +403,17 @@ def _route_descriptor(
 
 
 def _route_reference_review(
-    descriptor: TwfDescriptorCandidate,
-    request: TwfTurnRequestCandidate,
-) -> TwfRouteCandidate:
-    matched = detect_twf_reference_review_request(
+    descriptor: OperationFlowDescriptorCandidate,
+    request: OperationFlowTurnRequestCandidate,
+) -> OperationFlowRouteCandidate:
+    matched = detect_operation_flow_reference_review_request(
         request.user_text,
         reference_paths=request.reference_paths,
         external_readonly_evidence_paths=request.external_readonly_evidence_paths,
     )
     if not matched:
         return _unmatched(descriptor, request, "reference_review_request_not_detected")
-    return TwfRouteCandidate(
+    return OperationFlowRouteCandidate(
         matched=True,
         workflow_name=descriptor.workflow_name,
         workflow_version=descriptor.workflow_version,
@@ -426,7 +426,7 @@ def _route_reference_review(
         requires_tools=(("local_reference_reader",) if request.reference_paths else ()),
         requires_workspace=request.run_workspace_requested,
         metadata={
-            "detector": "detect_twf_reference_review_request",
+            "detector": "detect_operation_flow_reference_review_request",
             "reference_path_count": len(request.reference_paths),
             "external_readonly_evidence_path_count": len(
                 request.external_readonly_evidence_paths
@@ -437,16 +437,16 @@ def _route_reference_review(
 
 
 def _route_config_profile_explain(
-    descriptor: TwfDescriptorCandidate,
-    request: TwfTurnRequestCandidate,
-) -> TwfRouteCandidate:
-    if detect_twf_reference_review_request(
+    descriptor: OperationFlowDescriptorCandidate,
+    request: OperationFlowTurnRequestCandidate,
+) -> OperationFlowRouteCandidate:
+    if detect_operation_flow_reference_review_request(
         request.user_text,
         reference_paths=request.reference_paths,
         external_readonly_evidence_paths=request.external_readonly_evidence_paths,
     ):
         return _unmatched(descriptor, request, "reference_review_takes_precedence")
-    if detect_twf_run_workspace_evidence_audit_request(
+    if detect_operation_flow_run_workspace_evidence_audit_request(
         request.user_text,
         audit_target_requested=request.audit_run_workspace_requested,
     ):
@@ -455,14 +455,14 @@ def _route_config_profile_explain(
             request,
             "run_workspace_evidence_audit_takes_precedence",
         )
-    matched = detect_twf_config_profile_explain_request(request.user_text)
+    matched = detect_operation_flow_config_profile_explain_request(request.user_text)
     if not matched:
         return _unmatched(
             descriptor,
             request,
             "config_profile_explain_request_not_detected",
         )
-    return TwfRouteCandidate(
+    return OperationFlowRouteCandidate(
         matched=True,
         workflow_name=descriptor.workflow_name,
         workflow_version=descriptor.workflow_version,
@@ -475,7 +475,7 @@ def _route_config_profile_explain(
         requires_tools=(),
         requires_workspace=request.run_workspace_requested,
         metadata={
-            "detector": "detect_twf_config_profile_explain_request",
+            "detector": "detect_operation_flow_config_profile_explain_request",
             "reference_path_count": len(request.reference_paths),
             "external_readonly_evidence_path_count": len(
                 request.external_readonly_evidence_paths
@@ -486,16 +486,16 @@ def _route_config_profile_explain(
 
 
 def _route_run_workspace_evidence_audit(
-    descriptor: TwfDescriptorCandidate,
-    request: TwfTurnRequestCandidate,
-) -> TwfRouteCandidate:
-    if detect_twf_reference_review_request(
+    descriptor: OperationFlowDescriptorCandidate,
+    request: OperationFlowTurnRequestCandidate,
+) -> OperationFlowRouteCandidate:
+    if detect_operation_flow_reference_review_request(
         request.user_text,
         reference_paths=request.reference_paths,
         external_readonly_evidence_paths=request.external_readonly_evidence_paths,
     ):
         return _unmatched(descriptor, request, "reference_review_takes_precedence")
-    matched = detect_twf_run_workspace_evidence_audit_request(
+    matched = detect_operation_flow_run_workspace_evidence_audit_request(
         request.user_text,
         audit_target_requested=request.audit_run_workspace_requested,
     )
@@ -505,7 +505,7 @@ def _route_run_workspace_evidence_audit(
             request,
             "run_workspace_evidence_audit_request_not_detected",
         )
-    return TwfRouteCandidate(
+    return OperationFlowRouteCandidate(
         matched=True,
         workflow_name=descriptor.workflow_name,
         workflow_version=descriptor.workflow_version,
@@ -518,7 +518,7 @@ def _route_run_workspace_evidence_audit(
         requires_tools=(),
         requires_workspace=request.run_workspace_requested,
         metadata={
-            "detector": "detect_twf_run_workspace_evidence_audit_request",
+            "detector": "detect_operation_flow_run_workspace_evidence_audit_request",
             "reference_path_count": len(request.reference_paths),
             "external_readonly_evidence_path_count": len(
                 request.external_readonly_evidence_paths
@@ -530,22 +530,22 @@ def _route_run_workspace_evidence_audit(
 
 
 def _route_plan(
-    descriptor: TwfDescriptorCandidate,
-    request: TwfTurnRequestCandidate,
-) -> TwfRouteCandidate:
-    if detect_twf_reference_review_request(
+    descriptor: OperationFlowDescriptorCandidate,
+    request: OperationFlowTurnRequestCandidate,
+) -> OperationFlowRouteCandidate:
+    if detect_operation_flow_reference_review_request(
         request.user_text,
         reference_paths=request.reference_paths,
         external_readonly_evidence_paths=request.external_readonly_evidence_paths,
     ):
         return _unmatched(descriptor, request, "reference_review_takes_precedence")
-    if detect_twf_config_profile_explain_request(request.user_text):
+    if detect_operation_flow_config_profile_explain_request(request.user_text):
         return _unmatched(
             descriptor,
             request,
             "config_profile_explain_takes_precedence",
         )
-    if detect_twf_run_workspace_evidence_audit_request(
+    if detect_operation_flow_run_workspace_evidence_audit_request(
         request.user_text,
         audit_target_requested=request.audit_run_workspace_requested,
     ):
@@ -554,14 +554,14 @@ def _route_plan(
             request,
             "run_workspace_evidence_audit_takes_precedence",
         )
-    matched = detect_twf_plan_request(
+    matched = detect_operation_flow_plan_request(
         request.user_text,
         history=request.history,
         previous_plan_text=request.previous_terminal_display_text,
     )
     if not matched:
         return _unmatched(descriptor, request, "plan_request_not_detected")
-    return TwfRouteCandidate(
+    return OperationFlowRouteCandidate(
         matched=True,
         workflow_name=descriptor.workflow_name,
         workflow_version=descriptor.workflow_version,
@@ -574,7 +574,7 @@ def _route_plan(
         requires_tools=(("local_reference_reader",) if request.reference_paths else ()),
         requires_workspace=request.run_workspace_requested,
         metadata={
-            "detector": "detect_twf_plan_request",
+            "detector": "detect_operation_flow_plan_request",
             "reference_path_count": len(request.reference_paths),
             "external_readonly_evidence_path_count": len(
                 request.external_readonly_evidence_paths
@@ -588,11 +588,11 @@ def _route_plan(
 
 
 def _unmatched(
-    descriptor: TwfDescriptorCandidate,
-    request: TwfTurnRequestCandidate,
+    descriptor: OperationFlowDescriptorCandidate,
+    request: OperationFlowTurnRequestCandidate,
     reason: str,
-) -> TwfRouteCandidate:
-    return TwfRouteCandidate(
+) -> OperationFlowRouteCandidate:
+    return OperationFlowRouteCandidate(
         matched=False,
         workflow_name=descriptor.workflow_name,
         workflow_version=descriptor.workflow_version,

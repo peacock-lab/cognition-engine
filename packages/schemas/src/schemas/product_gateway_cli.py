@@ -9,22 +9,22 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 PRODUCT_GATEWAY_CLI_SURFACE_PAYLOAD_VERSION = "product_gateway_cli_surface_v1"
 
-PRODUCT_GATEWAY_CLI_TWF_PLAN_WORKFLOW_NAME = "twf_plan_workflow"
-PRODUCT_GATEWAY_CLI_TWF_REFERENCE_REVIEW_WORKFLOW_NAME = (
-    "twf_reference_review_workflow"
+PRODUCT_GATEWAY_CLI_OPERATION_FLOW_PLAN_WORKFLOW_NAME = "operation_flow_plan_workflow"
+PRODUCT_GATEWAY_CLI_OPERATION_FLOW_REFERENCE_REVIEW_WORKFLOW_NAME = (
+    "operation_flow_reference_review_workflow"
 )
-PRODUCT_GATEWAY_CLI_TWF_CONFIG_PROFILE_EXPLAIN_WORKFLOW_NAME = (
-    "twf_config_profile_explain_workflow"
+PRODUCT_GATEWAY_CLI_OPERATION_FLOW_CONFIG_PROFILE_EXPLAIN_WORKFLOW_NAME = (
+    "operation_flow_config_profile_explain_workflow"
 )
-PRODUCT_GATEWAY_CLI_TWF_RUN_WORKSPACE_EVIDENCE_AUDIT_WORKFLOW_NAME = (
-    "twf_run_workspace_evidence_audit_workflow"
+PRODUCT_GATEWAY_CLI_OPERATION_FLOW_RUN_WORKSPACE_EVIDENCE_AUDIT_WORKFLOW_NAME = (
+    "operation_flow_run_workspace_evidence_audit_workflow"
 )
-PRODUCT_GATEWAY_CLI_TWF_WORKFLOW_NAMES = frozenset(
+PRODUCT_GATEWAY_CLI_OPERATION_FLOW_WORKFLOW_NAMES = frozenset(
     {
-        PRODUCT_GATEWAY_CLI_TWF_PLAN_WORKFLOW_NAME,
-        PRODUCT_GATEWAY_CLI_TWF_REFERENCE_REVIEW_WORKFLOW_NAME,
-        PRODUCT_GATEWAY_CLI_TWF_CONFIG_PROFILE_EXPLAIN_WORKFLOW_NAME,
-        PRODUCT_GATEWAY_CLI_TWF_RUN_WORKSPACE_EVIDENCE_AUDIT_WORKFLOW_NAME,
+        PRODUCT_GATEWAY_CLI_OPERATION_FLOW_PLAN_WORKFLOW_NAME,
+        PRODUCT_GATEWAY_CLI_OPERATION_FLOW_REFERENCE_REVIEW_WORKFLOW_NAME,
+        PRODUCT_GATEWAY_CLI_OPERATION_FLOW_CONFIG_PROFILE_EXPLAIN_WORKFLOW_NAME,
+        PRODUCT_GATEWAY_CLI_OPERATION_FLOW_RUN_WORKSPACE_EVIDENCE_AUDIT_WORKFLOW_NAME,
     }
 )
 
@@ -53,11 +53,11 @@ PRODUCT_GATEWAY_CLI_REFERENCE_READER_FORBIDDEN_PATH_MARKERS = (
     "service_account",
 )
 
-ProductGatewayCliTaskWorkflowName = Literal[
-    "twf_plan_workflow",
-    "twf_reference_review_workflow",
-    "twf_config_profile_explain_workflow",
-    "twf_run_workspace_evidence_audit_workflow",
+ProductGatewayCliOperationFlowName = Literal[
+    "operation_flow_plan_workflow",
+    "operation_flow_reference_review_workflow",
+    "operation_flow_config_profile_explain_workflow",
+    "operation_flow_run_workspace_evidence_audit_workflow",
 ]
 
 RAW_OR_SENSITIVE_PRODUCT_GATEWAY_CLI_KEYS = frozenset(
@@ -133,8 +133,8 @@ class ProductGatewayCliSurfaceBaseModel(BaseModel):
         return self
 
 
-class ProductGatewayCliTwfGovernanceRefsSchema(ProductGatewayCliSurfaceBaseModel):
-    """Governance refs accepted by CLI-facing task workflow requests."""
+class ProductGatewayCliOperationFlowGovernanceRefsSchema(ProductGatewayCliSurfaceBaseModel):
+    """Governance refs accepted by CLI-facing operation flow requests."""
 
     approval_ref: str | None = None
     audit_ref: str | None = None
@@ -144,10 +144,10 @@ class ProductGatewayCliTwfGovernanceRefsSchema(ProductGatewayCliSurfaceBaseModel
     metadata: dict[str, Any] = Field(default_factory=dict)
 
 
-class ProductGatewayCliTwfReferenceWorkspaceControlsSchema(
+class ProductGatewayCliOperationFlowReferenceWorkspaceControlsSchema(
     ProductGatewayCliSurfaceBaseModel
 ):
-    """Reference and workspace controls accepted from CLI task workflows."""
+    """Reference and workspace controls accepted from CLI operation flows."""
 
     reference_paths: tuple[str, ...] = ()
     reference_repo_root: str | None = None
@@ -167,7 +167,7 @@ class ProductGatewayCliTwfReferenceWorkspaceControlsSchema(
     metadata: dict[str, Any] = Field(default_factory=dict)
 
     @model_validator(mode="after")
-    def validate_controls(self) -> "ProductGatewayCliTwfReferenceWorkspaceControlsSchema":
+    def validate_controls(self) -> "ProductGatewayCliOperationFlowReferenceWorkspaceControlsSchema":
         if any(not item for item in self.reference_paths):
             raise ValueError("reference_paths must not contain empty values.")
         if any(not item for item in self.external_readonly_evidence_paths):
@@ -182,8 +182,8 @@ class ProductGatewayCliTwfReferenceWorkspaceControlsSchema(
         return self
 
 
-class ProductGatewayCliTwfRouteInputSchema(ProductGatewayCliSurfaceBaseModel):
-    """CLI-facing task workflow route input."""
+class ProductGatewayCliOperationFlowRouteInputSchema(ProductGatewayCliSurfaceBaseModel):
+    """CLI-facing operation flow route input."""
 
     request_id: str = Field(..., min_length=1)
     sanitized_user_text: str = Field(..., min_length=1)
@@ -199,7 +199,7 @@ class ProductGatewayCliTwfRouteInputSchema(ProductGatewayCliSurfaceBaseModel):
     metadata: dict[str, Any] = Field(default_factory=dict)
 
     @model_validator(mode="after")
-    def validate_route_input(self) -> "ProductGatewayCliTwfRouteInputSchema":
+    def validate_route_input(self) -> "ProductGatewayCliOperationFlowRouteInputSchema":
         if any(not item for item in self.reference_paths):
             raise ValueError("reference_paths must not contain empty values.")
         if any(not item for item in self.external_readonly_evidence_paths):
@@ -209,14 +209,14 @@ class ProductGatewayCliTwfRouteInputSchema(ProductGatewayCliSurfaceBaseModel):
         return self
 
 
-class ProductGatewayCliTwfRouteProjectionSchema(ProductGatewayCliSurfaceBaseModel):
-    """CLI-facing task workflow route projection."""
+class ProductGatewayCliOperationFlowRouteProjectionSchema(ProductGatewayCliSurfaceBaseModel):
+    """CLI-facing operation flow route projection."""
 
     request_id: str = Field(..., min_length=1)
     entry_kind: str = Field(..., min_length=1)
     execution_mode: str = Field(..., min_length=1)
     matched: bool
-    workflow_name: ProductGatewayCliTaskWorkflowName | None = None
+    workflow_name: ProductGatewayCliOperationFlowName | None = None
     workflow_version: str | None = None
     task_kind: str | None = None
     route_reason: str = Field(..., min_length=1)
@@ -234,17 +234,17 @@ class ProductGatewayCliTwfRouteProjectionSchema(ProductGatewayCliSurfaceBaseMode
     metadata: dict[str, Any] = Field(default_factory=dict)
 
 
-class ProductGatewayCliTwfRequestDraftInputSchema(ProductGatewayCliSurfaceBaseModel):
-    """CLI-facing task workflow draft input before product_gateway execution."""
+class ProductGatewayCliOperationFlowRequestDraftInputSchema(ProductGatewayCliSurfaceBaseModel):
+    """CLI-facing operation flow draft input before product_gateway execution."""
 
-    workflow_name: ProductGatewayCliTaskWorkflowName
+    workflow_name: ProductGatewayCliOperationFlowName
     sanitized_user_text: str = Field(..., min_length=1)
     chat_session_id: str | None = None
     turn_index: int | None = None
     sanitized_history: tuple[dict[str, str], ...] = ()
     sanitized_previous_display_text: str | None = None
-    governance_refs: ProductGatewayCliTwfGovernanceRefsSchema | None = None
-    controls: ProductGatewayCliTwfReferenceWorkspaceControlsSchema | None = None
+    governance_refs: ProductGatewayCliOperationFlowGovernanceRefsSchema | None = None
+    controls: ProductGatewayCliOperationFlowReferenceWorkspaceControlsSchema | None = None
     route_summary: dict[str, Any] | None = None
     entrypoint_explicit_args: dict[str, Any] | None = None
     session_args: dict[str, Any] | None = None
@@ -259,7 +259,7 @@ class ProductGatewayCliTwfRequestDraftInputSchema(ProductGatewayCliSurfaceBaseMo
     metadata: dict[str, Any] = Field(default_factory=dict)
 
     @model_validator(mode="after")
-    def validate_request_draft(self) -> "ProductGatewayCliTwfRequestDraftInputSchema":
+    def validate_request_draft(self) -> "ProductGatewayCliOperationFlowRequestDraftInputSchema":
         if self.live_llm_timeout_seconds is not None and self.live_llm_timeout_seconds <= 0:
             raise ValueError("live_llm_timeout_seconds must be positive.")
         if self.live_model_allowed and self.governance_refs is None:
@@ -267,8 +267,8 @@ class ProductGatewayCliTwfRequestDraftInputSchema(ProductGatewayCliSurfaceBaseMo
         return self
 
 
-class ProductGatewayCliTwfExecutionOptionsSchema(ProductGatewayCliSurfaceBaseModel):
-    """CLI-facing execution options for product gateway task workflows."""
+class ProductGatewayCliOperationFlowExecutionOptionsSchema(ProductGatewayCliSurfaceBaseModel):
+    """CLI-facing execution options for product gateway operation flows."""
 
     config_root: str | None = None
     environment: str = Field(default="local", min_length=1)
@@ -280,19 +280,19 @@ class ProductGatewayCliTwfExecutionOptionsSchema(ProductGatewayCliSurfaceBaseMod
     metadata: dict[str, Any] = Field(default_factory=dict)
 
 
-class ProductGatewayCliTwfExecutionInputSchema(ProductGatewayCliSurfaceBaseModel):
-    """CLI-facing task workflow execution input."""
+class ProductGatewayCliOperationFlowExecutionInputSchema(ProductGatewayCliSurfaceBaseModel):
+    """CLI-facing operation flow execution input."""
 
     request_id: str = Field(..., min_length=1)
-    route_projection: ProductGatewayCliTwfRouteProjectionSchema
-    request_draft_input: ProductGatewayCliTwfRequestDraftInputSchema
-    execution_options: ProductGatewayCliTwfExecutionOptionsSchema = Field(
-        default_factory=ProductGatewayCliTwfExecutionOptionsSchema
+    route_projection: ProductGatewayCliOperationFlowRouteProjectionSchema
+    request_draft_input: ProductGatewayCliOperationFlowRequestDraftInputSchema
+    execution_options: ProductGatewayCliOperationFlowExecutionOptionsSchema = Field(
+        default_factory=ProductGatewayCliOperationFlowExecutionOptionsSchema
     )
     metadata: dict[str, Any] = Field(default_factory=dict)
 
     @model_validator(mode="after")
-    def validate_execution_input(self) -> "ProductGatewayCliTwfExecutionInputSchema":
+    def validate_execution_input(self) -> "ProductGatewayCliOperationFlowExecutionInputSchema":
         if self.route_projection.request_id != self.request_id:
             raise ValueError("route_projection request_id must match request_id.")
         if (
@@ -306,8 +306,8 @@ class ProductGatewayCliTwfExecutionInputSchema(ProductGatewayCliSurfaceBaseModel
         return self
 
 
-class ProductGatewayCliTwfRunWorkspaceSnapshotSchema(ProductGatewayCliSurfaceBaseModel):
-    """CLI-facing snapshot of a task workflow run workspace."""
+class ProductGatewayCliOperationFlowRunWorkspaceSnapshotSchema(ProductGatewayCliSurfaceBaseModel):
+    """CLI-facing snapshot of a operation flow run workspace."""
 
     workspace_ref: str | None = None
     workspace_path: str | None = None
@@ -330,7 +330,7 @@ class ProductGatewayCliTwfRunWorkspaceSnapshotSchema(ProductGatewayCliSurfaceBas
     @model_validator(mode="after")
     def validate_workspace_snapshot(
         self,
-    ) -> "ProductGatewayCliTwfRunWorkspaceSnapshotSchema":
+    ) -> "ProductGatewayCliOperationFlowRunWorkspaceSnapshotSchema":
         if self.max_write_bytes is not None and self.max_write_bytes <= 0:
             raise ValueError("max_write_bytes must be positive.")
         if any(not item for item in self.artifact_refs):
@@ -342,13 +342,13 @@ class ProductGatewayCliTwfRunWorkspaceSnapshotSchema(ProductGatewayCliSurfaceBas
         return self
 
 
-class ProductGatewayCliTwfLatestPlanSnapshotSchema(ProductGatewayCliSurfaceBaseModel):
+class ProductGatewayCliOperationFlowLatestPlanSnapshotSchema(ProductGatewayCliSurfaceBaseModel):
     """CLI-facing latest plan status snapshot."""
 
     status: str = Field(..., min_length=1)
     reference_context_status: str = Field(default="not_run", min_length=1)
     reference_evidence_ref_count: int = Field(default=0, ge=0)
-    workspace: ProductGatewayCliTwfRunWorkspaceSnapshotSchema | None = None
+    workspace: ProductGatewayCliOperationFlowRunWorkspaceSnapshotSchema | None = None
     product_gateway_route_projection: dict[str, Any] = Field(default_factory=dict)
     no_live: bool = False
     fail_safe: bool = False
@@ -357,25 +357,25 @@ class ProductGatewayCliTwfLatestPlanSnapshotSchema(ProductGatewayCliSurfaceBaseM
     metadata: dict[str, Any] = Field(default_factory=dict)
 
 
-class ProductGatewayCliTwfExecutionResultSchema(ProductGatewayCliSurfaceBaseModel):
-    """CLI-facing task workflow execution result."""
+class ProductGatewayCliOperationFlowExecutionResultSchema(ProductGatewayCliSurfaceBaseModel):
+    """CLI-facing operation flow execution result."""
 
     handled: bool
     terminal_display_text: str | None = None
     latest_plan_display_text: str | None = None
-    latest_plan_snapshot: ProductGatewayCliTwfLatestPlanSnapshotSchema | None = None
+    latest_plan_snapshot: ProductGatewayCliOperationFlowLatestPlanSnapshotSchema | None = None
     product_response_summary: dict[str, Any] = Field(default_factory=dict)
     blocking_reasons: tuple[str, ...] = ()
     warnings: tuple[str, ...] = ()
     metadata: dict[str, Any] = Field(default_factory=dict)
 
 
-class ProductGatewayCliTwfStatusSummaryPersistenceSchema(
+class ProductGatewayCliOperationFlowStatusSummaryPersistenceSchema(
     ProductGatewayCliSurfaceBaseModel
 ):
     """Result of persisting a CLI status summary artifact."""
 
-    latest_plan_snapshot: ProductGatewayCliTwfLatestPlanSnapshotSchema | None = None
+    latest_plan_snapshot: ProductGatewayCliOperationFlowLatestPlanSnapshotSchema | None = None
     status_summary_artifact_ref: str | None = None
     status: str = Field(default="skipped", min_length=1)
     blocking_reasons: tuple[str, ...] = ()
@@ -473,26 +473,26 @@ __all__ = [
     "PRODUCT_GATEWAY_CLI_REFERENCE_READER_TOOL_NAME",
     "PRODUCT_GATEWAY_CLI_SENSITIVE_KEY_EXCEPTIONS",
     "PRODUCT_GATEWAY_CLI_SURFACE_PAYLOAD_VERSION",
-    "PRODUCT_GATEWAY_CLI_TWF_CONFIG_PROFILE_EXPLAIN_WORKFLOW_NAME",
-    "PRODUCT_GATEWAY_CLI_TWF_PLAN_WORKFLOW_NAME",
-    "PRODUCT_GATEWAY_CLI_TWF_REFERENCE_REVIEW_WORKFLOW_NAME",
-    "PRODUCT_GATEWAY_CLI_TWF_RUN_WORKSPACE_EVIDENCE_AUDIT_WORKFLOW_NAME",
-    "PRODUCT_GATEWAY_CLI_TWF_WORKFLOW_NAMES",
+    "PRODUCT_GATEWAY_CLI_OPERATION_FLOW_CONFIG_PROFILE_EXPLAIN_WORKFLOW_NAME",
+    "PRODUCT_GATEWAY_CLI_OPERATION_FLOW_PLAN_WORKFLOW_NAME",
+    "PRODUCT_GATEWAY_CLI_OPERATION_FLOW_REFERENCE_REVIEW_WORKFLOW_NAME",
+    "PRODUCT_GATEWAY_CLI_OPERATION_FLOW_RUN_WORKSPACE_EVIDENCE_AUDIT_WORKFLOW_NAME",
+    "PRODUCT_GATEWAY_CLI_OPERATION_FLOW_WORKFLOW_NAMES",
     "ProductGatewayCliReferenceReaderPolicySchema",
     "ProductGatewayCliSurfaceBaseModel",
-    "ProductGatewayCliTaskWorkflowName",
+    "ProductGatewayCliOperationFlowName",
     "ProductGatewayCliToolExposureResolutionSchema",
-    "ProductGatewayCliTwfExecutionInputSchema",
-    "ProductGatewayCliTwfExecutionOptionsSchema",
-    "ProductGatewayCliTwfExecutionResultSchema",
-    "ProductGatewayCliTwfGovernanceRefsSchema",
-    "ProductGatewayCliTwfLatestPlanSnapshotSchema",
-    "ProductGatewayCliTwfReferenceWorkspaceControlsSchema",
-    "ProductGatewayCliTwfRequestDraftInputSchema",
-    "ProductGatewayCliTwfRunWorkspaceSnapshotSchema",
-    "ProductGatewayCliTwfRouteInputSchema",
-    "ProductGatewayCliTwfRouteProjectionSchema",
-    "ProductGatewayCliTwfStatusSummaryPersistenceSchema",
+    "ProductGatewayCliOperationFlowExecutionInputSchema",
+    "ProductGatewayCliOperationFlowExecutionOptionsSchema",
+    "ProductGatewayCliOperationFlowExecutionResultSchema",
+    "ProductGatewayCliOperationFlowGovernanceRefsSchema",
+    "ProductGatewayCliOperationFlowLatestPlanSnapshotSchema",
+    "ProductGatewayCliOperationFlowReferenceWorkspaceControlsSchema",
+    "ProductGatewayCliOperationFlowRequestDraftInputSchema",
+    "ProductGatewayCliOperationFlowRunWorkspaceSnapshotSchema",
+    "ProductGatewayCliOperationFlowRouteInputSchema",
+    "ProductGatewayCliOperationFlowRouteProjectionSchema",
+    "ProductGatewayCliOperationFlowStatusSummaryPersistenceSchema",
     "RAW_OR_SENSITIVE_PRODUCT_GATEWAY_CLI_KEYS",
     "product_gateway_cli_surface_boundary_violations",
     "validate_product_gateway_cli_surface_contract",

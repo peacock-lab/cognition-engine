@@ -1,16 +1,17 @@
 [project]
 name = "cognition-system-cli"
-version = "0.8.0"
-readme = { text = "Cognition System v0.8.0 public CLI package. See the version-specific public README in the release repository for usage and boundary notes.", content-type = "text/markdown" }
-description = "Candidate CLI entry package for the Cognition System."
+version = "0.8.1"
+readme = { text = "Cognition System v0.8.1 public CLI package. See the version-specific public README in the release repository for usage and boundary notes.", content-type = "text/markdown" }
+description = "Command-line channel adapter and terminal presenter for the Cognition System."
 requires-python = ">=3.14"
 dependencies = [
-  "cognition-system-config-assembly==0.8.0",
-  "cognition-system-config-contexts==0.8.0",
-  "cognition-system-contract-core==0.8.0",
-  "cognition-system-external-readonly==0.8.0",
-  "cognition-system-product-application-assembly==0.8.0",
-  "cognition-system-product-gateway==0.8.0",
+  "cognition-system-config-assembly==0.8.1",
+  "cognition-system-config-contexts==0.8.1",
+  "cognition-system-contract-core==0.8.1",
+  "cognition-system-evaluation==0.8.1",
+  "cognition-system-external-readonly==0.8.1",
+  "cognition-system-product-application-assembly==0.8.1",
+  "cognition-system-product-gateway==0.8.1",
 ]
 
 [build-system]
@@ -24,6 +25,7 @@ packages = ["src/cognition_cli"]
 cognition-system-config-assembly = { workspace = true }
 cognition-system-config-contexts = { workspace = true }
 cognition-system-contract-core = { workspace = true }
+cognition-system-evaluation = { workspace = true }
 cognition-system-external-readonly = { workspace = true }
 cognition-system-product-application-assembly = { workspace = true }
 cognition-system-product-gateway = { workspace = true }

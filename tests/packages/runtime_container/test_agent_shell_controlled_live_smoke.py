@@ -147,7 +147,10 @@ def test_agent_shell_controlled_live_smoke_module_keeps_runtime_boundary() -> No
     assert "raw_provider_payload_included" in source
     assert "scripts" not in pyproject["project"]
     assert product_runtime_pyproject["project"]["scripts"] == {
-        "cognition": "product_runtime_assembly.entrypoints.cognition:main"
+        "cognition": "product_runtime_assembly.entrypoints.cognition:main",
+        "cognition-console": (
+            "product_runtime_assembly.entrypoints.cognition_console:main"
+        ),
     }
 
 

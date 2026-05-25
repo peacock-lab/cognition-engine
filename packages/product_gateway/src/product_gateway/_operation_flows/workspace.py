@@ -1,4 +1,4 @@
-"""Product gateway workspace operations for task workflow artifacts."""
+"""Product gateway workspace operations for operation flow artifacts."""
 
 from __future__ import annotations
 
@@ -16,14 +16,14 @@ from cognition_operation_flows.product_entry_service import (
 )
 
 
-def build_internal_twf_run_workspace_policy(
+def build_internal_operation_flow_run_workspace_policy(
     *,
     workspace_root: str | Path,
     retention_policy: str,
     cleanup_policy: str,
     max_write_bytes: int,
 ) -> Any:
-    """Build a governed task workflow run-workspace policy."""
+    """Build a governed operation flow run-workspace policy."""
 
     return build_operation_flow_product_entry_run_workspace_policy(
         workspace_root=workspace_root,
@@ -33,13 +33,13 @@ def build_internal_twf_run_workspace_policy(
     )
 
 
-def create_internal_twf_run_workspace(
+def create_internal_operation_flow_run_workspace(
     *,
     policy: Any,
     workflow_name: str,
     run_id: str,
 ) -> Any:
-    """Create a governed task workflow run workspace."""
+    """Create a governed operation flow run workspace."""
 
     return create_operation_flow_product_entry_run_workspace(
         policy=policy,
@@ -48,7 +48,7 @@ def create_internal_twf_run_workspace(
     )
 
 
-def write_internal_twf_run_workspace_json(
+def write_internal_operation_flow_run_workspace_json(
     workspace: Any,
     *,
     relative_path: str,
@@ -56,7 +56,7 @@ def write_internal_twf_run_workspace_json(
     kind: str,
     max_write_bytes: int,
 ) -> tuple[Any, Any]:
-    """Write a governed JSON artifact to a task workflow run workspace."""
+    """Write a governed JSON artifact to a operation flow run workspace."""
 
     return write_operation_flow_product_entry_run_workspace_json(
         workspace,
@@ -67,7 +67,7 @@ def write_internal_twf_run_workspace_json(
     )
 
 
-def write_internal_twf_run_workspace_text(
+def write_internal_operation_flow_run_workspace_text(
     workspace: Any,
     *,
     relative_path: str,
@@ -75,7 +75,7 @@ def write_internal_twf_run_workspace_text(
     kind: str,
     max_write_bytes: int | None = None,
 ) -> tuple[Any, Any]:
-    """Write a governed text artifact to a task workflow run workspace."""
+    """Write a governed text artifact to a operation flow run workspace."""
 
     return write_operation_flow_product_entry_run_workspace_text(
         workspace,
@@ -86,13 +86,13 @@ def write_internal_twf_run_workspace_text(
     )
 
 
-def finalize_internal_twf_run_workspace(
+def finalize_internal_operation_flow_run_workspace(
     workspace: Any,
     *,
     status: str,
     metadata: Mapping[str, Any] | None = None,
 ) -> Any:
-    """Finalize a governed task workflow run workspace."""
+    """Finalize a governed operation flow run workspace."""
 
     return finalize_operation_flow_product_entry_run_workspace(
         workspace,
@@ -101,19 +101,19 @@ def finalize_internal_twf_run_workspace(
     )
 
 
-def restore_internal_twf_run_workspace_snapshot(
+def restore_internal_operation_flow_run_workspace_snapshot(
     snapshot: Mapping[str, Any],
 ) -> Any:
-    """Restore a governed task workflow workspace state from a snapshot."""
+    """Restore a governed operation flow workspace state from a snapshot."""
 
     return restore_operation_flow_product_entry_run_workspace_snapshot(snapshot)
 
 
 __all__ = [
-    "build_internal_twf_run_workspace_policy",
-    "create_internal_twf_run_workspace",
-    "finalize_internal_twf_run_workspace",
-    "restore_internal_twf_run_workspace_snapshot",
-    "write_internal_twf_run_workspace_json",
-    "write_internal_twf_run_workspace_text",
+    "build_internal_operation_flow_run_workspace_policy",
+    "create_internal_operation_flow_run_workspace",
+    "finalize_internal_operation_flow_run_workspace",
+    "restore_internal_operation_flow_run_workspace_snapshot",
+    "write_internal_operation_flow_run_workspace_json",
+    "write_internal_operation_flow_run_workspace_text",
 ]

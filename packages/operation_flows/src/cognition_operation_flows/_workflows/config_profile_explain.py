@@ -9,28 +9,28 @@ import re
 from typing import Any
 
 from cognition_operation_flows._core.run_workspace import (
-    TwfRunWorkspaceStateCandidate,
-    build_twf_run_workspace_policy,
-    cleanup_twf_run_workspace,
-    twf_run_workspace_status_dict,
-    create_twf_run_workspace,
-    finalize_twf_run_workspace,
-    write_twf_run_workspace_json,
-    write_twf_run_workspace_text,
+    OperationFlowRunWorkspaceStateCandidate,
+    build_operation_flow_run_workspace_policy,
+    cleanup_operation_flow_run_workspace,
+    operation_flow_run_workspace_status_dict,
+    create_operation_flow_run_workspace,
+    finalize_operation_flow_run_workspace,
+    write_operation_flow_run_workspace_json,
+    write_operation_flow_run_workspace_text,
 )
 from cognition_operation_flows._core.control import (
-    TWF_CONFIG_PRECEDENCE,
+    OPERATION_FLOW_CONFIG_PRECEDENCE,
     MANAGED_GOVERNANCE_PARAMETERS,
-    TwfRunContextCandidate,
-    build_twf_run_context,
-    twf_run_context_status_dict,
-    finalize_twf_run_context,
+    OperationFlowRunContextCandidate,
+    build_operation_flow_run_context,
+    operation_flow_run_context_status_dict,
+    finalize_operation_flow_run_context,
 )
 
 
-TWF_CONFIG_PROFILE_EXPLAIN_WORKFLOW_NAME = "twf_config_profile_explain_workflow"
-TWF_CONFIG_PROFILE_EXPLAIN_TASK_KIND = "config_profile_explain"
-TWF_CONFIG_PROFILE_EXPLAIN_TEMPLATE_VERSION = "config_profile_explain_template_v1"
+OPERATION_FLOW_CONFIG_PROFILE_EXPLAIN_WORKFLOW_NAME = "operation_flow_config_profile_explain_workflow"
+OPERATION_FLOW_CONFIG_PROFILE_EXPLAIN_TASK_KIND = "config_profile_explain"
+OPERATION_FLOW_CONFIG_PROFILE_EXPLAIN_TEMPLATE_VERSION = "config_profile_explain_template_v1"
 CONFIG_PROFILE_EXPLAIN_DISPLAY_PREVIEW_LIMIT = 4000
 CONFIG_PROFILE_EXPLAIN_KEYWORDS = (
     "解释配置",
@@ -78,7 +78,7 @@ PROTECTED_RUNTIME_TERMS = ("Agent runtime", "Skills runtime", "ADK SkillRegistry
 
 
 @dataclass(frozen=True)
-class TwfConfigProfileExplainWorkflowRequestCandidate:
+class OperationFlowConfigProfileExplainWorkflowRequestCandidate:
     """Request entering the task config profile explain workflow."""
 
     user_text: str
@@ -117,7 +117,7 @@ class TwfConfigProfileExplainWorkflowRequestCandidate:
 
 
 @dataclass(frozen=True)
-class TwfConfigProfileExplainFactsCandidate:
+class OperationFlowConfigProfileExplainFactsCandidate:
     """Minimal config explain intent facts."""
 
     original_text: str
@@ -128,7 +128,7 @@ class TwfConfigProfileExplainFactsCandidate:
 
 
 @dataclass(frozen=True)
-class TwfConfigProfileExplainValueCandidate:
+class OperationFlowConfigProfileExplainValueCandidate:
     """One effective configuration value and its source."""
 
     name: str
@@ -138,7 +138,7 @@ class TwfConfigProfileExplainValueCandidate:
 
 
 @dataclass(frozen=True)
-class TwfConfigProfileExplainContextCandidate:
+class OperationFlowConfigProfileExplainContextCandidate:
     """Sanitized configuration explanation context."""
 
     status: str
@@ -154,7 +154,7 @@ class TwfConfigProfileExplainContextCandidate:
     run_workspace_summary: dict[str, Any]
     live_llm_summary: dict[str, Any]
     governance_boundary_summary: dict[str, Any]
-    effective_values: tuple[TwfConfigProfileExplainValueCandidate, ...]
+    effective_values: tuple[OperationFlowConfigProfileExplainValueCandidate, ...]
     risk_boundaries: tuple[str, ...]
     blocking_reasons: tuple[str, ...] = ()
     warnings: tuple[str, ...] = ()
@@ -162,23 +162,23 @@ class TwfConfigProfileExplainContextCandidate:
 
 
 @dataclass(frozen=True)
-class TwfConfigProfileExplainWorkflowResultCandidate:
+class OperationFlowConfigProfileExplainWorkflowResultCandidate:
     """Final workflow result returned to cognition chat."""
 
     triggered: bool
     terminal_display_text: str
-    request: TwfConfigProfileExplainWorkflowRequestCandidate
-    facts: TwfConfigProfileExplainFactsCandidate
-    explain_context: TwfConfigProfileExplainContextCandidate
+    request: OperationFlowConfigProfileExplainWorkflowRequestCandidate
+    facts: OperationFlowConfigProfileExplainFactsCandidate
+    explain_context: OperationFlowConfigProfileExplainContextCandidate
     model_call_count: int = 0
     no_live: bool = True
     fail_safe: bool = False
-    task_run_context: TwfRunContextCandidate | None = None
-    run_workspace: TwfRunWorkspaceStateCandidate | None = None
+    task_run_context: OperationFlowRunContextCandidate | None = None
+    run_workspace: OperationFlowRunWorkspaceStateCandidate | None = None
     metadata: dict[str, Any] = field(default_factory=dict)
 
 
-def detect_twf_config_profile_explain_request(user_text: str) -> bool:
+def detect_operation_flow_config_profile_explain_request(user_text: str) -> bool:
     """Return whether a turn should route to config profile explain."""
 
     normalized = _compact_text(user_text)
@@ -192,9 +192,9 @@ def detect_twf_config_profile_explain_request(user_text: str) -> bool:
     return any(keyword.lower() in lowered for keyword in CONFIG_PROFILE_EXPLAIN_KEYWORDS)
 
 
-def extract_twf_config_profile_explain_facts(
-    request: TwfConfigProfileExplainWorkflowRequestCandidate,
-) -> TwfConfigProfileExplainFactsCandidate:
+def extract_operation_flow_config_profile_explain_facts(
+    request: OperationFlowConfigProfileExplainWorkflowRequestCandidate,
+) -> OperationFlowConfigProfileExplainFactsCandidate:
     """Extract bounded config explain intent facts."""
 
     normalized = _compact_text(request.user_text)
@@ -205,9 +205,9 @@ def extract_twf_config_profile_explain_facts(
         if keyword.lower() in lowered
     )
     focus = _requested_focus(lowered)
-    return TwfConfigProfileExplainFactsCandidate(
+    return OperationFlowConfigProfileExplainFactsCandidate(
         original_text=request.user_text,
-        task_kind=TWF_CONFIG_PROFILE_EXPLAIN_TASK_KIND,
+        task_kind=OPERATION_FLOW_CONFIG_PROFILE_EXPLAIN_TASK_KIND,
         requested_focus=focus,
         matched_terms=matched_terms,
         metadata={
@@ -217,21 +217,21 @@ def extract_twf_config_profile_explain_facts(
     )
 
 
-def run_twf_config_profile_explain_workflow(
-    request: TwfConfigProfileExplainWorkflowRequestCandidate,
-) -> TwfConfigProfileExplainWorkflowResultCandidate:
+def run_operation_flow_config_profile_explain_workflow(
+    request: OperationFlowConfigProfileExplainWorkflowRequestCandidate,
+) -> OperationFlowConfigProfileExplainWorkflowResultCandidate:
     """Run the governed task config profile explain workflow."""
 
-    facts = extract_twf_config_profile_explain_facts(request)
+    facts = extract_operation_flow_config_profile_explain_facts(request)
     task_context = _build_config_profile_explain_task_context(request, facts)
     if not task_context.preflight.allowed:
-        task_context = finalize_twf_run_context(
+        task_context = finalize_operation_flow_run_context(
             task_context,
             status="blocked",
             metadata={"blocked_before_config_explain": True},
         )
         explain_context = _blocked_explain_context(request, facts, task_context)
-        return TwfConfigProfileExplainWorkflowResultCandidate(
+        return OperationFlowConfigProfileExplainWorkflowResultCandidate(
             triggered=True,
             terminal_display_text=_preflight_blocked_terminal_display(task_context),
             request=request,
@@ -240,7 +240,7 @@ def run_twf_config_profile_explain_workflow(
             fail_safe=True,
             task_run_context=task_context,
             metadata={
-                "workflow": TWF_CONFIG_PROFILE_EXPLAIN_WORKFLOW_NAME,
+                "workflow": OPERATION_FLOW_CONFIG_PROFILE_EXPLAIN_WORKFLOW_NAME,
                 **_task_context_metadata(task_context),
             },
         )
@@ -260,7 +260,7 @@ def run_twf_config_profile_explain_workflow(
             },
         )
         explain_context = _blocked_explain_context(request, facts, task_context)
-        return TwfConfigProfileExplainWorkflowResultCandidate(
+        return OperationFlowConfigProfileExplainWorkflowResultCandidate(
             triggered=True,
             terminal_display_text=_workspace_blocked_terminal_display(
                 task_context,
@@ -273,14 +273,14 @@ def run_twf_config_profile_explain_workflow(
             task_run_context=task_context,
             run_workspace=run_workspace,
             metadata={
-                "workflow": TWF_CONFIG_PROFILE_EXPLAIN_WORKFLOW_NAME,
+                "workflow": OPERATION_FLOW_CONFIG_PROFILE_EXPLAIN_WORKFLOW_NAME,
                 **_task_context_metadata(task_context),
                 **_run_workspace_metadata(run_workspace),
             },
         )
 
-    explain_context = build_twf_config_profile_explain_context(request, facts)
-    display = format_twf_config_profile_explain_for_terminal(explain_context)
+    explain_context = build_operation_flow_config_profile_explain_context(request, facts)
+    display = format_operation_flow_config_profile_explain_for_terminal(explain_context)
     run_workspace = _finalize_config_profile_explain_run_workspace(
         run_workspace,
         status=explain_context.status,
@@ -288,7 +288,7 @@ def run_twf_config_profile_explain_workflow(
         facts=facts,
         explain_context=explain_context,
     )
-    task_context = finalize_twf_run_context(
+    task_context = finalize_operation_flow_run_context(
         task_context,
         status=explain_context.status,
         evidence_refs=run_workspace.evidence_refs if run_workspace else (),
@@ -297,9 +297,9 @@ def run_twf_config_profile_explain_workflow(
         workspace_created=run_workspace.workspace_created if run_workspace else None,
         retention_policy=run_workspace.retention_policy if run_workspace else None,
         cleanup_policy=run_workspace.cleanup_policy if run_workspace else None,
-        workspace_metadata=twf_run_workspace_status_dict(run_workspace),
+        workspace_metadata=operation_flow_run_workspace_status_dict(run_workspace),
     )
-    return TwfConfigProfileExplainWorkflowResultCandidate(
+    return OperationFlowConfigProfileExplainWorkflowResultCandidate(
         triggered=True,
         terminal_display_text=display,
         request=request,
@@ -308,7 +308,7 @@ def run_twf_config_profile_explain_workflow(
         task_run_context=task_context,
         run_workspace=run_workspace,
         metadata={
-            "workflow": TWF_CONFIG_PROFILE_EXPLAIN_WORKFLOW_NAME,
+            "workflow": OPERATION_FLOW_CONFIG_PROFILE_EXPLAIN_WORKFLOW_NAME,
             **_task_context_metadata(task_context),
             **_config_explain_context_metadata(explain_context),
             **_run_workspace_metadata(run_workspace),
@@ -316,13 +316,13 @@ def run_twf_config_profile_explain_workflow(
     )
 
 
-def build_twf_config_profile_explain_context(
-    request: TwfConfigProfileExplainWorkflowRequestCandidate,
-    facts: TwfConfigProfileExplainFactsCandidate | None = None,
-) -> TwfConfigProfileExplainContextCandidate:
+def build_operation_flow_config_profile_explain_context(
+    request: OperationFlowConfigProfileExplainWorkflowRequestCandidate,
+    facts: OperationFlowConfigProfileExplainFactsCandidate | None = None,
+) -> OperationFlowConfigProfileExplainContextCandidate:
     """Build a sanitized explanation context from parsed runtime config views."""
 
-    resolved_facts = facts or extract_twf_config_profile_explain_facts(request)
+    resolved_facts = facts or extract_operation_flow_config_profile_explain_facts(request)
     config_context = request.config_context
     warnings: list[str] = []
     if config_context is None:
@@ -333,34 +333,34 @@ def build_twf_config_profile_explain_context(
     live_summary = _live_llm_summary(request)
     governance_summary = _governance_boundary_summary(request)
     effective_values = (
-        TwfConfigProfileExplainValueCandidate(
+        OperationFlowConfigProfileExplainValueCandidate(
             name="tool_exposure_profile",
             effective_value=str(tool_summary["profile_name"]),
             source=str(tool_summary["source"]),
         ),
-        TwfConfigProfileExplainValueCandidate(
+        OperationFlowConfigProfileExplainValueCandidate(
             name="reference_reader",
             effective_value=str(reference_summary["status"]),
             source=str(reference_summary["source"]),
         ),
-        TwfConfigProfileExplainValueCandidate(
+        OperationFlowConfigProfileExplainValueCandidate(
             name="run_workspace",
             effective_value="enabled" if workspace_summary["enabled"] else "disabled",
             source=str(workspace_summary["source"]),
         ),
-        TwfConfigProfileExplainValueCandidate(
+        OperationFlowConfigProfileExplainValueCandidate(
             name="live_llm",
             effective_value=str(live_summary["status"]),
             source=str(live_summary["source"]),
         ),
-        TwfConfigProfileExplainValueCandidate(
+        OperationFlowConfigProfileExplainValueCandidate(
             name="governance_refs",
             effective_value=str(governance_summary["status"]),
             source="entrypoint_explicit_args",
             note="only presence is reported; raw refs are redacted",
         ),
     )
-    return TwfConfigProfileExplainContextCandidate(
+    return OperationFlowConfigProfileExplainContextCandidate(
         status="succeeded",
         config_context_available=config_context is not None,
         config_context_source=(
@@ -371,7 +371,7 @@ def build_twf_config_profile_explain_context(
         config_root_sanitized=_sanitize_path_label(request.config_root),
         environment=request.environment or "local",
         profile=request.profile,
-        precedence=TWF_CONFIG_PRECEDENCE,
+        precedence=OPERATION_FLOW_CONFIG_PRECEDENCE,
         requested_focus=resolved_facts.requested_focus,
         tool_exposure_summary=tool_summary,
         reference_reader_summary=reference_summary,
@@ -390,7 +390,7 @@ def build_twf_config_profile_explain_context(
         ),
         warnings=tuple(_ordered_unique(warnings)),
         metadata={
-            "template_version": TWF_CONFIG_PROFILE_EXPLAIN_TEMPLATE_VERSION,
+            "template_version": OPERATION_FLOW_CONFIG_PROFILE_EXPLAIN_TEMPLATE_VERSION,
             "redaction_applied": True,
             "does_not_read_raw_config_directly": True,
             "does_not_execute_tools": True,
@@ -399,8 +399,8 @@ def build_twf_config_profile_explain_context(
     )
 
 
-def format_twf_config_profile_explain_for_terminal(
-    explain_context: TwfConfigProfileExplainContextCandidate,
+def format_operation_flow_config_profile_explain_for_terminal(
+    explain_context: OperationFlowConfigProfileExplainContextCandidate,
 ) -> str:
     """Format the config explain context for terminal display."""
 
@@ -467,7 +467,7 @@ def format_twf_config_profile_explain_for_terminal(
 
 
 def _tool_and_reference_summary(
-    request: TwfConfigProfileExplainWorkflowRequestCandidate,
+    request: OperationFlowConfigProfileExplainWorkflowRequestCandidate,
 ) -> tuple[dict[str, Any], dict[str, Any]]:
     tool_exposure = getattr(request.config_context, "tool_exposure", None)
     profile_config = (
@@ -507,7 +507,7 @@ def _tool_and_reference_summary(
             "profile_name": profile_name,
             "source": source,
             "selected_tool_names": _ordered_unique(selected_tool_names),
-            "config_precedence": list(TWF_CONFIG_PRECEDENCE),
+            "config_precedence": list(OPERATION_FLOW_CONFIG_PRECEDENCE),
             "raw_config_included": False,
         },
         {
@@ -530,7 +530,7 @@ def _tool_and_reference_summary(
 
 
 def _run_workspace_summary(
-    request: TwfConfigProfileExplainWorkflowRequestCandidate,
+    request: OperationFlowConfigProfileExplainWorkflowRequestCandidate,
 ) -> dict[str, Any]:
     run_workspace = getattr(request.config_context, "run_workspace", None)
     configured = run_workspace.to_policy_kwargs() if run_workspace is not None else {}
@@ -563,7 +563,7 @@ def _run_workspace_summary(
 
 
 def _live_llm_summary(
-    request: TwfConfigProfileExplainWorkflowRequestCandidate,
+    request: OperationFlowConfigProfileExplainWorkflowRequestCandidate,
 ) -> dict[str, Any]:
     live_llm = getattr(request.config_context, "live_llm", None)
     entrypoint_keys = set(request.entrypoint_explicit_args)
@@ -606,7 +606,7 @@ def _live_llm_summary(
 
 
 def _governance_boundary_summary(
-    request: TwfConfigProfileExplainWorkflowRequestCandidate,
+    request: OperationFlowConfigProfileExplainWorkflowRequestCandidate,
 ) -> dict[str, Any]:
     refs_present = {
         "approval_ref": bool(request.approval_ref),
@@ -625,12 +625,12 @@ def _governance_boundary_summary(
 
 
 def _build_config_profile_explain_task_context(
-    request: TwfConfigProfileExplainWorkflowRequestCandidate,
-    facts: TwfConfigProfileExplainFactsCandidate,
-) -> TwfRunContextCandidate:
-    return build_twf_run_context(
-        workflow_name=TWF_CONFIG_PROFILE_EXPLAIN_WORKFLOW_NAME,
-        task_kind=TWF_CONFIG_PROFILE_EXPLAIN_TASK_KIND,
+    request: OperationFlowConfigProfileExplainWorkflowRequestCandidate,
+    facts: OperationFlowConfigProfileExplainFactsCandidate,
+) -> OperationFlowRunContextCandidate:
+    return build_operation_flow_run_context(
+        workflow_name=OPERATION_FLOW_CONFIG_PROFILE_EXPLAIN_WORKFLOW_NAME,
+        task_kind=OPERATION_FLOW_CONFIG_PROFILE_EXPLAIN_TASK_KIND,
         session_id=request.chat_session_id,
         turn_index=request.turn_index,
         live_model_allowed=False,
@@ -651,19 +651,19 @@ def _build_config_profile_explain_task_context(
 
 
 def _create_config_profile_explain_run_workspace(
-    request: TwfConfigProfileExplainWorkflowRequestCandidate,
-    task_context: TwfRunContextCandidate,
-) -> TwfRunWorkspaceStateCandidate | None:
+    request: OperationFlowConfigProfileExplainWorkflowRequestCandidate,
+    task_context: OperationFlowRunContextCandidate,
+) -> OperationFlowRunWorkspaceStateCandidate | None:
     if not request.run_workspace_enabled and not request.run_workspace_root:
         return None
     workspace_root = request.run_workspace_root or ".cognition-runs"
-    policy = build_twf_run_workspace_policy(
+    policy = build_operation_flow_run_workspace_policy(
         workspace_root=workspace_root,
         retention_policy=request.run_workspace_retention_policy,
         cleanup_policy=request.run_workspace_cleanup_policy,
         max_write_bytes=request.run_workspace_max_write_bytes,
     )
-    return create_twf_run_workspace(
+    return create_operation_flow_run_workspace(
         policy=policy,
         workflow_name=task_context.workflow_name,
         run_id=task_context.run_id,
@@ -671,35 +671,35 @@ def _create_config_profile_explain_run_workspace(
 
 
 def _finalize_config_profile_explain_run_workspace(
-    run_workspace: TwfRunWorkspaceStateCandidate | None,
+    run_workspace: OperationFlowRunWorkspaceStateCandidate | None,
     *,
     status: str,
     terminal_display_text: str,
-    facts: TwfConfigProfileExplainFactsCandidate,
-    explain_context: TwfConfigProfileExplainContextCandidate,
-) -> TwfRunWorkspaceStateCandidate | None:
+    facts: OperationFlowConfigProfileExplainFactsCandidate,
+    explain_context: OperationFlowConfigProfileExplainContextCandidate,
+) -> OperationFlowRunWorkspaceStateCandidate | None:
     if run_workspace is None or not run_workspace.workspace_created:
         return run_workspace
     max_write_bytes = int(run_workspace.metadata.get("max_write_bytes") or 65536)
-    run_workspace, _ = write_twf_run_workspace_json(
+    run_workspace, _ = write_operation_flow_run_workspace_json(
         run_workspace,
         relative_path="evidence/config_explain_context.json",
         payload=_config_explain_context_workspace_payload(explain_context),
         kind="evidence",
         max_write_bytes=max_write_bytes,
     )
-    run_workspace, _ = write_twf_run_workspace_text(
+    run_workspace, _ = write_operation_flow_run_workspace_text(
         run_workspace,
         relative_path="artifacts/terminal_display.txt",
         text=terminal_display_text + "\n",
         kind="artifact",
         max_write_bytes=max_write_bytes,
     )
-    run_workspace, _ = write_twf_run_workspace_json(
+    run_workspace, _ = write_operation_flow_run_workspace_json(
         run_workspace,
         relative_path="results/workflow_result.json",
         payload={
-            "workflow": TWF_CONFIG_PROFILE_EXPLAIN_WORKFLOW_NAME,
+            "workflow": OPERATION_FLOW_CONFIG_PROFILE_EXPLAIN_WORKFLOW_NAME,
             "status": status,
             "task_kind": facts.task_kind,
             "requested_focus": list(facts.requested_focus),
@@ -707,28 +707,28 @@ def _finalize_config_profile_explain_run_workspace(
             "model_call_count": 0,
             "no_live": True,
             "fail_safe": False,
-            "template_version": TWF_CONFIG_PROFILE_EXPLAIN_TEMPLATE_VERSION,
+            "template_version": OPERATION_FLOW_CONFIG_PROFILE_EXPLAIN_TEMPLATE_VERSION,
             "config_context_available": explain_context.config_context_available,
         },
         kind="result",
         max_write_bytes=max_write_bytes,
     )
-    run_workspace = finalize_twf_run_workspace(
+    run_workspace = finalize_operation_flow_run_workspace(
         run_workspace,
         status=status,
         metadata={
-            "workflow": TWF_CONFIG_PROFILE_EXPLAIN_WORKFLOW_NAME,
+            "workflow": OPERATION_FLOW_CONFIG_PROFILE_EXPLAIN_WORKFLOW_NAME,
             "model_call_count": 0,
             "fail_safe": False,
-            "template_version": TWF_CONFIG_PROFILE_EXPLAIN_TEMPLATE_VERSION,
+            "template_version": OPERATION_FLOW_CONFIG_PROFILE_EXPLAIN_TEMPLATE_VERSION,
         },
     )
-    run_workspace, _ = cleanup_twf_run_workspace(run_workspace, status=status)
+    run_workspace, _ = cleanup_operation_flow_run_workspace(run_workspace, status=status)
     return run_workspace
 
 
 def _config_explain_context_workspace_payload(
-    explain_context: TwfConfigProfileExplainContextCandidate,
+    explain_context: OperationFlowConfigProfileExplainContextCandidate,
 ) -> dict[str, Any]:
     return {
         "status": explain_context.status,
@@ -762,18 +762,18 @@ def _config_explain_context_workspace_payload(
 
 
 def _blocked_explain_context(
-    request: TwfConfigProfileExplainWorkflowRequestCandidate,
-    facts: TwfConfigProfileExplainFactsCandidate,
-    task_context: TwfRunContextCandidate,
-) -> TwfConfigProfileExplainContextCandidate:
-    return TwfConfigProfileExplainContextCandidate(
+    request: OperationFlowConfigProfileExplainWorkflowRequestCandidate,
+    facts: OperationFlowConfigProfileExplainFactsCandidate,
+    task_context: OperationFlowRunContextCandidate,
+) -> OperationFlowConfigProfileExplainContextCandidate:
+    return OperationFlowConfigProfileExplainContextCandidate(
         status="blocked",
         config_context_available=request.config_context is not None,
         config_context_source="blocked_before_config_explain",
         config_root_sanitized=_sanitize_path_label(request.config_root),
         environment=request.environment,
         profile=request.profile,
-        precedence=TWF_CONFIG_PRECEDENCE,
+        precedence=OPERATION_FLOW_CONFIG_PRECEDENCE,
         requested_focus=facts.requested_focus,
         tool_exposure_summary={},
         reference_reader_summary={},
@@ -788,13 +788,13 @@ def _blocked_explain_context(
 
 
 def _finalize_task_context_with_run_workspace(
-    task_context: TwfRunContextCandidate,
+    task_context: OperationFlowRunContextCandidate,
     *,
     status: str,
-    run_workspace: TwfRunWorkspaceStateCandidate | None,
+    run_workspace: OperationFlowRunWorkspaceStateCandidate | None,
     metadata: Mapping[str, Any] | None = None,
-) -> TwfRunContextCandidate:
-    return finalize_twf_run_context(
+) -> OperationFlowRunContextCandidate:
+    return finalize_operation_flow_run_context(
         task_context,
         status=status,
         artifact_refs=_run_workspace_artifact_and_result_refs(run_workspace),
@@ -803,13 +803,13 @@ def _finalize_task_context_with_run_workspace(
         workspace_created=run_workspace.workspace_created if run_workspace else None,
         retention_policy=run_workspace.retention_policy if run_workspace else None,
         cleanup_policy=run_workspace.cleanup_policy if run_workspace else None,
-        workspace_metadata=twf_run_workspace_status_dict(run_workspace),
+        workspace_metadata=operation_flow_run_workspace_status_dict(run_workspace),
         metadata=metadata,
     )
 
 
 def _preflight_blocked_terminal_display(
-    task_context: TwfRunContextCandidate,
+    task_context: OperationFlowRunContextCandidate,
 ) -> str:
     reasons = ", ".join(task_context.preflight.blocking_reasons)
     return "\n".join(
@@ -823,8 +823,8 @@ def _preflight_blocked_terminal_display(
 
 
 def _workspace_blocked_terminal_display(
-    task_context: TwfRunContextCandidate,
-    run_workspace: TwfRunWorkspaceStateCandidate,
+    task_context: OperationFlowRunContextCandidate,
+    run_workspace: OperationFlowRunWorkspaceStateCandidate,
 ) -> str:
     reasons = ", ".join(run_workspace.blocking_reasons)
     return "\n".join(
@@ -838,14 +838,14 @@ def _workspace_blocked_terminal_display(
     )
 
 
-def _task_context_metadata(task_context: TwfRunContextCandidate) -> dict[str, Any]:
+def _task_context_metadata(task_context: OperationFlowRunContextCandidate) -> dict[str, Any]:
     return {
-        "task_control": twf_run_context_status_dict(task_context),
+        "operation_control": operation_flow_run_context_status_dict(task_context),
     }
 
 
 def _config_explain_context_metadata(
-    explain_context: TwfConfigProfileExplainContextCandidate,
+    explain_context: OperationFlowConfigProfileExplainContextCandidate,
 ) -> dict[str, Any]:
     return {
         "config_explain": {
@@ -858,14 +858,14 @@ def _config_explain_context_metadata(
 
 
 def _run_workspace_metadata(
-    run_workspace: TwfRunWorkspaceStateCandidate | None,
+    run_workspace: OperationFlowRunWorkspaceStateCandidate | None,
 ) -> dict[str, Any]:
-    status = twf_run_workspace_status_dict(run_workspace)
+    status = operation_flow_run_workspace_status_dict(run_workspace)
     return {"run_workspace": status} if status is not None else {}
 
 
 def _run_workspace_artifact_and_result_refs(
-    run_workspace: TwfRunWorkspaceStateCandidate | None,
+    run_workspace: OperationFlowRunWorkspaceStateCandidate | None,
 ) -> tuple[str, ...]:
     if run_workspace is None:
         return ()

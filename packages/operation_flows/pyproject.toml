@@ -1,13 +1,13 @@
 [project]
 name = "cognition-system-operation-flows"
-version = "0.8.2"
+version = "0.8.3"
 description = "Product-level governed operation flows package for the Cognition System."
-readme = { text = "Cognition System v0.8.2 public package. See the version-specific public README in the release repository for usage and boundary notes.", content-type = "text/markdown" }
+readme = { text = "Cognition System v0.8.3 public package. See the version-specific public README in the release repository for usage and boundary notes.", content-type = "text/markdown" }
 requires-python = ">=3.14"
 dependencies = [
-  "cognition-system-config-contexts==0.8.2",
-  "cognition-system-contract-core==0.8.2",
-  "cognition-system-runtime==0.8.2",
+  "cognition-system-config-contexts==0.8.3",
+  "cognition-system-contract-core==0.8.3",
+  "cognition-system-runtime==0.8.3",
   "pydantic>=2.13.0",
 ]
 

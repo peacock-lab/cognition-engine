@@ -2,7 +2,7 @@
 
 [English](README.md) | 简体中文
 
-当前发布候选版本：`v0.8.2`
+当前发布候选版本：`v0.8.3`
 
 Cognition System 是一个面向受治理 AI 协作的认知能力系统：它把大模型、工具生态、运行能力和治理规则组合起来，在明确授权和可复查边界内帮助用户理解资料、处理任务并交付可追踪结果。
 
@@ -36,13 +36,13 @@ cognition external-readonly ask --guided
 
 ```bash
 python -m pip install --upgrade pip
-python -m pip install "cognition-system==0.8.2"
+python -m pip install "cognition-system==0.8.3"
 ```
 
 或使用 uv：
 
 ```bash
-uv pip install "cognition-system==0.8.2"
+uv pip install "cognition-system==0.8.3"
 ```
 
 需要 Python `3.14`。

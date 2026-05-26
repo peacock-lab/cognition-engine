@@ -53,7 +53,7 @@ def test_run_config_options_build_real_adk_run_config() -> None:
     assert run_config.get_session_config.num_recent_events == 3
     assert metadata["adk_run_config_module"] == "google.adk.agents.run_config"
     assert metadata["streaming_mode"] == "sse"
-    assert metadata["adk_run_config_version"] == "2.0.0"
+    assert metadata["adk_run_config_version"] == "2.1.0"
     assert "speech_config" in metadata["official_fields"]
     assert "tool_thread_pool_config" in metadata["unmapped_fields"]
     assert metadata["field_policies"]["tool_thread_pool_config"]["status"] == (

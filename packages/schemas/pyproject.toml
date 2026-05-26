@@ -1,7 +1,7 @@
 [project]
 name = "cognition-system-schemas"
-version = "0.8.2"
-readme = { text = "Cognition System v0.8.2 public package. See the version-specific public README in the release repository for usage and boundary notes.", content-type = "text/markdown" }
+version = "0.8.3"
+readme = { text = "Cognition System v0.8.3 public package. See the version-specific public README in the release repository for usage and boundary notes.", content-type = "text/markdown" }
 description = "Public data schemas for Cognition System."
 requires-python = ">=3.14"
 dependencies = [

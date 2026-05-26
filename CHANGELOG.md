@@ -2,36 +2,34 @@
 
 本文档作为认知引擎公开版本历史索引和轻量摘要，不承载内部治理全过程。
 
-## v0.8.2
+## v0.8.3 未发布候选
 
-`v0.8.2` 是当前产品发布候选准备版本号。
+`v0.8.3` 是当前 ADK 2.1.0 baseline patch release 候选版本号。
 
 候选口径：
 
 ```text
-认知系统产品控制台 + 可复查资料问答包：用户通过产品控制台读取授权资料，获得可复查回答，并可查看本轮问答运行引用。
+认知系统产品控制台 + 可复查资料问答包：在 ADK 2.1.0 底座上，用户通过产品控制台读取授权资料，获得可复查回答，并可查看本轮问答运行引用。
 ```
 
 主要变化：
 
-1. 推荐入口调整为 `cognition-console ask --guided`，面向用户提供产品控制台体验；
-2. `cognition external-readonly ask --guided` 继续作为兼容 / 技术入口保留；
-3. 产品控制台支持 Gemma4 本地路径和 DeepSeek 已保存 key 路径；
-4. 成功回答默认展示 `answer_run_ref`，详细 trace / artifact / observability / inspect 信息可通过 `--json` 查看；
-5. 当前进程内支持围绕同一资料继续追问，也支持对上一轮答案做摘要、翻译、排版和改写；
-6. 短证据长文、白皮书、未来路线图等超范围请求会返回受治理说明，不编造内容；
-7. JSON 模式保持单个机器可读对象输出，不进入追问循环；
-8. 修补 PyPI 安装态默认配置装配：干净安装环境不再要求当前目录存在 `config/base/runtime.yaml`；
-9. `cognition-console ask --guided` 在等待输入时按 Ctrl+C 会返回产品化 interrupted 状态，不再打印 traceback；
-10. 公仓公开材料保持项目级用户材料口径，不把 `packages/*/README.md` 作为本轮同步材料；
-11. PyPI 发布链路准备切换到 Trusted Publishing，并在 publish 前运行 wheelhouse 安装态 smoke 硬门；
-12. 可复查资料问答包是当前第一批可体验产品能力，不代表 Cognition System 只做资料问答。
+1. ADK 底座同步到 `google-adk==2.1.0`；
+2. 保持 `cognition-console ask --guided` 作为当前公开主产品入口；
+3. `cognition-console ask --guided --json` 保留 answer run、artifact、trace、observability summary 与 trace inspect 的机器可读复查引用；
+4. 068-071 已完成 ADK 2.1.0 取证、隔离兼容性 smoke、受控回归与产品入口体验验收；
+5. 产品控制台继续支持 Gemma4 本地路径和 DeepSeek 已保存 key 路径；
+6. 当前进程内支持围绕同一资料继续追问，也支持对上一轮答案做摘要、翻译、排版和改写；
+7. 短证据长文、白皮书、未来路线图等超范围请求会返回受治理说明，不编造内容；
+8. PyPI 安装态默认配置装配、Ctrl+C graceful interrupt、Trusted Publishing workflow 草案与安装态 smoke 硬门继承 v0.8.2 发布线；
+9. 不打开 ADK Task API runtime、Workflow Runtime、MCP tools、ArtifactService 持久链路、durable Session、Memory、Skills、callbacks 或 plugins；
+10. 可复查资料问答包是当前第一批可体验产品能力，不代表 Cognition System 只做资料问答。
 
 正式发布时间、PyPI 上传、公仓 tag、GitHub Release 与发布后安装复验，等待后续发布链路任务定稿。
 
-## v0.8.0
+## v0.8.0 未发布候选
 
-`v0.8.0` 是上一轮产品发布候选版本号，当前只保留为 v0.8.2 前的发布线记录。
+`v0.8.0` 是上一轮产品发布候选版本号，当前只保留为 v0.8.3 前的发布线记录。
 
 当前候选口径：
 
@@ -55,7 +53,7 @@
 
 正式发布时间、PyPI 发布动作、公仓 tag、GitHub Release 与发布后安装复验，等待后续发布链路任务定稿。
 
-## v0.6.0
+## v0.6.0 未发布候选
 
 `v0.6.0` 当前处于架构建设与发布前同步阶段，尚未在本文件中定稿为正式发布记录。
 

@@ -6,7 +6,7 @@ from dataclasses import dataclass, field
 from typing import Any
 
 
-ADK_RUN_CONFIG_VERSION = "2.0.0"
+ADK_RUN_CONFIG_VERSION = "2.1.0"
 ADK_RUN_CONFIG_FIELD_NAMES = (
     "speech_config",
     "response_modalities",

@@ -1,12 +1,12 @@
 [project]
 name = "cognition-system-cognition-agent"
-version = "0.8.2"
+version = "0.8.3"
 description = "Candidate cognition agent package for read-only governance summary consumption."
-readme = { text = "Cognition System v0.8.2 public package. See the version-specific public README in the release repository for usage and boundary notes.", content-type = "text/markdown" }
+readme = { text = "Cognition System v0.8.3 public package. See the version-specific public README in the release repository for usage and boundary notes.", content-type = "text/markdown" }
 requires-python = ">=3.14"
 dependencies = [
-  "cognition-system-contract-core==0.8.2",
-  "cognition-system-schemas==0.8.2",
+  "cognition-system-contract-core==0.8.3",
+  "cognition-system-schemas==0.8.3",
   "pydantic>=2.13.0",
 ]
 

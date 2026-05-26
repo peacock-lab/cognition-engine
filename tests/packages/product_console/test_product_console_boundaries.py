@@ -40,9 +40,9 @@ def test_product_console_pyproject_declares_distribution_and_boundary() -> None:
     project = _pyproject()["project"]
 
     assert project["name"] == "cognition-system-product-console"
-    assert project["version"] == "0.8.2"
+    assert project["version"] == "0.8.3"
     assert project["dependencies"] == [
-        "cognition-system-product-application-assembly==0.8.2",
+        "cognition-system-product-application-assembly==0.8.3",
     ]
     assert "scripts" not in project
 

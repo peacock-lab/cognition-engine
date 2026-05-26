@@ -1,15 +1,15 @@
 [project]
 name = "cognition-system-product-gateway"
-version = "0.8.1"
+version = "0.8.2"
 description = "Product gateway package for Cognition System product request and response contracts."
-readme = { text = "Cognition System v0.8.1 public package. See the version-specific public README in the release repository for usage and boundary notes.", content-type = "text/markdown" }
+readme = { text = "Cognition System v0.8.2 public package. See the version-specific public README in the release repository for usage and boundary notes.", content-type = "text/markdown" }
 requires-python = ">=3.14"
 dependencies = [
-  "cognition-system-contract-core==0.8.1",
-  "cognition-system-config-contexts==0.8.1",
-  "cognition-system-external-readonly==0.8.1",
-  "cognition-system-schemas==0.8.1",
-  "cognition-system-operation-flows==0.8.1",
+  "cognition-system-contract-core==0.8.2",
+  "cognition-system-config-contexts==0.8.2",
+  "cognition-system-external-readonly==0.8.2",
+  "cognition-system-schemas==0.8.2",
+  "cognition-system-operation-flows==0.8.2",
   "pydantic>=2.13.0",
 ]
 

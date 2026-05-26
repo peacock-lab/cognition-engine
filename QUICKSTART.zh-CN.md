@@ -2,19 +2,19 @@
 
 [English](QUICKSTART.md) | 简体中文 · [返回](README.zh-CN.md)
 
-当前发布候选版本：`v0.8.1`
+当前发布候选版本：`v0.8.2`
 
 ## 1. 安装
 
 ```bash
 python -m pip install --upgrade pip
-python -m pip install "cognition-system==0.8.1"
+python -m pip install "cognition-system==0.8.2"
 ```
 
 或使用 uv：
 
 ```bash
-uv pip install "cognition-system==0.8.1"
+uv pip install "cognition-system==0.8.2"
 ```
 
 需要 Python `3.14`。

@@ -5,6 +5,7 @@ from config_assembly.runtime import (
     ConfigInitResult,
     RuntimeConfigAssemblyError,
     RuntimeConfigPayload,
+    assemble_packaged_default_runtime_config_payload,
     assemble_runtime_config_payload,
     init_default_config_root,
 )
@@ -14,6 +15,7 @@ __all__ = [
     "ConfigInitResult",
     "RuntimeConfigAssemblyError",
     "RuntimeConfigPayload",
+    "assemble_packaged_default_runtime_config_payload",
     "assemble_runtime_config_payload",
     "init_default_config_root",
 ]

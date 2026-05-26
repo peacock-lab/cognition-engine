@@ -109,7 +109,7 @@ def test_product_application_assembly_pyproject_declares_distribution() -> None:
     project = _pyproject()["project"]
 
     assert project["name"] == "cognition-system-product-application-assembly"
-    assert project["version"] == "0.8.1"
+    assert project["version"] == "0.8.2"
 
 
 def test_product_application_assembly_pyproject_dependencies_are_bounded() -> None:
@@ -120,12 +120,12 @@ def test_product_application_assembly_pyproject_dependencies_are_bounded() -> No
     )
 
     assert dependencies == (
-        "cognition-system-behavior-contracts==0.8.1",
-        "cognition-system-composition==0.8.1",
-        "cognition-system-config-contexts==0.8.1",
-        "cognition-system-evaluation==0.8.1",
-        "cognition-system-product-gateway==0.8.1",
-        "cognition-system-schemas==0.8.1",
+        "cognition-system-behavior-contracts==0.8.2",
+        "cognition-system-composition==0.8.2",
+        "cognition-system-config-contexts==0.8.2",
+        "cognition-system-evaluation==0.8.2",
+        "cognition-system-product-gateway==0.8.2",
+        "cognition-system-schemas==0.8.2",
     )
     dependency_names = tuple(
         dependency.split("==", maxsplit=1)[0] for dependency in dependencies

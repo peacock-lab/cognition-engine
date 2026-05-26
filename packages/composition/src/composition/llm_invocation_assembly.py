@@ -20,7 +20,10 @@ from adk_adapter.models import (
     build_litellm_ollama_model_route,
 )
 from behavior_contracts.llm_invocation import GovernedLlmInvocationService
-from config_assembly.runtime import assemble_runtime_config_payload
+from config_assembly.runtime import (
+    assemble_packaged_default_runtime_config_payload,
+    assemble_runtime_config_payload,
+)
 from config_contexts.runtime import (
     RuntimeConfigContextBundle,
     RuntimeLiveLlmConfigView,
@@ -297,10 +300,15 @@ def build_controlled_live_llm_invocation_service_assembly_from_config_root(
 ) -> LlmInvocationServiceAssembly:
     """Assemble a controlled-live LLM service from the config root."""
 
-    config_payload = assemble_runtime_config_payload(
-        config_root=Path(config_root or "config"),
-        environment=environment,
-    )
+    if config_root is None:
+        config_payload = assemble_packaged_default_runtime_config_payload(
+            environment=environment,
+        )
+    else:
+        config_payload = assemble_runtime_config_payload(
+            config_root=Path(config_root),
+            environment=environment,
+        )
     config_context = build_runtime_config_contexts(config_payload)
     return build_controlled_live_llm_invocation_service_assembly_from_runtime_config(
         config_context=config_context,

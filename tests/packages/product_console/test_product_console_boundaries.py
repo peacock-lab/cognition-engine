@@ -40,9 +40,9 @@ def test_product_console_pyproject_declares_distribution_and_boundary() -> None:
     project = _pyproject()["project"]
 
     assert project["name"] == "cognition-system-product-console"
-    assert project["version"] == "0.8.1"
+    assert project["version"] == "0.8.2"
     assert project["dependencies"] == [
-        "cognition-system-product-application-assembly==0.8.1",
+        "cognition-system-product-application-assembly==0.8.2",
     ]
     assert "scripts" not in project
 
@@ -314,6 +314,55 @@ def test_product_console_ask_guided_json_keeps_review_detail_refs() -> None:
     assert payload["review"]["trace_inspect_ref"] == (
         "evidence-summary-answer-trace-inspect://inspect-test"
     )
+
+
+def test_product_console_ask_guided_interrupts_without_traceback() -> None:
+    captured_output: list[str] = []
+    ask_called = False
+
+    def input_reader(_prompt: str) -> str:
+        raise KeyboardInterrupt
+
+    def ask_runner(_request):
+        nonlocal ask_called
+        ask_called = True
+        return SimpleNamespace(exit_code=0, output={"status": "success"})
+
+    exit_code = run_product_console(
+        ["ask", "--guided"],
+        input_reader=input_reader,
+        output_writer=captured_output.append,
+        ask_runner=ask_runner,
+    )
+
+    assert exit_code == 130
+    assert ask_called is False
+    assert "status: interrupted" in captured_output[0]
+    assert "product_console_input_interrupted" in captured_output[0]
+    assert "traceback" not in captured_output[0].lower()
+
+
+def test_product_console_ask_guided_json_interrupts_without_traceback() -> None:
+    captured_output: list[str] = []
+
+    def input_reader(_prompt: str) -> str:
+        raise KeyboardInterrupt
+
+    exit_code = run_product_console(
+        ["ask", "--guided", "--json"],
+        input_reader=input_reader,
+        output_writer=captured_output.append,
+        ask_runner=lambda _request: SimpleNamespace(
+            exit_code=0,
+            output={"status": "success"},
+        ),
+    )
+    payload = json.loads(captured_output[0])
+
+    assert exit_code == 130
+    assert payload["status"] == "interrupted"
+    assert payload["blocking_reasons"] == ["product_console_input_interrupted"]
+    assert "traceback" not in captured_output[0].lower()
 
 
 def test_product_console_ask_guided_runs_same_process_follow_up_loop() -> None:

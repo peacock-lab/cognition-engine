@@ -7,6 +7,10 @@ on:
         description: "Version to publish"
         required: true
         type: string
+      previous_version:
+        description: "Previous public version"
+        required: true
+        type: string
 
 permissions:
   contents: read
@@ -15,6 +19,9 @@ jobs:
   precheck:
     name: Precheck
     runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
 
     steps:
       - name: Checkout
@@ -25,39 +32,76 @@ jobs:
         with:
           python-version: "3.14"
 
-      - name: Check version consistency
+      - name: Check public release surface
         shell: bash
         run: |
           set -euo pipefail
 
           VERSION="${{ inputs.version }}"
-
-          if [ -z "$VERSION" ]; then
-            echo "version input is required"
-            exit 1
-          fi
+          PREVIOUS_VERSION="${{ inputs.previous_version }}"
 
           python - <<'PY'
           from pathlib import Path
           import re
           import sys
+          import tomllib
 
-          expected = "${{ inputs.version }}"
-          files = [Path("pyproject.toml")] + sorted(Path("packages").glob("*/pyproject.toml"))
+          version = "${{ inputs.version }}"
+          previous_version = "${{ inputs.previous_version }}"
+          package_roots = sorted(Path("packages").glob("*/pyproject.toml"))
+          pyprojects = [Path("pyproject.toml"), *package_roots]
 
           ok = True
-          for file in files:
-              text = file.read_text(encoding="utf-8")
-              match = re.search(r'^version = "([^"]+)"', text, re.MULTILINE)
-              if not match:
-                  print(f"{file}: missing version")
-                  ok = False
-                  continue
 
-              actual = match.group(1)
+          for file in pyprojects:
+              data = tomllib.loads(file.read_text(encoding="utf-8"))
+              actual = data.get("project", {}).get("version")
               print(f"{file}: {actual}")
-              if actual != expected:
-                  print(f"{file}: expected {expected}, got {actual}")
+              if actual != version:
+                  print(f"{file}: expected {version}, got {actual}")
+                  ok = False
+
+              if file == Path("pyproject.toml"):
+                  for dependency in data.get("project", {}).get("dependencies", []):
+                      if dependency.startswith("cognition-system-") and not dependency.endswith(f"=={version}"):
+                          print(f"{file}: internal dependency mismatch: {dependency}")
+                          ok = False
+
+          for public_file in [
+              Path("README.md"),
+              Path("README.zh-CN.md"),
+              Path("QUICKSTART.md"),
+              Path("QUICKSTART.zh-CN.md"),
+              Path("CHANGELOG.md"),
+          ]:
+              text = public_file.read_text(encoding="utf-8")
+              if version not in text:
+                  print(f"{public_file}: missing target version {version}")
+                  ok = False
+              current_previous = re.compile(
+                  rf"(current|当前发布候选版本|Current release candidate).*{re.escape(previous_version)}",
+                  re.IGNORECASE,
+              )
+              if current_previous.search(text):
+                  print(f"{public_file}: previous version still appears as current")
+                  ok = False
+
+          forbidden_prefixes = ("config/", "docs/", "tasks/", "patches/", "scripts/")
+          forbidden_suffixes = ("/README.md",)
+          for path in Path(".").rglob("*"):
+              if not path.is_file():
+                  continue
+              rel = path.as_posix()
+              if rel.startswith((".git/", ".venv/", "dist/", "build/", "wheelhouse/")):
+                  continue
+              if rel == ".gitignore" or rel.startswith(forbidden_prefixes):
+                  print(f"forbidden public path: {rel}")
+                  ok = False
+              if rel.startswith("packages/") and rel.endswith(forbidden_suffixes):
+                  print(f"package README must not be public by default: {rel}")
+                  ok = False
+              if rel.endswith((".pyc", ".pyo")) or "__pycache__" in rel:
+                  print(f"build artifact found: {rel}")
                   ok = False
 
           if not ok:
@@ -68,6 +112,9 @@ jobs:
     name: Build distributions
     needs: precheck
     runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
 
     steps:
       - name: Checkout
@@ -110,19 +157,91 @@ jobs:
         run: |
           python -m twine check wheelhouse/*
 
-      - name: List distributions
-        run: |
-          ls -la wheelhouse
-
       - name: Upload distributions artifact
         uses: actions/upload-artifact@v4
         with:
           name: wheelhouse
           path: wheelhouse/
 
+  install-state-smoke:
+    name: Install-state smoke
+    needs: build
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+
+    steps:
+      - name: Download distributions artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: wheelhouse
+          path: wheelhouse/
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+
+      - name: Verify install-state from wheelhouse
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          VERSION="${{ inputs.version }}"
+          WORKDIR="$(mktemp -d)"
+          python -m venv "$WORKDIR/.venv"
+          "$WORKDIR/.venv/bin/python" -m pip install --upgrade pip
+          "$WORKDIR/.venv/bin/python" -m pip install --find-links "$GITHUB_WORKSPACE/wheelhouse" "cognition-system==$VERSION"
+
+          cd "$WORKDIR"
+          .venv/bin/cognition-console --help
+          .venv/bin/cognition --help
+
+          .venv/bin/python - <<'PY'
+          from pathlib import Path
+
+          assert not Path("config/base/runtime.yaml").exists()
+
+          from config_assembly.runtime import assemble_packaged_default_runtime_config_payload
+          payload = assemble_packaged_default_runtime_config_payload()
+          assert payload.source_root == "package://config_assembly/default_config"
+          assert payload.payload["live_llm"]["model_aliases"]["gemma4"]["model_name"] == "ollama/gemma4-pro:latest"
+
+          from composition.llm_invocation_assembly import (
+              build_controlled_live_adk_governed_llm_invocation_service_from_config_root,
+          )
+          service = build_controlled_live_adk_governed_llm_invocation_service_from_config_root(
+              model_profile_ref="gemma4_pro_local",
+              output_governance_profile_ref="adk_output_schema_gemma4_baseline",
+          )
+          assert service is not None
+
+          from types import SimpleNamespace
+          from product_console import run_product_console
+
+          output = []
+
+          def reader(_prompt: str) -> str:
+              raise KeyboardInterrupt
+
+          code = run_product_console(
+              ["ask", "--guided"],
+              input_reader=reader,
+              output_writer=output.append,
+              ask_runner=lambda _request: SimpleNamespace(exit_code=0, output={"status": "success"}),
+          )
+          joined = "\n".join(output)
+          assert code == 130
+          assert "status: interrupted" in joined
+          assert "Traceback" not in joined
+
+          print("install-state-smoke: PASS")
+          PY
+
   publish:
     name: Publish to PyPI
-    needs: build
+    needs: install-state-smoke
     runs-on: ubuntu-latest
     environment: pypi
 
@@ -147,13 +266,16 @@ jobs:
     needs: publish
     runs-on: ubuntu-latest
 
+    permissions:
+      contents: read
+
     steps:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.14"
 
-      - name: Verify install
+      - name: Verify install from PyPI
         run: |
           python -m pip install --upgrade pip
           python -m pip install "cognition-system==${{ inputs.version }}"
@@ -166,4 +288,5 @@ jobs:
           if actual != expected:
               raise SystemExit(f"expected {expected}, got {actual}")
           PY
+          cognition-console --help
           cognition --help

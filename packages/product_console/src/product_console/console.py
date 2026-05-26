@@ -59,6 +59,7 @@ PRODUCT_CONSOLE_PROVIDER_KEY_STORED_CREDENTIAL_LOAD_FAILED = (
 PRODUCT_CONSOLE_PROVIDER_KEY_PERSISTENT_SAVE_FAILED = (
     "provider_key_persistent_save_failed"
 )
+PRODUCT_CONSOLE_INPUT_INTERRUPTED = "product_console_input_interrupted"
 DEEPSEEK_API_KEY_ENV = "DEEPSEEK_API_KEY"
 ProductConsoleAskRunner = Callable[
     [EvidenceSummaryAnswerAskEntryRequest],
@@ -230,12 +231,29 @@ def _run_product_console_ask(
         writer(render_product_console_ask_help())
         return 3
 
-    request = _guided_ask_request(
-        input_reader,
-        json_output=json_output,
-        provider_credential_store_factory=provider_credential_store_factory,
-        provider_key_prompt_handlers=provider_key_prompt_handlers,
-    )
+    try:
+        request = _guided_ask_request(
+            input_reader,
+            json_output=json_output,
+            provider_credential_store_factory=provider_credential_store_factory,
+            provider_key_prompt_handlers=provider_key_prompt_handlers,
+        )
+    except KeyboardInterrupt:
+        writer(
+            _render_product_console_ask_output(
+                _product_console_interrupted_output(),
+                json_output=json_output,
+            )
+        )
+        return 130
+    except EOFError:
+        writer(
+            _render_product_console_ask_output(
+                _product_console_closed_output(),
+                json_output=json_output,
+            )
+        )
+        return 0
     runner = ask_runner or _default_ask_runner(ask_services)
     follow_up_runner = ask_follow_up_runner or _default_ask_follow_up_runner()
     result = runner(request)
@@ -283,6 +301,40 @@ def _default_ask_follow_up_runner() -> ProductConsoleAskFollowUpRunner:
         )
 
     return _run
+
+
+def _product_console_interrupted_output() -> dict[str, Any]:
+    return {
+        "request_id": PRODUCT_CONSOLE_ASK_REQUEST_ID,
+        "command": PRODUCT_CONSOLE_ASK_COMMAND,
+        "status": "interrupted",
+        "answer_run_ref": None,
+        "answer_run_status": "unavailable",
+        "answer_run_unavailable_reason": PRODUCT_CONSOLE_INPUT_INTERRUPTED,
+        "blocking_reasons": (PRODUCT_CONSOLE_INPUT_INTERRUPTED,),
+        "failure_explanation": "用户中断了本次产品控制台输入，未进入资料抓取或模型回答。",
+        "recovery_hints": (
+            "如需继续，请重新运行 cognition-console ask --guided。",
+        ),
+        "follow_up_available": False,
+    }
+
+
+def _product_console_closed_output() -> dict[str, Any]:
+    return {
+        "request_id": PRODUCT_CONSOLE_ASK_REQUEST_ID,
+        "command": PRODUCT_CONSOLE_ASK_COMMAND,
+        "status": "closed",
+        "answer_run_ref": None,
+        "answer_run_status": "unavailable",
+        "answer_run_unavailable_reason": "product_console_input_closed",
+        "blocking_reasons": ("product_console_input_closed",),
+        "failure_explanation": "输入已结束，未进入资料抓取或模型回答。",
+        "recovery_hints": (
+            "如需继续，请重新运行 cognition-console ask --guided。",
+        ),
+        "follow_up_available": False,
+    }
 
 
 def _run_product_console_ask_follow_up_loop(

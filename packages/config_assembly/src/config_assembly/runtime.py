@@ -160,3 +160,50 @@ def assemble_runtime_config_payload(
         env_file=str(env_file) if env_file.exists() else None,
         payload=assembled_payload,
     )
+
+
+def assemble_packaged_default_runtime_config_payload(
+    environment: str = "local",
+) -> RuntimeConfigPayload:
+    """Assemble runtime configuration from packaged sanitized defaults.
+
+    This is the install-state default path. It lets product entrypoints run
+    from a wheel installation without requiring a repository-local
+    ``config/base/runtime.yaml``.
+    """
+
+    resource_root = resources.files("config_assembly").joinpath(
+        _DEFAULT_CONFIG_RESOURCE_ROOT
+    )
+    base_file = resource_root.joinpath("base", "runtime.yaml")
+    env_file = resource_root.joinpath("env", f"{environment}.yaml")
+
+    base_payload = _load_yaml_resource(base_file)
+    env_payload = _load_yaml_resource(env_file) if env_file.is_file() else {}
+    assembled_payload = deep_merge(base_payload, env_payload)
+
+    return RuntimeConfigPayload(
+        source_root="package://config_assembly/default_config",
+        environment=environment,
+        base_file="package://config_assembly/default_config/base/runtime.yaml",
+        env_file=(
+            f"package://config_assembly/default_config/env/{environment}.yaml"
+            if env_file.is_file()
+            else None
+        ),
+        payload=assembled_payload,
+    )
+
+
+def _load_yaml_resource(resource_file: object) -> dict[str, Any]:
+    if not hasattr(resource_file, "read_text"):
+        raise RuntimeConfigAssemblyError("Configuration resource is not readable.")
+
+    loaded = yaml.safe_load(resource_file.read_text(encoding="utf-8"))
+    if loaded is None:
+        return {}
+    if not isinstance(loaded, dict):
+        raise RuntimeConfigAssemblyError(
+            f"Configuration resource must contain a mapping: {resource_file}"
+        )
+    return loaded

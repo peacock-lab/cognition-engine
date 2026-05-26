@@ -2,19 +2,19 @@
 
 [简体中文](QUICKSTART.zh-CN.md) | English · [Back](README.md)
 
-Current release candidate: `v0.8.1`
+Current release candidate: `v0.8.2`
 
 ## 1. Install
 
 ```bash
 python -m pip install --upgrade pip
-python -m pip install "cognition-system==0.8.1"
+python -m pip install "cognition-system==0.8.2"
 ```
 
 Or with uv:
 
 ```bash
-uv pip install "cognition-system==0.8.1"
+uv pip install "cognition-system==0.8.2"
 ```
 
 Python `3.14` is required.

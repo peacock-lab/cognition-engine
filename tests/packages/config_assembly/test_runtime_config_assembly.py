@@ -4,6 +4,7 @@ import pytest
 
 from config_assembly.runtime import (
     RuntimeConfigAssemblyError,
+    assemble_packaged_default_runtime_config_payload,
     assemble_runtime_config_payload,
     deep_merge,
     load_yaml_file,
@@ -52,6 +53,22 @@ def test_assemble_runtime_config_payload_from_project_config() -> None:
     assert (
         payload.payload["evidence_summary_answer"]["allow_sanitized_excerpt_preview"]
         is False
+    )
+
+
+def test_assemble_packaged_default_runtime_config_payload() -> None:
+    payload = assemble_packaged_default_runtime_config_payload(environment="local")
+
+    assert payload.source_root == "package://config_assembly/default_config"
+    assert payload.environment == "local"
+    assert payload.base_file == (
+        "package://config_assembly/default_config/base/runtime.yaml"
+    )
+    assert payload.env_file is None
+    assert payload.payload["runtime"]["runtime_name"] == "default-runtime"
+    assert payload.payload["runtime"]["timeout_seconds"] == 300
+    assert payload.payload["live_llm"]["model_aliases"]["gemma4"]["model_name"] == (
+        "ollama/gemma4-pro:latest"
     )
 
 

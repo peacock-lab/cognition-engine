@@ -1,11 +1,11 @@
 [project]
 name = "cognition-system-external-readonly"
-version = "0.8.1"
+version = "0.8.2"
 description = "Provider-neutral external-readonly reference tools for Cognition System."
-readme = { text = "Cognition System v0.8.1 public external-readonly package. See the version-specific public README in the release repository for usage and boundary notes.", content-type = "text/markdown" }
+readme = { text = "Cognition System v0.8.2 public external-readonly package. See the version-specific public README in the release repository for usage and boundary notes.", content-type = "text/markdown" }
 requires-python = ">=3.14"
 dependencies = [
-    "cognition-system-schemas==0.8.1",
+    "cognition-system-schemas==0.8.2",
 ]
 
 [build-system]

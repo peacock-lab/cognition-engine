@@ -463,6 +463,69 @@ def test_composition_assembles_controlled_live_service_from_config_root(
     }
 
 
+def test_composition_assembles_controlled_live_service_from_packaged_default_config(
+    monkeypatch: Any,
+) -> None:
+    captured: dict[str, Any] = {}
+    config_payload = object()
+    config_context = _runtime_config_context()
+
+    def fake_assemble_packaged_default_runtime_config_payload(
+        **kwargs: Any,
+    ) -> object:
+        captured["default_config_payload_kwargs"] = kwargs
+        return config_payload
+
+    def fake_assemble_runtime_config_payload(**kwargs: Any) -> object:
+        captured["unexpected_config_payload_kwargs"] = kwargs
+        return object()
+
+    def fake_build_runtime_config_contexts(value: object) -> RuntimeConfigContextBundle:
+        captured["config_payload"] = value
+        return config_context
+
+    def fake_build_from_runtime_config(**kwargs: Any) -> object:
+        captured["runtime_config_kwargs"] = kwargs
+        return "controlled-live-default-assembly"
+
+    monkeypatch.setattr(
+        llm_invocation_assembly,
+        "assemble_packaged_default_runtime_config_payload",
+        fake_assemble_packaged_default_runtime_config_payload,
+    )
+    monkeypatch.setattr(
+        llm_invocation_assembly,
+        "assemble_runtime_config_payload",
+        fake_assemble_runtime_config_payload,
+    )
+    monkeypatch.setattr(
+        llm_invocation_assembly,
+        "build_runtime_config_contexts",
+        fake_build_runtime_config_contexts,
+    )
+    monkeypatch.setattr(
+        llm_invocation_assembly,
+        "build_controlled_live_llm_invocation_service_assembly_from_runtime_config",
+        fake_build_from_runtime_config,
+    )
+
+    assembly = build_controlled_live_llm_invocation_service_assembly_from_config_root(
+        environment="local",
+        timeout_seconds=23,
+        metadata={"source": "composition-default-config-test"},
+    )
+
+    assert assembly == "controlled-live-default-assembly"
+    assert captured["default_config_payload_kwargs"] == {"environment": "local"}
+    assert "unexpected_config_payload_kwargs" not in captured
+    assert captured["config_payload"] is config_payload
+    assert captured["runtime_config_kwargs"]["config_context"] is config_context
+    assert captured["runtime_config_kwargs"]["timeout_seconds"] == 23
+    assert captured["runtime_config_kwargs"]["metadata"] == {
+        "source": "composition-default-config-test"
+    }
+
+
 def test_composition_exposes_controlled_live_service_through_contract() -> None:
     service = build_controlled_live_adk_governed_llm_invocation_service(
         metadata={"assembly_test": "controlled-live-contract"}

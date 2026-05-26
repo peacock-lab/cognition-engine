@@ -276,7 +276,7 @@ wheels = [
 
 [[package]]
 name = "cognition-system"
-version = "0.8.1"
+version = "0.8.2"
 source = { editable = "." }
 dependencies = [
     { name = "cognition-system-adk-adapter" },
@@ -370,7 +370,7 @@ dev = [{ name = "hatchling", specifier = ">=1.29.0" }]
 
 [[package]]
 name = "cognition-system-adk-adapter"
-version = "0.8.1"
+version = "0.8.2"
 source = { editable = "packages/adk_adapter" }
 dependencies = [
     { name = "cognition-system-behavior-contracts" },
@@ -391,7 +391,7 @@ requires-dist = [
 
 [[package]]
 name = "cognition-system-behavior-contracts"
-version = "0.8.1"
+version = "0.8.2"
 source = { editable = "packages/behavior_contracts" }
 dependencies = [
     { name = "cognition-system-config-contexts" },
@@ -408,7 +408,7 @@ requires-dist = [
 
 [[package]]
 name = "cognition-system-cli"
-version = "0.8.1"
+version = "0.8.2"
 source = { editable = "packages/cli" }
 dependencies = [
     { name = "cognition-system-config-assembly" },
@@ -433,7 +433,7 @@ requires-dist = [
 
 [[package]]
 name = "cognition-system-cognition-agent"
-version = "0.8.1"
+version = "0.8.2"
 source = { editable = "packages/cognition_agent" }
 dependencies = [
     { name = "cognition-system-contract-core" },
@@ -450,7 +450,7 @@ requires-dist = [
 
 [[package]]
 name = "cognition-system-cognition-governance"
-version = "0.8.1"
+version = "0.8.2"
 source = { editable = "packages/cognition_governance" }
 dependencies = [
     { name = "cognition-system-schemas" },
@@ -465,7 +465,7 @@ requires-dist = [
 
 [[package]]
 name = "cognition-system-composition"
-version = "0.8.1"
+version = "0.8.2"
 source = { editable = "packages/composition" }
 dependencies = [
     { name = "cognition-system-adk-adapter" },
@@ -494,7 +494,7 @@ requires-dist = [
 
 [[package]]
 name = "cognition-system-config-assembly"
-version = "0.8.1"
+version = "0.8.2"
 source = { editable = "packages/config_assembly" }
 dependencies = [
     { name = "pydantic" },
@@ -509,7 +509,7 @@ requires-dist = [
 
 [[package]]
 name = "cognition-system-config-contexts"
-version = "0.8.1"
+version = "0.8.2"
 source = { editable = "packages/config_contexts" }
 dependencies = [
     { name = "cognition-system-config-assembly" },
@@ -526,7 +526,7 @@ requires-dist = [
 
 [[package]]
 name = "cognition-system-contract-core"
-version = "0.8.1"
+version = "0.8.2"
 source = { editable = "packages/contract_core" }
 dependencies = [
     { name = "cognition-system-behavior-contracts" },
@@ -543,7 +543,7 @@ requires-dist = [
 
 [[package]]
 name = "cognition-system-evaluation"
-version = "0.8.1"
+version = "0.8.2"
 source = { editable = "packages/cognition_evaluation" }
 dependencies = [
     { name = "pydantic" },
@@ -554,7 +554,7 @@ requires-dist = [{ name = "pydantic", specifier = ">=2.13.0" }]
 
 [[package]]
 name = "cognition-system-external-readonly"
-version = "0.8.1"
+version = "0.8.2"
 source = { editable = "packages/external_readonly" }
 dependencies = [
     { name = "cognition-system-schemas" },
@@ -565,7 +565,7 @@ requires-dist = [{ name = "cognition-system-schemas", editable = "packages/schem
 
 [[package]]
 name = "cognition-system-observability-hub"
-version = "0.8.1"
+version = "0.8.2"
 source = { editable = "packages/observability_hub" }
 dependencies = [
     { name = "cognition-system-contract-core" },
@@ -582,7 +582,7 @@ requires-dist = [
 
 [[package]]
 name = "cognition-system-operation-flows"
-version = "0.8.1"
+version = "0.8.2"
 source = { editable = "packages/operation_flows" }
 dependencies = [
     { name = "cognition-system-config-contexts" },
@@ -601,7 +601,7 @@ requires-dist = [
 
 [[package]]
 name = "cognition-system-product-application-assembly"
-version = "0.8.1"
+version = "0.8.2"
 source = { editable = "packages/product_application_assembly" }
 dependencies = [
     { name = "cognition-system-behavior-contracts" },
@@ -624,7 +624,7 @@ requires-dist = [
 
 [[package]]
 name = "cognition-system-product-console"
-version = "0.8.1"
+version = "0.8.2"
 source = { editable = "packages/product_console" }
 dependencies = [
     { name = "cognition-system-product-application-assembly" },
@@ -635,7 +635,7 @@ requires-dist = [{ name = "cognition-system-product-application-assembly", edita
 
 [[package]]
 name = "cognition-system-product-gateway"
-version = "0.8.1"
+version = "0.8.2"
 source = { editable = "packages/product_gateway" }
 dependencies = [
     { name = "cognition-system-config-contexts" },
@@ -658,7 +658,7 @@ requires-dist = [
 
 [[package]]
 name = "cognition-system-product-runtime-assembly"
-version = "0.8.1"
+version = "0.8.2"
 source = { editable = "packages/product_runtime_assembly" }
 dependencies = [
     { name = "cognition-system-behavior-contracts" },
@@ -685,7 +685,7 @@ requires-dist = [
 
 [[package]]
 name = "cognition-system-runtime"
-version = "0.8.1"
+version = "0.8.2"
 source = { editable = "packages/runtime" }
 dependencies = [
     { name = "cognition-system-behavior-contracts" },
@@ -702,7 +702,7 @@ requires-dist = [
 
 [[package]]
 name = "cognition-system-runtime-container"
-version = "0.8.1"
+version = "0.8.2"
 source = { editable = "packages/runtime_container" }
 dependencies = [
     { name = "cognition-system-composition" },
@@ -721,7 +721,7 @@ requires-dist = [
 
 [[package]]
 name = "cognition-system-schemas"
-version = "0.8.1"
+version = "0.8.2"
 source = { editable = "packages/schemas" }
 dependencies = [
     { name = "pydantic" },

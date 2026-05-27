@@ -4,16 +4,29 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: "Version to publish"
+        description: "Version to build or publish"
         required: true
         type: string
       previous_version:
         description: "Previous public version"
         required: true
         type: string
+      publish:
+        description: "Publish to PyPI after build and install-state smoke"
+        required: true
+        default: false
+        type: boolean
+      force_node24:
+        description: "Force JavaScript actions to run on Node24 for readiness verification"
+        required: true
+        default: true
+        type: boolean
 
 permissions:
   contents: read
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: ${{ inputs.force_node24 && 'true' || '' }}
 
 jobs:
   precheck:
@@ -25,10 +38,10 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: "3.14"
 
@@ -39,6 +52,17 @@ jobs:
 
           VERSION="${{ inputs.version }}"
           PREVIOUS_VERSION="${{ inputs.previous_version }}"
+          PUBLISH="${{ inputs.publish }}"
+          EXPECTED_REF="refs/tags/v${VERSION}"
+
+          if [ "$PUBLISH" = "true" ]; then
+            if [ "$GITHUB_REF" != "$EXPECTED_REF" ]; then
+              echo "publish=true requires ref $EXPECTED_REF, got $GITHUB_REF"
+              exit 1
+            fi
+          else
+            echo "non-publish verification: build and install-state smoke only"
+          fi
 
           python - <<'PY'
           from pathlib import Path
@@ -116,12 +140,16 @@ jobs:
     permissions:
       contents: read
 
+    outputs:
+      wheelhouse-digest: ${{ steps.upload-wheelhouse.outputs.artifact-digest }}
+      wheelhouse-id: ${{ steps.upload-wheelhouse.outputs.artifact-id }}
+
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: "3.14"
 
@@ -158,10 +186,19 @@ jobs:
           python -m twine check wheelhouse/*
 
       - name: Upload distributions artifact
-        uses: actions/upload-artifact@v4
+        id: upload-wheelhouse
+        uses: actions/upload-artifact@v7
         with:
           name: wheelhouse
           path: wheelhouse/
+
+      - name: Summarize wheelhouse artifact
+        run: |
+          {
+            echo "### Wheelhouse artifact"
+            echo "- artifact_id: ${{ steps.upload-wheelhouse.outputs.artifact-id }}"
+            echo "- artifact_digest: ${{ steps.upload-wheelhouse.outputs.artifact-digest }}"
+          } >> "$GITHUB_STEP_SUMMARY"
 
   install-state-smoke:
     name: Install-state smoke
@@ -173,13 +210,13 @@ jobs:
 
     steps:
       - name: Download distributions artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: wheelhouse
           path: wheelhouse/
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: "3.14"
 
@@ -239,9 +276,41 @@ jobs:
           print("install-state-smoke: PASS")
           PY
 
+      - name: Summarize install-state smoke
+        run: |
+          {
+            echo "### Install-state smoke"
+            echo "- version: ${{ inputs.version }}"
+            echo "- wheelhouse_artifact_id: ${{ needs.build.outputs.wheelhouse-id }}"
+            echo "- wheelhouse_artifact_digest: ${{ needs.build.outputs.wheelhouse-digest }}"
+            echo "- publish_requested: ${{ inputs.publish }}"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  non-publish-summary:
+    name: Non-publish verification summary
+    needs: install-state-smoke
+    if: ${{ inputs.publish != true }}
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+
+    steps:
+      - name: Confirm no publish requested
+        run: |
+          {
+            echo "### Non-publish verification complete"
+            echo "- version: ${{ inputs.version }}"
+            echo "- ref: ${{ github.ref }}"
+            echo "- publish_requested: ${{ inputs.publish }}"
+            echo "- pypi_upload: skipped"
+            echo "- pypi_environment: not requested"
+          } >> "$GITHUB_STEP_SUMMARY"
+
   publish:
     name: Publish to PyPI
     needs: install-state-smoke
+    if: ${{ inputs.publish == true }}
     runs-on: ubuntu-latest
     environment: pypi
 
@@ -251,7 +320,7 @@ jobs:
 
     steps:
       - name: Download distributions artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: wheelhouse
           path: wheelhouse/
@@ -264,6 +333,7 @@ jobs:
   postverify:
     name: Verify published package
     needs: publish
+    if: ${{ inputs.publish == true }}
     runs-on: ubuntu-latest
 
     permissions:
@@ -271,7 +341,7 @@ jobs:
 
     steps:
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: "3.14"
 

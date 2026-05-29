@@ -2,7 +2,7 @@
 
 English | [简体中文](README.zh-CN.md)
 
-Current release candidate: `v0.8.3`
+Current release candidate: `v0.8.4`
 
 Cognition System is a cognitive capability system for governed AI collaboration. It combines language models, tool ecosystems, runtime capabilities, and governance rules to help users understand sources, handle tasks, and deliver traceable results within explicit approval and reviewable boundaries.
 
@@ -26,6 +26,16 @@ Guided mode asks for:
 
 The answer shows its evidence context where possible. If the material is too short or insufficient, the system says so instead of inventing unsupported content.
 
+v0.8.4 adds a preview-only saved session management loop for successful source QA runs. After an answer, you can explicitly save the session, list saved sessions, preview the resumable context, and delete the saved record:
+
+```bash
+cognition-console session list
+cognition-console session resume-preview --session-id <id>
+cognition-console session delete --session-id <id> --yes
+```
+
+The preview does not automatically generate a resumed answer. It only shows safe session state, source scope, resume hints, and runtime visible summary references.
+
 The technical compatibility entry remains available:
 
 ```bash
@@ -36,13 +46,13 @@ cognition external-readonly ask --guided
 
 ```bash
 python -m pip install --upgrade pip
-python -m pip install "cognition-system==0.8.3"
+python -m pip install "cognition-system==0.8.4"
 ```
 
 Or with uv:
 
 ```bash
-uv pip install "cognition-system==0.8.3"
+uv pip install "cognition-system==0.8.4"
 ```
 
 Python `3.14` is required.
@@ -77,7 +87,8 @@ By default, the system does not:
 2. Call a model silently.
 3. Read or save provider keys silently.
 4. Expose raw web pages, raw model responses, tracebacks, or provider keys in answers.
-5. Present current follow-up context as long-term memory.
+5. Present current follow-up context or saved session previews as long-term memory.
+6. Treat preview-only session management as ADK Task API runtime, Workflow Runtime, durable ADK Session, Memory, Tools, Skills, callbacks, or plugins.
 
 ## Useful Commands
 
@@ -85,6 +96,8 @@ By default, the system does not:
 cognition-console --help
 cognition-console ask --help
 cognition-console ask --guided
+cognition-console session --help
+cognition-console session list
 cognition --help
 cognition external-readonly ask --help
 cognition config init --config-root ./config

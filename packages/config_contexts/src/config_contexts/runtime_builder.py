@@ -10,6 +10,7 @@ from config_contexts.runtime import (
     AdapterSelectionConfigView,
     AdkRunConfigView,
     ArtifactPolicyConfigView,
+    ContinuableEvidenceSessionStoragePolicyConfigView,
     EvidenceSummaryAnswerPolicyConfigView,
     EventPolicyConfigView,
     NodeExecutionConfigView,
@@ -116,6 +117,14 @@ def build_runtime_config_contexts(
         ),
         session_policy=SessionPolicyConfigView(
             **_optional_section(payload, "session_policy"),
+        ),
+        continuable_evidence_session_storage=(
+            ContinuableEvidenceSessionStoragePolicyConfigView(
+                **_optional_section(
+                    payload,
+                    "continuable_evidence_session_storage",
+                )
+            )
         ),
         adapter_selection=AdapterSelectionConfigView(
             **_section(payload, "adapter_selection"),

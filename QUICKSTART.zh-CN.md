@@ -2,19 +2,19 @@
 
 [English](QUICKSTART.md) | 简体中文 · [返回](README.zh-CN.md)
 
-当前发布候选版本：`v0.8.3`
+当前发布候选版本：`v0.8.4`
 
 ## 1. 安装
 
 ```bash
 python -m pip install --upgrade pip
-python -m pip install "cognition-system==0.8.3"
+python -m pip install "cognition-system==0.8.4"
 ```
 
 或使用 uv：
 
 ```bash
-uv pip install "cognition-system==0.8.3"
+uv pip install "cognition-system==0.8.4"
 ```
 
 需要 Python `3.14`。
@@ -25,6 +25,7 @@ uv pip install "cognition-system==0.8.3"
 cognition --help
 cognition-console --help
 cognition-console ask --help
+cognition-console session --help
 ```
 
 ## 3. 体验资料问答
@@ -44,15 +45,17 @@ cognition-console ask --guided
 允许本次受控大模型回答？ 输入 yes/no: y
 ```
 
-## 4. 继续追问
+## 4. 预览已保存会话
 
-成功回答后，可以围绕同一份资料继续追问：
+成功回答后，在提示中选择显式保存。随后可以管理已保存会话：
 
-```text
-它适合用于什么场景？
+```bash
+cognition-console session list
+cognition-console session resume-preview --session-id <id>
+cognition-console session delete --session-id <id> --yes
 ```
 
-资料不足时，系统会直接说明限制。
+`resume-preview` 会展示安全的会话状态、资料范围、恢复提示和 runtime visible summary 引用。它不会自动生成后续回答。
 
 兼容 / 技术入口仍然保留：
 

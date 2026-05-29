@@ -59,6 +59,7 @@ def project_product_gateway_response_summary(
         **_observability_summary(response.metadata),
         **_trace_inspect_summary(response.metadata),
         **_answer_run_summary(response.metadata),
+        **_runtime_visible_summary(response.metadata),
     }
     return validate_product_gateway_response_summary(summary).model_dump(mode="python")
 
@@ -213,6 +214,67 @@ def _answer_run_summary(response_metadata: Mapping[str, Any]) -> dict[str, Any]:
     }
 
 
+def _runtime_visible_summary(response_metadata: Mapping[str, Any]) -> dict[str, Any]:
+    summary = response_metadata.get("runtime_visible_summary")
+    if not isinstance(summary, Mapping):
+        return {
+            "runtime_summary_ref": _string_or_none(
+                response_metadata.get("runtime_summary_ref")
+            ),
+            "runtime_availability_hint": {},
+            "runtime_trajectory_summary": {},
+            "runtime_artifact_index": [],
+            "runtime_evaluation_summary": {},
+        }
+    artifact_index = summary.get("artifact_index") or summary.get(
+        "runtime_artifact_index"
+    )
+    availability = _mapping(summary.get("runtime_availability_hint"))
+    if not availability:
+        availability = {
+            "runtime_binding_status": _string_or_none(
+                summary.get("runtime_binding_status")
+            ),
+            "hint": _string_or_none(summary.get("runtime_availability_hint")),
+        }
+    evaluation = _mapping(summary.get("runtime_evaluation_summary"))
+    return {
+        "runtime_summary_ref": _string_or_none(
+            summary.get("runtime_visible_summary_ref")
+        )
+        or _string_or_none(summary.get("runtime_summary_ref"))
+        or _string_or_none(response_metadata.get("runtime_summary_ref")),
+        "runtime_availability_hint": {
+            "runtime_binding_status": _string_or_none(
+                availability.get("runtime_binding_status")
+            ),
+            "hint": _string_or_none(availability.get("hint"))
+            or _string_or_none(summary.get("runtime_availability_hint_text")),
+            "user_product_runtime_path_enabled": False,
+            "default_local_state_dir_enabled": False,
+            "auto_resume_answer_enabled": False,
+            "workflow_replay_enabled": False,
+            "llm_call_enabled": False,
+            "task_runtime_implementation_enabled": False,
+        },
+        "runtime_trajectory_summary": _mapping(
+            summary.get("trajectory_summary")
+        )
+        or _mapping(summary.get("runtime_trajectory_summary")),
+        "runtime_artifact_index": _merge_refs(
+            artifact_index if isinstance(artifact_index, list | tuple) else ()
+        ),
+        "runtime_evaluation_summary": {
+            "evaluation_summary_ref": _string_or_none(
+                evaluation.get("evaluation_summary_ref")
+            ),
+            "evaluation_status": _string_or_none(evaluation.get("evaluation_status"))
+            or _string_or_none(summary.get("evaluation_status"))
+            or "not_evaluated",
+        },
+    }
+
+
 def _positive_int_or_none(value: Any) -> int | None:
     if isinstance(value, int) and value >= 1:
         return value
@@ -223,6 +285,10 @@ def _string_or_none(value: Any) -> str | None:
     if isinstance(value, str) and value:
         return value
     return None
+
+
+def _mapping(value: Any) -> dict[str, Any]:
+    return dict(value) if isinstance(value, Mapping) else {}
 
 
 def _value(value: Any) -> Any:

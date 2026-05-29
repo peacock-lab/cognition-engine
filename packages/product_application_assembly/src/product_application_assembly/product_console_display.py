@@ -86,7 +86,25 @@ class ProductConsoleAskReviewDisplay:
     observability_summary_ref: str | None = None
     trace_inspect_ref: str | None = None
     unavailable_reason: str | None = None
+    runtime: "ProductConsoleRuntimeReviewDisplay" = field(
+        default_factory=lambda: ProductConsoleRuntimeReviewDisplay()
+    )
     metadata: Mapping[str, Any] = field(default_factory=dict)
+
+
+@dataclass(frozen=True)
+class ProductConsoleRuntimeReviewDisplay:
+    runtime_summary_ref: str | None = None
+    availability_hint: Mapping[str, Any] = field(default_factory=dict)
+    trajectory_summary: Mapping[str, Any] = field(default_factory=dict)
+    artifact_index: tuple[Mapping[str, Any], ...] = ()
+    evaluation_summary: Mapping[str, Any] = field(default_factory=dict)
+    user_product_runtime_path_enabled: bool = False
+    default_local_state_dir_enabled: bool = False
+    auto_resume_answer_enabled: bool = False
+    workflow_replay_enabled: bool = False
+    llm_call_enabled: bool = False
+    task_runtime_implementation_enabled: bool = False
 
 
 @dataclass(frozen=True)
@@ -263,6 +281,7 @@ def build_product_console_ask_output_display(
             observability_summary_ref=detail_refs["observability_summary_ref"],
             trace_inspect_ref=detail_refs["trace_inspect_ref"],
             unavailable_reason=unavailable_reason,
+            runtime=_runtime_review_display(output),
             metadata={
                 "answer_run_status": output.get("answer_run_status"),
                 "answer_trace_status": output.get("answer_trace_status"),
@@ -327,6 +346,33 @@ def product_console_ask_output_display_dict(
             "observability_summary_ref": display.review.observability_summary_ref,
             "trace_inspect_ref": display.review.trace_inspect_ref,
             "unavailable_reason": display.review.unavailable_reason,
+            "runtime": {
+                "runtime_summary_ref": display.review.runtime.runtime_summary_ref,
+                "availability_hint": dict(display.review.runtime.availability_hint),
+                "trajectory_summary": dict(display.review.runtime.trajectory_summary),
+                "artifact_index": tuple(
+                    dict(item) for item in display.review.runtime.artifact_index
+                ),
+                "evaluation_summary": dict(
+                    display.review.runtime.evaluation_summary
+                ),
+                "user_product_runtime_path_enabled": (
+                    display.review.runtime.user_product_runtime_path_enabled
+                ),
+                "default_local_state_dir_enabled": (
+                    display.review.runtime.default_local_state_dir_enabled
+                ),
+                "auto_resume_answer_enabled": (
+                    display.review.runtime.auto_resume_answer_enabled
+                ),
+                "workflow_replay_enabled": (
+                    display.review.runtime.workflow_replay_enabled
+                ),
+                "llm_call_enabled": display.review.runtime.llm_call_enabled,
+                "task_runtime_implementation_enabled": (
+                    display.review.runtime.task_runtime_implementation_enabled
+                ),
+            },
             "metadata": dict(display.review.metadata),
         },
         "blocking_reasons": display.blocking_reasons,
@@ -337,6 +383,27 @@ def product_console_ask_output_display_dict(
         "warnings": display.warnings,
         "metadata": dict(display.metadata),
     }
+
+
+def _runtime_review_display(output: Mapping[str, Any]) -> ProductConsoleRuntimeReviewDisplay:
+    availability_hint = _mapping(output.get("runtime_availability_hint"))
+    return ProductConsoleRuntimeReviewDisplay(
+        runtime_summary_ref=_optional_str(output.get("runtime_summary_ref")),
+        availability_hint=availability_hint,
+        trajectory_summary=_mapping(output.get("runtime_trajectory_summary")),
+        artifact_index=tuple(
+            item
+            for item in _mapping_tuple(output.get("runtime_artifact_index"))
+            if item.get("ref")
+        ),
+        evaluation_summary=_mapping(output.get("runtime_evaluation_summary")),
+        user_product_runtime_path_enabled=False,
+        default_local_state_dir_enabled=False,
+        auto_resume_answer_enabled=False,
+        workflow_replay_enabled=False,
+        llm_call_enabled=False,
+        task_runtime_implementation_enabled=False,
+    )
 
 
 def _is_answer_scoped_transformation(output: Mapping[str, Any]) -> bool:
@@ -388,6 +455,16 @@ def _string_tuple(value: Any) -> tuple[str, ...]:
     return tuple(str(item) for item in value)
 
 
+def _mapping(value: Any) -> dict[str, Any]:
+    return dict(value) if isinstance(value, Mapping) else {}
+
+
+def _mapping_tuple(value: Any) -> tuple[dict[str, Any], ...]:
+    if not isinstance(value, list | tuple):
+        return ()
+    return tuple(dict(item) for item in value if isinstance(item, Mapping))
+
+
 __all__ = (
     "PRODUCT_APPLICATION_PRODUCT_CONSOLE_DISPLAY_MODEL_POLICY_REF",
     "PRODUCT_APPLICATION_PRODUCT_CONSOLE_DISPLAY_SOURCE",
@@ -398,6 +475,7 @@ __all__ = (
     "ProductConsoleAnswerRunDisplay",
     "ProductConsoleCapabilityDisplay",
     "ProductConsoleHomeDisplay",
+    "ProductConsoleRuntimeReviewDisplay",
     "build_product_console_ask_output_display",
     "build_product_console_home_display",
     "product_console_ask_output_display_dict",

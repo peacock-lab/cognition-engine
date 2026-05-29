@@ -64,6 +64,7 @@ def test_product_application_assembly_public_surface_is_narrow() -> None:
         "ProductConsoleAnswerRunDisplay",
         "ProductConsoleCapabilityDisplay",
         "ProductConsoleHomeDisplay",
+        "ProductConsoleRuntimeReviewDisplay",
         "assemble_external_readonly_refs_product_application",
         "assemble_evidence_summary_answer_product_output",
         "assemble_evidence_summary_answer_product_summary",
@@ -109,7 +110,7 @@ def test_product_application_assembly_pyproject_declares_distribution() -> None:
     project = _pyproject()["project"]
 
     assert project["name"] == "cognition-system-product-application-assembly"
-    assert project["version"] == "0.8.3"
+    assert project["version"] == "0.8.4"
 
 
 def test_product_application_assembly_pyproject_dependencies_are_bounded() -> None:
@@ -120,12 +121,12 @@ def test_product_application_assembly_pyproject_dependencies_are_bounded() -> No
     )
 
     assert dependencies == (
-        "cognition-system-behavior-contracts==0.8.3",
-        "cognition-system-composition==0.8.3",
-        "cognition-system-config-contexts==0.8.3",
-        "cognition-system-evaluation==0.8.3",
-        "cognition-system-product-gateway==0.8.3",
-        "cognition-system-schemas==0.8.3",
+        "cognition-system-behavior-contracts==0.8.4",
+        "cognition-system-composition==0.8.4",
+        "cognition-system-config-contexts==0.8.4",
+        "cognition-system-evaluation==0.8.4",
+        "cognition-system-product-gateway==0.8.4",
+        "cognition-system-schemas==0.8.4",
     )
     dependency_names = tuple(
         dependency.split("==", maxsplit=1)[0] for dependency in dependencies

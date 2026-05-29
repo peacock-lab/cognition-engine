@@ -306,6 +306,31 @@ def test_product_output_assembly_owns_answer_facts_and_gateway_summary() -> None
     )
     assert assembled.answer_run["runtime_backed"] is False
     assert assembled.answer_run["backed_by_adk_task_runtime"] is False
+    assert assembled.runtime_visible_summary["runtime_summary_ref"].startswith(
+        "continuable-evidence-session-summary://"
+    )
+    assert (
+        assembled.runtime_visible_summary["runtime_binding_status"] == "probed"
+    )
+    assert (
+        assembled.runtime_visible_summary["runtime_artifact_index"][0]["ref"]
+        == assembled.answer_artifact["artifact_ref"]
+    )
+    assert (
+        assembled.runtime_visible_summary["runtime_evaluation_summary"][
+            "evaluation_status"
+        ]
+        == "passed"
+    )
+    assert (
+        assembled.runtime_visible_summary["user_product_runtime_path_enabled"]
+        is False
+    )
+    assert assembled.runtime_visible_summary["workflow_replay_enabled"] is False
+    assert (
+        assembled.runtime_visible_summary["task_runtime_implementation_enabled"]
+        is False
+    )
 
     summary = assembled.product_response_summary
     assert summary["entry_kind"] == "external_readonly_ask"
@@ -316,6 +341,14 @@ def test_product_output_assembly_owns_answer_facts_and_gateway_summary() -> None
     assert summary["answer_run_summary"]["runtime_backed"] is False
     assert summary["answer_trace_ref"] == assembled.answer_trace["trace_ref"]
     assert summary["answer_artifact_ref"] == assembled.answer_artifact["artifact_ref"]
+    assert summary["runtime_summary_ref"] == (
+        assembled.runtime_visible_summary["runtime_summary_ref"]
+    )
+    assert summary["runtime_availability_hint"]["runtime_binding_status"] == "probed"
+    assert summary["runtime_artifact_index"][0]["ref"] == (
+        assembled.answer_artifact["artifact_ref"]
+    )
+    assert summary["runtime_evaluation_summary"]["evaluation_status"] == "passed"
     assert (
         summary["metadata"]["product_gateway_response_source"]
         == PRODUCT_APPLICATION_EVIDENCE_SUMMARY_ANSWER_PRODUCT_OUTPUT_SOURCE

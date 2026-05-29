@@ -78,6 +78,14 @@ def test_external_readonly_ask_entry_projects_public_summary() -> None:
     assert summary["observability_summary_status"] == "success"
     assert summary["safe_observability_summary"]["task_compatible"] is True
     assert summary["safe_observability_summary"]["workflow_compatible"] is True
+    assert summary["runtime_summary_ref"] == (
+        "continuable-evidence-session-summary://runtime-visible-ask"
+    )
+    assert summary["runtime_availability_hint"]["runtime_binding_status"] == "probed"
+    assert summary["runtime_artifact_index"][0]["ref"] == (
+        "evidence-summary-answer-artifact://artifact-ask"
+    )
+    assert summary["runtime_evaluation_summary"]["evaluation_status"] == "passed"
     assert summary["safe_observability_summary"]["runtime_backed"] is False
     assert summary["trace_inspect_ref"] == (
         "evidence-summary-answer-trace-inspect://inspect-ask"
@@ -362,6 +370,37 @@ def _gateway_input(**overrides: object) -> dict[str, object]:
             "backed_by_adk_workflow_runtime": False,
             "durable_session": False,
             "memory_enabled": False,
+        },
+        "runtime_visible_summary": {
+            "runtime_visible_summary_ref": (
+                "continuable-evidence-session-summary://runtime-visible-ask"
+            ),
+            "runtime_summary_ref": (
+                "continuable-evidence-session-summary://runtime-visible-ask"
+            ),
+            "runtime_binding_ref": (
+                "continuable-evidence-session-runtime-binding://ask"
+            ),
+            "runtime_binding_status": "probed",
+            "runtime_availability_hint": {
+                "runtime_binding_status": "probed",
+                "hint": "已生成 runtime 用户可见安全摘要；用户 runtime 路径尚未打开。",
+            },
+            "runtime_artifact_index": [
+                {
+                    "ref": "evidence-summary-answer-artifact://artifact-ask",
+                    "kind": "answer_artifact",
+                    "purpose": "runtime_visible_summary_artifact_index",
+                }
+            ],
+            "runtime_evaluation_summary": {
+                "evaluation_summary_ref": (
+                    "evaluation://continuable-evidence-session/runtime-binding"
+                ),
+                "evaluation_status": "passed",
+            },
+            "user_product_runtime_path_enabled": True,
+            "auto_resume_answer_enabled": True,
         },
         "metadata": {"unit_test": True},
     }

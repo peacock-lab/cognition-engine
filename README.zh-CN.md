@@ -2,7 +2,7 @@
 
 [English](README.md) | 简体中文
 
-当前发布候选版本：`v0.8.3`
+当前发布候选版本：`v0.8.4`
 
 Cognition System 是一个面向受治理 AI 协作的认知能力系统：它把大模型、工具生态、运行能力和治理规则组合起来，在明确授权和可复查边界内帮助用户理解资料、处理任务并交付可追踪结果。
 
@@ -26,6 +26,16 @@ cognition-console ask --guided
 
 回答会尽量说明答案依据、证据引用和受限原因。资料不足时，系统会提示无法展开，而不是编造内容。
 
+v0.8.4 增加了 preview-only 的可继续会话保存与管理闭环。一次资料问答成功后，用户可以显式保存会话、列出已保存会话、预览可恢复上下文，并删除保存记录：
+
+```bash
+cognition-console session list
+cognition-console session resume-preview --session-id <id>
+cognition-console session delete --session-id <id> --yes
+```
+
+恢复预览不会自动生成后续回答，只展示安全的会话状态、资料范围、恢复提示和 runtime visible summary 引用。
+
 兼容 / 技术入口仍然保留：
 
 ```bash
@@ -36,13 +46,13 @@ cognition external-readonly ask --guided
 
 ```bash
 python -m pip install --upgrade pip
-python -m pip install "cognition-system==0.8.3"
+python -m pip install "cognition-system==0.8.4"
 ```
 
 或使用 uv：
 
 ```bash
-uv pip install "cognition-system==0.8.3"
+uv pip install "cognition-system==0.8.4"
 ```
 
 需要 Python `3.14`。
@@ -77,7 +87,8 @@ cognition-console ask --guided
 2. 静默调用模型。
 3. 静默读取或保存 provider key。
 4. 在回答中暴露原始网页、原始模型响应、traceback 或 provider key。
-5. 把当前追问冒充长期记忆。
+5. 把当前追问或保存会话预览冒充长期记忆。
+6. 把 preview-only 会话管理说成 ADK Task API runtime、Workflow Runtime、durable ADK Session、Memory、Tools、Skills、callbacks 或 plugins。
 
 ## 常用命令
 
@@ -85,6 +96,8 @@ cognition-console ask --guided
 cognition-console --help
 cognition-console ask --help
 cognition-console ask --guided
+cognition-console session --help
+cognition-console session list
 cognition --help
 cognition external-readonly ask --help
 cognition config init --config-root ./config

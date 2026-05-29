@@ -29,7 +29,7 @@ def test_three_point_summary_skips_short_markdown_heading_questions() -> None:
 def test_format_answer_splits_inline_numbered_list() -> None:
     previous_answer = (
         "1. Cognition System 面向受治理 AI 协作。 "
-        "2. 当前版本为 v0.8.3。 "
+        "2. 当前版本为 v0.8.4。 "
         "3. 核心能力是读取外部只读资料并回答问题。"
     )
 
@@ -41,6 +41,6 @@ def test_format_answer_splits_inline_numbered_list() -> None:
     assert answer is not None
     assert answer.startswith("## 排版优化\n\n### 要点")
     assert "1. Cognition System 面向受治理 AI 协作" in answer
-    assert "2. 当前版本为 v0.8.3" in answer
+    assert "2. 当前版本为 v0.8.4" in answer
     assert "3. 核心能力是读取外部只读资料并回答问题" in answer
     assert " 2. " not in answer

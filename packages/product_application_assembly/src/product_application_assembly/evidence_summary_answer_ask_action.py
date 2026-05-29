@@ -924,6 +924,26 @@ def _output_from_answer_result(
         "answer_run_unavailable_reason": product_output.answer_run.get(
             "unavailable_reason"
         ),
+        "runtime_visible_summary": product_output.runtime_visible_summary,
+        "runtime_summary_ref": product_output.product_response_summary.get(
+            "runtime_summary_ref"
+        ),
+        "runtime_availability_hint": product_output.product_response_summary.get(
+            "runtime_availability_hint"
+        )
+        or {},
+        "runtime_trajectory_summary": product_output.product_response_summary.get(
+            "runtime_trajectory_summary"
+        )
+        or {},
+        "runtime_artifact_index": product_output.product_response_summary.get(
+            "runtime_artifact_index"
+        )
+        or [],
+        "runtime_evaluation_summary": product_output.product_response_summary.get(
+            "runtime_evaluation_summary"
+        )
+        or {},
         "evidence_lineage_summary": product_output.evidence_lineage_summary,
         "evidence_summary_answer_trace": product_output.answer_trace,
         "evidence_summary_answer_artifact": product_output.answer_artifact,

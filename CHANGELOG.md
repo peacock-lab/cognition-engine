@@ -2,9 +2,34 @@
 
 本文档作为认知引擎公开版本历史索引和轻量摘要，不承载内部治理全过程。
 
-## v0.8.3 未发布候选
+## v0.8.4 未发布候选
 
-`v0.8.3` 是当前 ADK 2.1.0 baseline patch release 候选版本号。
+`v0.8.4` 是 preview-only 可继续资料问答会话 patch release 候选版本号。
+
+候选口径：
+
+```text
+认知系统产品控制台 + 可继续资料问答会话 preview-only：用户完成受治理资料问答后，可以显式保存会话、列出已保存会话、预览可恢复上下文，并删除保存记录；系统不自动生成恢复回答。
+```
+
+主要变化：
+
+1. 保持 `cognition-console ask --guided` 作为当前公开主产品入口；
+2. 增加 `cognition-console session list`、`resume-preview`、`delete --yes` 的发布候选材料口径；
+3. 安装态默认本地状态目录用于保存和管理可继续资料问答会话；
+4. `resume-preview` 展示安全的会话状态、资料范围、恢复提示和 runtime visible summary 引用；
+5. 删除后返回 `session_not_found` 语义，避免已删除记录继续被预览；
+6. 不保存 raw prompt、raw provider response、secret、traceback 或 ADK raw object；
+7. 不把 preview-only 会话管理说成自动恢复回答、长期 Memory、ADK Task API runtime、Workflow Runtime 或 durable ADK Session；
+8. `cognition_agent` 自动恢复回答与 ProductGateway 安全投影已完成产品设计，但不属于 v0.8.4 已发布用户能力承诺；
+9. 继续锁定 `google-adk==2.1.0`；
+10. Node24-ready Trusted Publishing workflow 事实沿用 v0.8.3 发布后验证。
+
+正式发布时间、PyPI 上传、公仓 tag、GitHub Release 与发布后安装复验，等待后续发布链路定稿。
+
+## v0.8.3
+
+`v0.8.3` 是已发布的 ADK 2.1.0 baseline patch release。
 
 候选口径：
 

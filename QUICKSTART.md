@@ -2,19 +2,19 @@
 
 [简体中文](QUICKSTART.zh-CN.md) | English · [Back](README.md)
 
-Current release candidate: `v0.8.3`
+Current release candidate: `v0.8.4`
 
 ## 1. Install
 
 ```bash
 python -m pip install --upgrade pip
-python -m pip install "cognition-system==0.8.3"
+python -m pip install "cognition-system==0.8.4"
 ```
 
 Or with uv:
 
 ```bash
-uv pip install "cognition-system==0.8.3"
+uv pip install "cognition-system==0.8.4"
 ```
 
 Python `3.14` is required.
@@ -25,6 +25,7 @@ Python `3.14` is required.
 cognition --help
 cognition-console --help
 cognition-console ask --help
+cognition-console session --help
 ```
 
 ## 3. Try Reviewable Source QA
@@ -44,15 +45,17 @@ Example inputs:
 允许本次受控大模型回答？ 输入 yes/no: y
 ```
 
-## 4. Follow Up
+## 4. Preview Saved Sessions
 
-After a successful answer, continue around the same source:
+After a successful answer, choose the explicit save option when prompted. Then manage saved sessions:
 
-```text
-它适合用于什么场景？
+```bash
+cognition-console session list
+cognition-console session resume-preview --session-id <id>
+cognition-console session delete --session-id <id> --yes
 ```
 
-If the source is insufficient, the system explains the limitation.
+`resume-preview` shows safe session state, source scope, resume hints, and runtime visible summary references. It does not automatically generate a resumed answer.
 
 For compatibility and technical checks, the CLI entry is still available:
 

@@ -20,6 +20,7 @@ from runtime_container._controlled_run_facade import (
     ControlledRunEntryRunner,
     ControlledRunFacadeInput,
     ControlledRunFacadeResult,
+    ControlledRunSupportProviders,
     DEFAULT_CONTROLLED_RUN_WORKFLOW_ID,
     DEFAULT_CONTROLLED_RUN_WORKFLOW_NAME,
     run_controlled_run_facade,
@@ -70,6 +71,7 @@ def run_controlled_execution_service(
     workflow_registry: Any | None = None,
     llm_invocation_service: Any | None = None,
     agent_shell_live_client: Any | None = None,
+    support_providers: ControlledRunSupportProviders | None = None,
     entry_runner: ControlledExecutionEntryRunner | None = None,
 ) -> ControlledExecutionRuntimeSummarySchema:
     """Run controlled execution and return a product-facing runtime summary."""
@@ -90,6 +92,7 @@ def run_controlled_execution_service(
         "workflow_registry": workflow_registry,
         "llm_invocation_service": resolved_llm_invocation_service,
         "agent_shell_live_client": agent_shell_live_client,
+        "support_providers": support_providers,
     }
     if entry_runner is not None:
         facade_kwargs["entry_runner"] = entry_runner

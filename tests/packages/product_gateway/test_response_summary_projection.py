@@ -180,6 +180,78 @@ def test_response_summary_projection_prefers_response_governance_ref() -> None:
     assert summary["governance_summary_ref"] == "governance-summary://response"
 
 
+def test_response_summary_projection_exposes_runtime_visible_summary() -> None:
+    response = ProductGatewayResponse(
+        request_id="external-readonly/ask-1",
+        entry_kind=ProductGatewayEntryKind.EXTERNAL_READONLY_ASK,
+        status=ProductGatewayStatus.SUCCESS,
+        metadata={
+            "source": "product_gateway.external_readonly_ask",
+            "runtime_visible_summary": {
+                "runtime_visible_summary_ref": (
+                    "continuable-evidence-session-summary://runtime-visible-1"
+                ),
+                "runtime_binding_status": "probed",
+                "runtime_availability_hint": (
+                    "内部 runtime binding safe projection 可用于复查。"
+                ),
+                "trajectory_summary": {
+                    "turn_count": 1,
+                    "latest_status": "success",
+                },
+                "artifact_index": [
+                    {
+                        "ref": "evidence-summary-answer-artifact://artifact-1",
+                        "kind": "answer_artifact",
+                        "purpose": "runtime_binding_user_visible_artifact_index",
+                    }
+                ],
+                "evaluation_summary_ref": (
+                    "evaluation://continuable-evidence-session/runtime-binding"
+                ),
+                "evaluation_status": "passed",
+                "user_product_runtime_path_enabled": True,
+                "auto_resume_answer_enabled": True,
+            },
+        },
+    )
+
+    summary = project_product_gateway_response_summary(response)
+
+    assert summary["runtime_summary_ref"] == (
+        "continuable-evidence-session-summary://runtime-visible-1"
+    )
+    assert summary["runtime_availability_hint"]["runtime_binding_status"] == "probed"
+    assert summary["runtime_availability_hint"]["user_product_runtime_path_enabled"] is False
+    assert summary["runtime_availability_hint"]["auto_resume_answer_enabled"] is False
+    assert summary["runtime_trajectory_summary"]["turn_count"] == 1
+    assert summary["runtime_artifact_index"][0]["ref"] == (
+        "evidence-summary-answer-artifact://artifact-1"
+    )
+    assert summary["runtime_evaluation_summary"]["evaluation_status"] == "passed"
+    validate_product_gateway_response_summary(summary)
+
+
+def test_response_summary_contract_rejects_runtime_enabled_claim() -> None:
+    summary = project_product_gateway_response_summary(
+        ProductGatewayResponse(
+            request_id="external-readonly/ask-2",
+            entry_kind=ProductGatewayEntryKind.EXTERNAL_READONLY_ASK,
+            status=ProductGatewayStatus.SUCCESS,
+        )
+    )
+    summary["runtime_availability_hint"] = {
+        "user_product_runtime_path_enabled": True,
+    }
+
+    try:
+        validate_product_gateway_response_summary(summary)
+    except ValueError as exc:
+        assert "user_product_runtime_path_enabled" in str(exc)
+    else:
+        raise AssertionError("runtime enabled claim should be rejected")
+
+
 def test_response_summary_projection_source_has_no_execution_imports() -> None:
     source = (
         PRODUCT_GATEWAY_SOURCE_ROOT / "response_summary_projection.py"

@@ -1,13 +1,13 @@
 [project]
 name = "cognition-system-config-contexts"
-version = "0.8.3"
-readme = { text = "Cognition System v0.8.3 public package. See the version-specific public README in the release repository for usage and boundary notes.", content-type = "text/markdown" }
+version = "0.8.4"
+readme = { text = "Cognition System v0.8.4 public package. See the version-specific public README in the release repository for usage and boundary notes.", content-type = "text/markdown" }
 description = "Configuration contexts and Config Views for Cognition System."
 requires-python = ">=3.14"
 dependencies = [
   "pydantic>=2.13.0",
-  "cognition-system-schemas==0.8.3",
-  "cognition-system-config-assembly==0.8.3",
+  "cognition-system-schemas==0.8.4",
+  "cognition-system-config-assembly==0.8.4",
 ]
 
 [build-system]

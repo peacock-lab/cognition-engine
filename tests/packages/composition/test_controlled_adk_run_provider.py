@@ -94,3 +94,13 @@ def test_controlled_adk_run_provider_does_not_reverse_import_runtime_container()
     source = PROVIDER_SOURCE.read_text(encoding="utf-8")
 
     assert not re.search(r"^\s*(?:from|import)\s+runtime_container\b", source, re.M)
+
+
+def test_controlled_adk_run_provider_uses_adapter_for_raw_adk_workflow() -> None:
+    source = PROVIDER_SOURCE.read_text(encoding="utf-8")
+
+    assert "build_controlled_no_live_workflow" in source
+    assert "google.adk" not in source
+    assert "BaseNode" not in source
+    assert "Workflow(" not in source
+    assert "Event(" not in source

@@ -11,6 +11,10 @@ from contract_core.llm_invocation import GovernedLlmInvocationService
 
 from runtime_container.controlled_adk_run_entry import (
     ControlledAdkRunRequest,
+    ControlledRunAgentShellRequest,
+    ControlledRunFunctionToolRequest,
+    ControlledRunReadonlyBundleRequest,
+    ControlledRunSupportProviders,
     run_productized_controlled_adk_run,
 )
 from runtime_container.controlled_adk_run_request_builder import (
@@ -385,6 +389,7 @@ def build_controlled_run_request_from_facade_input(
     workflow_registry: WorkflowRegistry | None = None,
     llm_invocation_service: GovernedLlmInvocationService | None = None,
     agent_shell_live_client: Any | None = None,
+    support_providers: ControlledRunSupportProviders | None = None,
 ) -> ControlledAdkRunRequest:
     """Build a controlled ADK run request from the facade input."""
 
@@ -420,6 +425,7 @@ def build_controlled_run_request_from_facade_input(
             llm_invocation_service or _default_llm_invocation_service()
         ),
         agent_shell_live_client=agent_shell_live_client,
+        support_providers=support_providers or _default_controlled_run_support(),
     )
     return build_controlled_adk_run_request_from_registry(
         build_input=build_input,
@@ -433,6 +439,7 @@ def run_controlled_run_facade(
     workflow_registry: WorkflowRegistry | None = None,
     llm_invocation_service: GovernedLlmInvocationService | None = None,
     agent_shell_live_client: Any | None = None,
+    support_providers: ControlledRunSupportProviders | None = None,
     entry_runner: ControlledRunEntryRunner = run_productized_controlled_adk_run,
 ) -> ControlledRunFacadeResult:
     """Run a controlled request through the runtime-container public facade."""
@@ -442,6 +449,7 @@ def run_controlled_run_facade(
         workflow_registry=workflow_registry,
         llm_invocation_service=llm_invocation_service,
         agent_shell_live_client=agent_shell_live_client,
+        support_providers=support_providers,
     )
     return ControlledRunFacadeResult.from_entry_result(dict(entry_runner(request)))
 
@@ -464,6 +472,80 @@ def _default_llm_invocation_service() -> GovernedLlmInvocationService:
     )
 
     return build_adk_governed_llm_invocation_service()
+
+
+def _default_controlled_run_support() -> ControlledRunSupportProviders:
+    from composition.adk_agent_shell_assembly import (
+        run_controlled_live_adk_agent_shell_smoke,
+        run_no_live_adk_agent_shell_product_entry,
+        runtime_composition_options_from_metadata,
+    )
+    from composition.adk_tool_assembly import (
+        run_no_live_adk_function_tool_product_entry,
+        runtime_composition_options_from_tool_metadata,
+    )
+    from composition.adk_workflow_runner_assembly import (
+        build_adk_workflow_runner_governance_summary_provider,
+    )
+    from composition.llm_invocation_readonly_assembly import (
+        build_llm_invocation_readonly_product_bundle,
+    )
+
+    def no_live_agent_shell_runner(request: ControlledRunAgentShellRequest):
+        return run_no_live_adk_agent_shell_product_entry(
+            options=runtime_composition_options_from_metadata(
+                dict(request.options_metadata)
+            ),
+            input_text=request.input_text,
+            invocation_id=request.invocation_id,
+            runtime_id=request.runtime_id,
+            metadata=dict(request.metadata),
+        )
+
+    def controlled_live_agent_shell_runner(request: ControlledRunAgentShellRequest):
+        return run_controlled_live_adk_agent_shell_smoke(
+            options=runtime_composition_options_from_metadata(
+                dict(request.options_metadata)
+            ),
+            input_text=request.input_text,
+            invocation_id=request.invocation_id,
+            runtime_id=request.runtime_id,
+            live_enabled=request.live_enabled,
+            live_client=request.live_client,
+            metadata=dict(request.metadata),
+        )
+
+    def no_live_function_tool_runner(request: ControlledRunFunctionToolRequest):
+        return run_no_live_adk_function_tool_product_entry(
+            options=runtime_composition_options_from_tool_metadata(
+                dict(request.options_metadata)
+            ),
+            task_ref=request.task_ref,
+            task_kind=request.task_kind,
+            evidence_ref=request.evidence_ref,
+            invocation_id=request.invocation_id,
+            runtime_id=request.runtime_id,
+            tool_confirmation_granted=request.tool_confirmation_granted,
+            tool_approval_ref=request.tool_approval_ref,
+            tool_confirmation_decision_source=request.tool_confirmation_decision_source,
+            metadata=dict(request.metadata),
+        )
+
+    def llm_readonly_bundle_builder(request: ControlledRunReadonlyBundleRequest):
+        return build_llm_invocation_readonly_product_bundle(
+            request.invocation_result,
+            metadata=dict(request.metadata),
+        )
+
+    return ControlledRunSupportProviders(
+        governance_summary_provider_factory=(
+            build_adk_workflow_runner_governance_summary_provider
+        ),
+        no_live_agent_shell_runner=no_live_agent_shell_runner,
+        controlled_live_agent_shell_runner=controlled_live_agent_shell_runner,
+        no_live_function_tool_runner=no_live_function_tool_runner,
+        llm_invocation_readonly_bundle_builder=llm_readonly_bundle_builder,
+    )
 
 
 def _required_text(value: Mapping[str, Any], key: str) -> str:

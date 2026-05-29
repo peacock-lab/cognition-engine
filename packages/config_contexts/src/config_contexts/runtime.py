@@ -219,6 +219,39 @@ class SessionPolicyConfigView(RuntimeConfigBaseModel):
     session_service_source: str = "in_memory"
 
 
+class ContinuableEvidenceSessionStoragePolicyConfigView(RuntimeConfigBaseModel):
+    """Product-level local state policy for continuable evidence sessions."""
+
+    default_local_state_dir_enabled: bool = True
+    default_local_state_root_kind: Literal["platform_app_state"] = "platform_app_state"
+    env_override_enabled: bool = True
+    env_override_name: str = "COGNITION_SESSION_STATE_DIR"
+    default_retention_days: int = Field(default=30, gt=0)
+    first_save_requires_confirmation: Literal[True] = True
+    resume_requires_confirmation: Literal[True] = True
+    auto_resume_answer_enabled: Literal[False] = False
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+    @model_validator(mode="after")
+    def validate_continuable_evidence_session_storage_policy(
+        self,
+    ) -> "ContinuableEvidenceSessionStoragePolicyConfigView":
+        """Keep local session storage policy safe and non-executing."""
+
+        if self.env_override_enabled and not _safe_env_var_name(
+            self.env_override_name
+        ):
+            raise ValueError("env_override_name must be a safe environment variable name.")
+        forbidden_paths = _sensitive_metadata_paths(self.metadata)
+        if forbidden_paths:
+            raise ValueError(
+                "Continuable evidence session storage metadata must not include "
+                "sensitive fields: "
+                + ", ".join(forbidden_paths)
+            )
+        return self
+
+
 class RuntimeProductizationGateConfigView(RuntimeConfigBaseModel):
     """Runtime-facing productization gate configuration view."""
 
@@ -988,6 +1021,9 @@ class RuntimeConfigContextBundle(RuntimeConfigBaseModel):
     event_policy: EventPolicyConfigView
     artifact_policy: ArtifactPolicyConfigView
     session_policy: SessionPolicyConfigView = Field(default_factory=SessionPolicyConfigView)
+    continuable_evidence_session_storage: (
+        ContinuableEvidenceSessionStoragePolicyConfigView
+    ) = Field(default_factory=ContinuableEvidenceSessionStoragePolicyConfigView)
     adapter_selection: AdapterSelectionConfigView
     adk_run_config: AdkRunConfigView = Field(default_factory=AdkRunConfigView)
     productization_gate: RuntimeProductizationGateConfigView = Field(

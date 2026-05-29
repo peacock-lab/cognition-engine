@@ -188,6 +188,13 @@ class ProductGatewayResponseSummarySchema(ProductGatewayResponseSummaryBaseModel
     answer_run_summary: dict[str, Any] = Field(default_factory=dict)
     answer_run_unavailable_reason: str | None = None
     parent_answer_run_ref: str | None = None
+    runtime_summary_ref: str | None = None
+    runtime_availability_hint: dict[str, Any] = Field(default_factory=dict)
+    runtime_trajectory_summary: dict[str, Any] = Field(default_factory=dict)
+    runtime_artifact_index: list[ProductGatewayResponseSummaryRefSchema] = Field(
+        default_factory=list
+    )
+    runtime_evaluation_summary: dict[str, Any] = Field(default_factory=dict)
     durable_session: bool = False
     memory_enabled: bool = False
 
@@ -202,6 +209,7 @@ class ProductGatewayResponseSummarySchema(ProductGatewayResponseSummaryBaseModel
             raise ValueError("memory_enabled must remain false.")
         if self.follow_up and self.temporary_follow_up is not True:
             raise ValueError("follow-up summaries must remain temporary.")
+        _validate_runtime_summary_invariant_flags(self)
         return self
 
 
@@ -236,6 +244,21 @@ def _validate_summary_invariant_flags(
         raise ValueError("action_execution_enabled must remain false.")
     if summary.gateway_enabled:
         raise ValueError("gateway_enabled must remain false.")
+
+
+def _validate_runtime_summary_invariant_flags(
+    summary: ProductGatewayResponseSummarySchema,
+) -> None:
+    for field_name in (
+        "user_product_runtime_path_enabled",
+        "default_local_state_dir_enabled",
+        "auto_resume_answer_enabled",
+        "workflow_replay_enabled",
+        "llm_call_enabled",
+        "task_runtime_implementation_enabled",
+    ):
+        if summary.runtime_availability_hint.get(field_name) is True:
+            raise ValueError(f"runtime_availability_hint.{field_name} must be false.")
 
 
 def _summary_boundary_violations(value: Any, path: str = "$") -> list[str]:

@@ -2,39 +2,39 @@
 requires = ["setuptools>=69", "wheel"]
 build-backend = "setuptools.build_meta"
 
-# Root package v0.8.3 release note:
+# Root package v0.8.4 release note:
 # - This pyproject represents the Cognition System aggregate distribution.
-# - The aggregate package depends on the v0.8.3 multi-package baseline under
+# - The aggregate package depends on the v0.8.4 multi-package baseline under
 #   packages/*.
-# - The 0.8.3 line is a new PyPI baseline under cognition-system distribution
+# - The 0.8.4 line is a new PyPI baseline under cognition-system distribution
 #   names.
 [project]
 name = "cognition-system"
-version = "0.8.3"
-description = "Aggregate metadata package for the Cognition System v0.8.3 baseline."
-readme = { text = "Cognition System v0.8.3 public aggregate package. See the version-specific public README in the release repository for usage and boundary notes.", content-type = "text/markdown" }
+version = "0.8.4"
+description = "Aggregate metadata package for the Cognition System v0.8.4 baseline."
+readme = { text = "Cognition System v0.8.4 public aggregate package. See the version-specific public README in the release repository for usage and boundary notes.", content-type = "text/markdown" }
 requires-python = ">=3.14"
 dependencies = [
-    "cognition-system-schemas==0.8.3",
-    "cognition-system-behavior-contracts==0.8.3",
-    "cognition-system-config-assembly==0.8.3",
-    "cognition-system-config-contexts==0.8.3",
-    "cognition-system-runtime==0.8.3",
-    "cognition-system-contract-core==0.8.3",
-    "cognition-system-adk-adapter==0.8.3",
-    "cognition-system-observability-hub==0.8.3",
-    "cognition-system-cognition-agent==0.8.3",
-    "cognition-system-cognition-governance==0.8.3",
-    "cognition-system-evaluation==0.8.3",
-    "cognition-system-composition==0.8.3",
-    "cognition-system-external-readonly==0.8.3",
-    "cognition-system-runtime-container==0.8.3",
-    "cognition-system-operation-flows==0.8.3",
-    "cognition-system-product-gateway==0.8.3",
-    "cognition-system-product-console==0.8.3",
-    "cognition-system-product-runtime-assembly==0.8.3",
-    "cognition-system-product-application-assembly==0.8.3",
-    "cognition-system-cli==0.8.3",
+    "cognition-system-schemas==0.8.4",
+    "cognition-system-behavior-contracts==0.8.4",
+    "cognition-system-config-assembly==0.8.4",
+    "cognition-system-config-contexts==0.8.4",
+    "cognition-system-runtime==0.8.4",
+    "cognition-system-contract-core==0.8.4",
+    "cognition-system-adk-adapter==0.8.4",
+    "cognition-system-observability-hub==0.8.4",
+    "cognition-system-cognition-agent==0.8.4",
+    "cognition-system-cognition-governance==0.8.4",
+    "cognition-system-evaluation==0.8.4",
+    "cognition-system-composition==0.8.4",
+    "cognition-system-external-readonly==0.8.4",
+    "cognition-system-runtime-container==0.8.4",
+    "cognition-system-operation-flows==0.8.4",
+    "cognition-system-product-gateway==0.8.4",
+    "cognition-system-product-console==0.8.4",
+    "cognition-system-product-runtime-assembly==0.8.4",
+    "cognition-system-product-application-assembly==0.8.4",
+    "cognition-system-cli==0.8.4",
 ]
 
 classifiers = [
@@ -87,7 +87,7 @@ markers = [
 ]
 addopts = ["-v", "--tb=short", "--strict-markers"]
 
-# Workspace members under packages/* are the v0.8.3 multi-package baseline.
+# Workspace members under packages/* are the v0.8.4 multi-package baseline.
 [tool.uv.workspace]
 members = [
     "packages/*",

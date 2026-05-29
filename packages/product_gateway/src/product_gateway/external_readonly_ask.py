@@ -124,6 +124,7 @@ class ExternalReadonlyAskGatewayInput(BaseModel):
     answer_run_summary: dict[str, Any] = Field(default_factory=dict)
     answer_run_unavailable_reason: str | None = None
     parent_answer_run_ref: str | None = None
+    runtime_visible_summary: dict[str, Any] = Field(default_factory=dict)
     durable_session: bool = False
     memory_enabled: bool = False
     metadata: dict[str, Any] = Field(default_factory=dict)
@@ -140,6 +141,7 @@ class ExternalReadonlyAskGatewayInput(BaseModel):
                 "safe_observability_summary": self.safe_observability_summary,
                 "trace_inspect_summary": self.trace_inspect_summary,
                 "answer_run_summary": self.answer_run_summary,
+                "runtime_visible_summary": self.runtime_visible_summary,
             },
             field_name="external_readonly_ask_gateway_input",
         )
@@ -446,6 +448,9 @@ def _response_metadata(gateway_input: ExternalReadonlyAskGatewayInput) -> dict[s
         ),
         "answer_run_unavailable_reason": gateway_input.answer_run_unavailable_reason,
         "parent_answer_run_ref": gateway_input.parent_answer_run_ref,
+        "runtime_visible_summary": _safe_runtime_visible_summary(
+            gateway_input.runtime_visible_summary
+        ),
         "durable_session": gateway_input.durable_session,
         "memory_enabled": gateway_input.memory_enabled,
         **_safe_metadata(gateway_input.metadata),
@@ -468,6 +473,77 @@ def _safe_metadata(value: Any) -> dict[str, Any]:
             continue
         metadata[key] = item
     return metadata
+
+
+def _safe_runtime_visible_summary(value: Any) -> dict[str, Any]:
+    if not isinstance(value, Mapping):
+        return {}
+    return {
+        "runtime_visible_summary_ref": _optional_string(
+            value.get("runtime_visible_summary_ref")
+        ),
+        "continuable_evidence_session_ref": _optional_string(
+            value.get("continuable_evidence_session_ref")
+        ),
+        "runtime_summary_ref": _optional_string(value.get("runtime_summary_ref")),
+        "runtime_binding_ref": _optional_string(value.get("runtime_binding_ref")),
+        "runtime_binding_status": _optional_string(
+            value.get("runtime_binding_status")
+        ),
+        "runtime_availability_hint": _safe_trace_summary(
+            value.get("runtime_availability_hint")
+        ),
+        "runtime_availability_hint_text": _optional_string(
+            value.get("runtime_availability_hint_text")
+        ),
+        "runtime_trajectory_summary": _safe_trace_summary(
+            value.get("runtime_trajectory_summary")
+        ),
+        "trajectory_summary": _safe_trace_summary(value.get("trajectory_summary")),
+        "runtime_artifact_index": _safe_ref_list(
+            value.get("runtime_artifact_index")
+        ),
+        "artifact_index": _safe_ref_list(value.get("artifact_index")),
+        "runtime_evaluation_summary": _safe_trace_summary(
+            value.get("runtime_evaluation_summary")
+        ),
+        "evaluation_summary_ref": _optional_string(
+            value.get("evaluation_summary_ref")
+        ),
+        "evaluation_status": _optional_string(value.get("evaluation_status")),
+        "user_product_runtime_path_enabled": False,
+        "default_local_state_dir_enabled": False,
+        "auto_resume_answer_enabled": False,
+        "workflow_replay_enabled": False,
+        "llm_call_enabled": False,
+        "task_runtime_implementation_enabled": False,
+        "raw_runtime_object_included": False,
+        "raw_event_payload_included": False,
+        "artifact_body_included": False,
+        "adk_eval_raw_data_included": False,
+    }
+
+
+def _safe_ref_list(value: Any) -> list[dict[str, Any]]:
+    refs: list[dict[str, Any]] = []
+    if not isinstance(value, list | tuple):
+        return refs
+    for item in value:
+        if not isinstance(item, Mapping):
+            continue
+        ref = _optional_string(item.get("ref"))
+        kind = _optional_string(item.get("kind"))
+        if not ref or not kind:
+            continue
+        refs.append(
+            {
+                "ref": ref,
+                "kind": kind,
+                "purpose": _optional_string(item.get("purpose")),
+                "metadata": _safe_trace_summary(item.get("metadata")),
+            }
+        )
+    return refs
 
 
 def _safe_trace_summary(value: Any) -> dict[str, Any]:

@@ -3,8 +3,10 @@ from __future__ import annotations
 import ast
 import json
 import tomllib
+from collections.abc import Mapping
 from pathlib import Path
 from types import SimpleNamespace
+from typing import Any
 
 import product_console
 from product_application_assembly.evidence_summary_answer_provider_key_setup import (
@@ -40,9 +42,9 @@ def test_product_console_pyproject_declares_distribution_and_boundary() -> None:
     project = _pyproject()["project"]
 
     assert project["name"] == "cognition-system-product-console"
-    assert project["version"] == "0.8.3"
+    assert project["version"] == "0.8.4"
     assert project["dependencies"] == [
-        "cognition-system-product-application-assembly==0.8.3",
+        "cognition-system-product-application-assembly==0.8.4",
     ]
     assert "scripts" not in project
 
@@ -204,6 +206,28 @@ def test_product_console_ask_guided_calls_product_entry_service() -> None:
                 "trace_inspect_ref": (
                     "evidence-summary-answer-trace-inspect://inspect-test"
                 ),
+                "runtime_summary_ref": (
+                    "continuable-evidence-session-summary://runtime-visible-test"
+                ),
+                "runtime_availability_hint": {
+                    "runtime_binding_status": "probed",
+                    "hint": "内部 runtime binding safe projection 可用于复查。",
+                    "user_product_runtime_path_enabled": False,
+                    "auto_resume_answer_enabled": False,
+                },
+                "runtime_artifact_index": [
+                    {
+                        "ref": "evidence-summary-answer-artifact://artifact-test",
+                        "kind": "answer_artifact",
+                        "purpose": "runtime_visible_summary_artifact_index",
+                    }
+                ],
+                "runtime_evaluation_summary": {
+                    "evaluation_summary_ref": (
+                        "evaluation://continuable-evidence-session/runtime-binding"
+                    ),
+                    "evaluation_status": "passed",
+                },
                 "answer": "这是一个示例域名。",
             },
         )
@@ -231,6 +255,11 @@ def test_product_console_ask_guided_calls_product_entry_service() -> None:
     assert "details: 使用 --json 查看 trace / artifact / observability / inspect 详情。" in (
         captured_output[0]
     )
+    assert "runtime_summary:" in captured_output[0]
+    assert "runtime_binding_status: probed" in captured_output[0]
+    assert "evaluation_status: passed" in captured_output[0]
+    assert "evidence-summary-answer-artifact://artifact-test" in captured_output[0]
+    assert "不自动恢复回答、不调用模型、不重放 Workflow" in captured_output[0]
     assert "answer_trace_ref:" not in captured_output[0]
     assert "answer_artifact_ref:" not in captured_output[0]
     assert "observability_summary_ref:" not in captured_output[0]
@@ -275,6 +304,22 @@ def test_product_console_ask_guided_json_keeps_review_detail_refs() -> None:
                 "trace_inspect_ref": (
                     "evidence-summary-answer-trace-inspect://inspect-test"
                 ),
+                "runtime_summary_ref": (
+                    "continuable-evidence-session-summary://runtime-visible-test"
+                ),
+                "runtime_availability_hint": {
+                    "runtime_binding_status": "probed",
+                    "hint": "内部 runtime binding safe projection 可用于复查。",
+                },
+                "runtime_artifact_index": [
+                    {
+                        "ref": "evidence-summary-answer-artifact://artifact-test",
+                        "kind": "answer_artifact",
+                    }
+                ],
+                "runtime_evaluation_summary": {
+                    "evaluation_status": "passed",
+                },
                 "answer": "这是一个示例域名。",
                 "follow_up_available": True,
             },
@@ -314,6 +359,379 @@ def test_product_console_ask_guided_json_keeps_review_detail_refs() -> None:
     assert payload["review"]["trace_inspect_ref"] == (
         "evidence-summary-answer-trace-inspect://inspect-test"
     )
+    assert payload["review"]["runtime"]["runtime_summary_ref"] == (
+        "continuable-evidence-session-summary://runtime-visible-test"
+    )
+    assert payload["review"]["runtime"]["availability_hint"][
+        "runtime_binding_status"
+    ] == "probed"
+    assert payload["review"]["runtime"]["artifact_index"][0]["ref"] == (
+        "evidence-summary-answer-artifact://artifact-test"
+    )
+    assert payload["review"]["runtime"]["auto_resume_answer_enabled"] is False
+
+
+def test_product_console_ask_guided_json_reports_session_save_hint() -> None:
+    answers = iter(
+        (
+            "https://example.com",
+            "这份资料主要说明什么？",
+            "2",
+            "y",
+            "y",
+        )
+    )
+    captured_output: list[str] = []
+
+    def input_reader(_prompt: str) -> str:
+        return next(answers)
+
+    def ask_runner(_request):
+        return SimpleNamespace(
+            exit_code=0,
+            output={
+                "request_id": "external-readonly-ask-request://product-console/ask",
+                "command": "cognition external-readonly ask",
+                "status": "success",
+                "answer_run_ref": "evidence-summary-answer-run://run-test",
+                "answer": "这是一个示例域名。",
+            },
+        )
+
+    exit_code = run_product_console(
+        ["ask", "--guided", "--json"],
+        input_reader=input_reader,
+        output_writer=captured_output.append,
+        ask_runner=ask_runner,
+        session_save_handler=lambda _request: {"status": "success"},
+    )
+    payload = json.loads(captured_output[0])
+
+    assert exit_code == 0
+    assert len(captured_output) == 1
+    assert payload["session_save_available"] is True
+    assert "JSON 模式不进入保存交互" in payload["session_save_hint"]
+    assert payload["session_save_default_local_state_dir_available"] is True
+    assert "text_save_default" in payload["session_save_next_actions"]
+
+
+def test_product_console_ask_guided_can_save_safe_session_summary() -> None:
+    state_root = "/tmp/cognition-session-state"
+    answers = iter(
+        (
+            "https://example.com",
+            "这份资料主要说明什么？",
+            "2",
+            "y",
+            "y",
+            "2",
+            state_root,
+        )
+    )
+    captured_output: list[str] = []
+    captured_save_requests: list[Mapping[str, Any]] = []
+
+    def input_reader(_prompt: str) -> str:
+        return next(answers)
+
+    def ask_runner(_request):
+        return SimpleNamespace(
+            exit_code=0,
+            output={
+                "request_id": "external-readonly-ask-request://product-console/ask",
+                "command": "cognition external-readonly ask",
+                "status": "success",
+                "answer_run_ref": "evidence-summary-answer-run://run-test",
+                "answer_trace_ref": "evidence-summary-answer-trace://trace-test",
+                "answer_artifact_ref": (
+                    "evidence-summary-answer-artifact://artifact-test"
+                ),
+                "observability_summary_ref": (
+                    "evidence-summary-answer-observability-summary://summary-test"
+                ),
+                "trace_inspect_ref": (
+                    "evidence-summary-answer-trace-inspect://inspect-test"
+                ),
+                "question_preview": "这份资料主要说明什么？",
+                "answer": "这是一个完整答案，但保存请求只能带安全预览。",
+                "evidence_refs": [{"ref": "evidence://external-readonly/source-test"}],
+                "additional_refs": [
+                    {"ref": "governed-evidence-digest://digest-test"}
+                ],
+                "runtime_summary_ref": (
+                    "continuable-evidence-session-summary://runtime-visible-test"
+                ),
+                "runtime_availability_hint": {
+                    "runtime_binding_status": "probed",
+                    "hint": "内部 runtime binding safe projection 可用于复查。",
+                },
+                "runtime_artifact_index": [
+                    {
+                        "ref": "evidence-summary-answer-artifact://artifact-test",
+                        "kind": "answer_artifact",
+                    }
+                ],
+                "runtime_evaluation_summary": {
+                    "evaluation_summary_ref": (
+                        "evaluation://continuable-evidence-session/runtime-binding"
+                    ),
+                    "evaluation_status": "passed",
+                },
+            },
+        )
+
+    def session_save_handler(request: Mapping[str, Any]) -> Mapping[str, Any]:
+        captured_save_requests.append(request)
+        return {
+            "status": "success",
+            "action": "save",
+            "session_id": "session-test",
+            "state_root": request["prompt_selected_state_root"],
+            "state_root_source": "prompt_selected",
+            "message": "saved",
+        }
+
+    exit_code = run_product_console(
+        ["ask", "--guided"],
+        input_reader=input_reader,
+        output_writer=captured_output.append,
+        ask_runner=ask_runner,
+        session_save_handler=session_save_handler,
+    )
+
+    assert exit_code == 0
+    assert len(captured_save_requests) == 1
+    save_request = captured_save_requests[0]
+    assert "state_root" not in save_request
+    assert save_request["save_mode"] == "prompt_selected_state_root"
+    assert save_request["prompt_selected_state_root"] == state_root
+    assert "answer" not in save_request["output"]
+    assert save_request["output"]["answer_preview"] == (
+        "这是一个完整答案，但保存请求只能带安全预览。"
+    )
+    assert save_request["output"]["runtime_visible_summary"]["runtime_summary_ref"] == (
+        "continuable-evidence-session-summary://runtime-visible-test"
+    )
+    assert save_request["output"]["runtime_visible_summary"][
+        "runtime_evaluation_summary"
+    ]["evaluation_status"] == "passed"
+    assert "answer" not in save_request["turns"][0]
+    assert save_request["turns"][0]["answer_preview"] == (
+        "这是一个完整答案，但保存请求只能带安全预览。"
+    )
+    assert "session_save_boundary" in captured_output[1]
+    assert "不创建 ADK Session" in captured_output[1]
+    assert "status: success" in captured_output[-1]
+    assert "state_root_source: prompt_selected" in captured_output[-1]
+
+
+def test_product_console_ask_guided_can_save_to_default_state_root() -> None:
+    answers = iter(
+        (
+            "https://example.com",
+            "这份资料主要说明什么？",
+            "2",
+            "y",
+            "y",
+            "1",
+        )
+    )
+    captured_output: list[str] = []
+    captured_save_requests: list[Mapping[str, Any]] = []
+
+    def input_reader(_prompt: str) -> str:
+        return next(answers)
+
+    def ask_runner(_request):
+        return SimpleNamespace(
+            exit_code=0,
+            output={
+                "request_id": "external-readonly-ask-request://product-console/ask",
+                "command": "cognition external-readonly ask",
+                "status": "success",
+                "answer_run_ref": "evidence-summary-answer-run://run-test",
+                "question_preview": "这份资料主要说明什么？",
+                "answer": "这是安全摘要。",
+                "evidence_refs": [{"ref": "evidence://external-readonly/source-test"}],
+                "additional_refs": [
+                    {"ref": "governed-evidence-digest://digest-test"}
+                ],
+            },
+        )
+
+    def session_save_handler(request: Mapping[str, Any]) -> Mapping[str, Any]:
+        captured_save_requests.append(request)
+        return {
+            "status": "success",
+            "action": "save",
+            "session_id": "session-test",
+            "state_root": "/tmp/default-session-state",
+            "state_root_source": "platform_default",
+            "message": "saved",
+        }
+
+    exit_code = run_product_console(
+        ["ask", "--guided"],
+        input_reader=input_reader,
+        output_writer=captured_output.append,
+        ask_runner=ask_runner,
+        session_save_handler=session_save_handler,
+    )
+
+    assert exit_code == 0
+    assert len(captured_save_requests) == 1
+    save_request = captured_save_requests[0]
+    assert save_request["save_mode"] == "default_local_state_root"
+    assert save_request["prompt_selected_state_root"] is None
+    assert "state_root" not in save_request
+    assert "state_root_source: platform_default" in captured_output[-1]
+
+
+def test_product_console_session_actions_are_injected_and_confirmation_guarded() -> None:
+    captured_requests: list[Mapping[str, Any]] = []
+    captured_output: list[str] = []
+
+    def session_action_handler(request: Mapping[str, Any]) -> Mapping[str, Any]:
+        captured_requests.append(request)
+        if request["action"] == "delete":
+            return {
+                "status": "success",
+                "action": "delete",
+                "session_id": request["session_id"],
+                "deleted": True,
+                "remaining_index_count": 0,
+            }
+        return {
+            "status": "success",
+            "action": request["action"],
+            "state_root": request["state_root"],
+            "entries": [
+                {
+                    "session_id": "session-test",
+                    "session_status": "resumable",
+                    "latest_resume_summary_preview": "可恢复摘要。",
+                }
+            ],
+        }
+
+    list_exit_code = run_product_console(
+        ["session", "list", "--state-root", "/tmp/cognition-session-state"],
+        output_writer=captured_output.append,
+        session_action_handler=session_action_handler,
+    )
+    delete_exit_code = run_product_console(
+        ["session", "delete", "--state-root", "/tmp/root", "--session-id", "s1"],
+        output_writer=captured_output.append,
+        session_action_handler=session_action_handler,
+    )
+    delete_confirmed_exit_code = run_product_console(
+        [
+            "session",
+            "delete",
+            "--state-root",
+            "/tmp/root",
+            "--session-id",
+            "s1",
+            "--yes",
+        ],
+        output_writer=captured_output.append,
+        session_action_handler=session_action_handler,
+    )
+
+    assert list_exit_code == 0
+    assert delete_exit_code == 3
+    assert delete_confirmed_exit_code == 0
+    assert len(captured_requests) == 2
+    assert captured_requests[0]["action"] == "list"
+    assert captured_requests[1]["action"] == "delete"
+    assert captured_requests[1]["confirmed"] is True
+    assert "confirmation_required" in captured_output[1]
+    assert "deleted: True" in captured_output[2]
+    assert "remaining_index_count: 0" in captured_output[2]
+
+
+def test_product_console_session_result_renders_expire_and_preview_facts() -> None:
+    captured_output: list[str] = []
+
+    def session_action_handler(request: Mapping[str, Any]) -> Mapping[str, Any]:
+        if request["action"] == "expire":
+            return {
+                "status": "success",
+                "action": "expire",
+                "state_root": request["state_root"],
+                "expired_session_ids": ("session-test",),
+            }
+        return {
+            "status": "success",
+            "action": "resume-preview",
+            "session_id": request["session_id"],
+            "resume_preview": {
+                "session_id": request["session_id"],
+                "record_status": "expired",
+                "session_status": "expired",
+                "latest_resume_summary_preview": "可恢复摘要。",
+                "source_scope_summary": "资料范围摘要。",
+                "requires_external_readonly_authorization": True,
+                "requires_model_authorization": True,
+                "runtime_summary": {
+                    "has_runtime_visible_summary": True,
+                    "runtime_visible_summary_ref": (
+                        "continuable-evidence-session-summary://runtime-visible-test"
+                    ),
+                    "runtime_binding_status": "probed",
+                    "runtime_availability_hint": (
+                        "内部 runtime binding safe projection 可用于复查。"
+                    ),
+                    "artifact_refs": (
+                        "evidence-summary-answer-artifact://artifact-test",
+                    ),
+                    "evaluation_status": "passed",
+                    "user_product_runtime_path_enabled": False,
+                    "auto_resume_answer_enabled": False,
+                    "workflow_replay_enabled": False,
+                    "boundary_hints": (
+                        "恢复预览不会自动恢复回答、调用模型或重放 Workflow。",
+                    ),
+                },
+            },
+        }
+
+    expire_exit_code = run_product_console(
+        [
+            "session",
+            "expire",
+            "--state-root",
+            "/tmp/root",
+            "--now",
+            "2026-06-27T00:00:00Z",
+        ],
+        output_writer=captured_output.append,
+        session_action_handler=session_action_handler,
+    )
+    preview_exit_code = run_product_console(
+        [
+            "session",
+            "resume-preview",
+            "--state-root",
+            "/tmp/root",
+            "--session-id",
+            "session-test",
+        ],
+        output_writer=captured_output.append,
+        session_action_handler=session_action_handler,
+    )
+
+    assert expire_exit_code == 0
+    assert preview_exit_code == 0
+    assert "expired_session_ids:" in captured_output[0]
+    assert "- session-test" in captured_output[0]
+    assert "- session_status: expired" in captured_output[1]
+    assert "- latest_resume_summary_preview: 可恢复摘要。" in captured_output[1]
+    assert "- source_scope_summary: 资料范围摘要。" in captured_output[1]
+    assert "- runtime_summary:" in captured_output[1]
+    assert "runtime_binding_status: probed" in captured_output[1]
+    assert "evaluation_status: passed" in captured_output[1]
+    assert "不会自动恢复回答、调用模型或重放 Workflow" in captured_output[1]
 
 
 def test_product_console_ask_guided_interrupts_without_traceback() -> None:

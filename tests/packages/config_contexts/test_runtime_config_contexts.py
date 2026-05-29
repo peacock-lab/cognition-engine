@@ -9,6 +9,7 @@ from schemas.evidence_summary_answer import (
 from config_contexts.runtime import (
     AdapterSelectionConfigView,
     AdkRunConfigView,
+    ContinuableEvidenceSessionStoragePolicyConfigView,
     ExecutionMode,
     EvidenceSummaryAnswerPolicyConfigView,
     ResumePolicyConfigView,
@@ -165,6 +166,35 @@ def test_runtime_config_context_bundle_defaults_empty_adk_run_config_view() -> N
     assert bundle.tool_exposure == ToolExposureConfigView()
     assert bundle.run_workspace == RunWorkspacePolicyConfigView()
     assert bundle.evidence_summary_answer == EvidenceSummaryAnswerPolicyConfigView()
+    assert (
+        bundle.continuable_evidence_session_storage
+        == ContinuableEvidenceSessionStoragePolicyConfigView()
+    )
+
+
+def test_continuable_evidence_session_storage_policy_config_view_defaults() -> None:
+    view = ContinuableEvidenceSessionStoragePolicyConfigView()
+
+    assert view.default_local_state_dir_enabled is True
+    assert view.default_local_state_root_kind == "platform_app_state"
+    assert view.env_override_enabled is True
+    assert view.env_override_name == "COGNITION_SESSION_STATE_DIR"
+    assert view.default_retention_days == 30
+    assert view.first_save_requires_confirmation is True
+    assert view.resume_requires_confirmation is True
+    assert view.auto_resume_answer_enabled is False
+
+
+def test_continuable_evidence_session_storage_policy_config_view_rejects_unsafe_values() -> None:
+    with pytest.raises(ValidationError):
+        ContinuableEvidenceSessionStoragePolicyConfigView(
+            env_override_name="COGNITION_SESSION_TOKEN"
+        )
+
+    with pytest.raises(ValidationError):
+        ContinuableEvidenceSessionStoragePolicyConfigView(
+            auto_resume_answer_enabled=True
+        )
 
 
 def test_runtime_live_llm_config_view_accepts_controlled_live_options() -> None:

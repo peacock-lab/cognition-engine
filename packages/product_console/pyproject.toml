@@ -1,11 +1,11 @@
 [project]
 name = "cognition-system-product-console"
-version = "0.8.3"
+version = "0.8.4"
 description = "Product console channel package for Cognition System."
-readme = { text = "Cognition System v0.8.3 public product console package. See the version-specific public README in the release repository for usage and boundary notes.", content-type = "text/markdown" }
+readme = { text = "Cognition System v0.8.4 public product console package. See the version-specific public README in the release repository for usage and boundary notes.", content-type = "text/markdown" }
 requires-python = ">=3.14"
 dependencies = [
-  "cognition-system-product-application-assembly==0.8.3",
+  "cognition-system-product-application-assembly==0.8.4",
 ]
 
 [build-system]

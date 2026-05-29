@@ -3,24 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any, Mapping
-
-from composition.adk_agent_shell_assembly import (
-    run_controlled_live_adk_agent_shell_smoke,
-    run_no_live_adk_agent_shell_product_entry,
-    runtime_composition_options_from_metadata,
-)
-from composition.adk_tool_assembly import (
-    run_no_live_adk_function_tool_product_entry,
-    runtime_composition_options_from_tool_metadata,
-)
-from composition.adk_workflow_runner_assembly import (
-    AdkWorkflowRunnerRuntimeAssembly,
-    build_adk_workflow_runner_governance_summary_provider,
-)
-from composition.llm_invocation_readonly_assembly import (
-    build_llm_invocation_readonly_product_bundle,
-)
+from typing import Any, Mapping, Protocol
 from contract_core.llm_invocation import (
     GovernedLlmInvocationService,
     LlmGovernancePrecondition,
@@ -44,6 +27,75 @@ DEFAULT_PROMPT_PREVIEW_SANITIZED = "cognition run product input"
 PROMPT_PREVIEW_KEYS = ("message", "input_summary", "instruction", "task", "prompt")
 PROMPT_PREVIEW_MAX_LENGTH = 80
 CHAT_CONTEXT_TEXT_MAX_LENGTH = 240
+
+
+class RuntimeRunnerProtocol(Protocol):
+    """Runtime runner shape consumed by the controlled run entry."""
+
+    def run(self, runtime_input: RuntimeInput) -> Any:
+        """Run a runtime input and return a runtime result."""
+
+
+class RuntimeAssemblyProtocol(Protocol):
+    """Runtime assembly shape consumed through a protocol boundary."""
+
+    runtime_runner: RuntimeRunnerProtocol
+    metadata: Mapping[str, Any]
+
+
+class GovernanceSummaryProviderAssemblyProtocol(Protocol):
+    """Recorded-run provider holder consumed by governance summary projection."""
+
+    recorded_run_evidence_provider: Any
+    source: str
+
+
+@dataclass(frozen=True)
+class ControlledRunAgentShellRequest:
+    """Provider request for controlled agent-shell audit execution."""
+
+    options_metadata: Mapping[str, Any]
+    input_text: str
+    invocation_id: str
+    runtime_id: str
+    metadata: Mapping[str, Any] = field(default_factory=dict)
+    live_enabled: bool = False
+    live_client: Any | None = None
+
+
+@dataclass(frozen=True)
+class ControlledRunFunctionToolRequest:
+    """Provider request for controlled function-tool audit execution."""
+
+    options_metadata: Mapping[str, Any]
+    task_ref: str
+    task_kind: str
+    evidence_ref: str | None
+    invocation_id: str
+    runtime_id: str
+    tool_confirmation_granted: bool | None
+    tool_approval_ref: str | None
+    tool_confirmation_decision_source: str
+    metadata: Mapping[str, Any] = field(default_factory=dict)
+
+
+@dataclass(frozen=True)
+class ControlledRunReadonlyBundleRequest:
+    """Provider request for LLM invocation read-only product refs."""
+
+    invocation_result: LlmInvocationResult
+    metadata: Mapping[str, Any] = field(default_factory=dict)
+
+
+@dataclass(frozen=True)
+class ControlledRunSupportProviders:
+    """Provider protocol set required by the controlled run entry."""
+
+    governance_summary_provider_factory: Any
+    no_live_agent_shell_runner: Any | None = None
+    controlled_live_agent_shell_runner: Any | None = None
+    no_live_function_tool_runner: Any | None = None
+    llm_invocation_readonly_bundle_builder: Any | None = None
 
 
 @dataclass(frozen=True)
@@ -130,7 +182,7 @@ class OperatorApprovalFacts:
 class ControlledAdkRunRequest:
     """First-version product entry request for controlled ADK runs."""
 
-    runtime_assembly: AdkWorkflowRunnerRuntimeAssembly
+    runtime_assembly: RuntimeAssemblyProtocol
     runtime_input: RuntimeInput
     productization_gate: RuntimeProductizationGateConfigView = field(
         default_factory=RuntimeProductizationGateConfigView
@@ -139,6 +191,7 @@ class ControlledAdkRunRequest:
     evidence_id: str | None = None
     llm_invocation_service: GovernedLlmInvocationService | None = None
     agent_shell_live_client: Any | None = field(default=None, repr=False)
+    support_providers: ControlledRunSupportProviders | None = None
 
 
 def evaluate_controlled_adk_run_final_preflight(
@@ -571,9 +624,8 @@ def run_productized_controlled_adk_run(
         )
 
     runtime_result = request.runtime_assembly.runtime_runner.run(request.runtime_input)
-    governance_provider_assembly = build_adk_workflow_runner_governance_summary_provider(
-        runtime_assembly=request.runtime_assembly,
-        evidence_bundle_ref=request.productization_gate.sanitized_evidence_ref,
+    governance_provider_assembly = _governance_summary_provider_assembly(
+        request=request,
     )
     governance_summary_payload = (
         build_runtime_container_governance_summary_payload_from_recorded_run(
@@ -717,6 +769,25 @@ def _base_result(
     }
 
 
+def _required_support_providers(
+    request: ControlledAdkRunRequest,
+) -> ControlledRunSupportProviders:
+    if request.support_providers is None:
+        raise RuntimeError("controlled_run_support_providers_required")
+    return request.support_providers
+
+
+def _governance_summary_provider_assembly(
+    *,
+    request: ControlledAdkRunRequest,
+) -> GovernanceSummaryProviderAssemblyProtocol:
+    support = _required_support_providers(request)
+    return support.governance_summary_provider_factory(
+        runtime_assembly=request.runtime_assembly,
+        evidence_bundle_ref=request.productization_gate.sanitized_evidence_ref,
+    )
+
+
 def _run_no_live_llm_invocation(
     *,
     request: ControlledAdkRunRequest,
@@ -755,40 +826,47 @@ def _run_no_live_llm_invocation(
         },
     )
     result = facade.run(invocation_request)
-    return _llm_invocation_result_summary(result, controlled_live=False)
+    return _llm_invocation_result_summary(
+        result,
+        request=request,
+        controlled_live=False,
+    )
 
 
 def _run_no_live_agent_shell(
     *,
     request: ControlledAdkRunRequest,
 ) -> dict[str, Any]:
+    support = _required_support_providers(request)
+    if support.no_live_agent_shell_runner is None:
+        return _agent_shell_not_run_summary(failure_type="agent_shell_runner_unavailable")
     try:
-        product_run = run_no_live_adk_agent_shell_product_entry(
-            options=runtime_composition_options_from_metadata(
-                dict(request.runtime_input.metadata)
-            ),
-            input_text=_prompt_preview_from_runtime_input(request),
-            invocation_id=(
-                f"agent-shell-{request.runtime_input.invocation_ref.invocation_id}"
-            ),
-            runtime_id=request.runtime_input.runtime_id,
-            metadata={
-                "source": "runtime_container.controlled_adk_run_entry",
-                "audit_ref": request.productization_gate.audit_ref,
-                "sanitized_evidence_ref": (
-                    request.productization_gate.sanitized_evidence_ref
+        product_run = support.no_live_agent_shell_runner(
+            ControlledRunAgentShellRequest(
+                options_metadata=dict(request.runtime_input.metadata),
+                input_text=_prompt_preview_from_runtime_input(request),
+                invocation_id=(
+                    f"agent-shell-{request.runtime_input.invocation_ref.invocation_id}"
                 ),
-                "governance_summary_output_ref": (
-                    request.productization_gate.governance_summary_output_ref
-                ),
-            },
+                runtime_id=request.runtime_input.runtime_id,
+                metadata={
+                    "source": "runtime_container.controlled_adk_run_entry",
+                    "audit_ref": request.productization_gate.audit_ref,
+                    "sanitized_evidence_ref": (
+                        request.productization_gate.sanitized_evidence_ref
+                    ),
+                    "governance_summary_output_ref": (
+                        request.productization_gate.governance_summary_output_ref
+                    ),
+                },
+            )
         )
     except Exception as exc:  # noqa: BLE001
         return _agent_shell_not_run_summary(
             failure_type="agent_shell_run_failed",
             error_type=type(exc).__name__,
         )
-    return product_run.to_governance_audit()
+    return _audit_mapping(product_run)
 
 
 def _run_controlled_live_agent_shell(
@@ -801,46 +879,51 @@ def _run_controlled_live_agent_shell(
             failure_type="controlled_live_agent_shell_preflight_not_allowed"
         )
 
+    support = _required_support_providers(request)
+    if support.controlled_live_agent_shell_runner is None:
+        return _agent_shell_not_run_summary(
+            failure_type="controlled_live_agent_shell_runner_unavailable"
+        )
+
     try:
-        smoke_result = run_controlled_live_adk_agent_shell_smoke(
-            options=runtime_composition_options_from_metadata(
-                dict(request.runtime_input.metadata)
-            ),
-            input_text=_prompt_preview_from_runtime_input(request),
-            invocation_id=(
-                "agent-shell-live-"
-                f"{request.runtime_input.invocation_ref.invocation_id}"
-            ),
-            runtime_id=request.runtime_input.runtime_id,
-            live_enabled=bool(final_preflight.get("allowed")),
-            live_client=request.agent_shell_live_client,
-            metadata={
-                "source": "runtime_container.controlled_adk_run_entry",
-                "product_entry": "cognition_run",
-                "confirmation_mapping": (
-                    "operator_approval_ref_to_adk_tool_confirmation"
+        smoke_result = support.controlled_live_agent_shell_runner(
+            ControlledRunAgentShellRequest(
+                options_metadata=dict(request.runtime_input.metadata),
+                input_text=_prompt_preview_from_runtime_input(request),
+                invocation_id=(
+                    "agent-shell-live-"
+                    f"{request.runtime_input.invocation_ref.invocation_id}"
                 ),
-                "audit_ref": request.productization_gate.audit_ref,
-                "sanitized_evidence_ref": (
-                    request.productization_gate.sanitized_evidence_ref
-                ),
-                "governance_summary_output_ref": (
-                    request.productization_gate.governance_summary_output_ref
-                ),
-                "live_llm_approval_ref": (
-                    OperatorApprovalFacts.from_value(
-                        request.operator_approval
-                    ).live_llm_approval_ref
-                ),
-            },
+                runtime_id=request.runtime_input.runtime_id,
+                live_enabled=bool(final_preflight.get("allowed")),
+                live_client=request.agent_shell_live_client,
+                metadata={
+                    "source": "runtime_container.controlled_adk_run_entry",
+                    "product_entry": "cognition_run",
+                    "confirmation_mapping": (
+                        "operator_approval_ref_to_adk_tool_confirmation"
+                    ),
+                    "audit_ref": request.productization_gate.audit_ref,
+                    "sanitized_evidence_ref": (
+                        request.productization_gate.sanitized_evidence_ref
+                    ),
+                    "governance_summary_output_ref": (
+                        request.productization_gate.governance_summary_output_ref
+                    ),
+                    "live_llm_approval_ref": (
+                        OperatorApprovalFacts.from_value(
+                            request.operator_approval
+                        ).live_llm_approval_ref
+                    ),
+                },
+            )
         )
     except Exception as exc:  # noqa: BLE001
         return _agent_shell_not_run_summary(
             failure_type="controlled_live_agent_shell_run_failed",
             error_type=type(exc).__name__,
         )
-    return smoke_result.to_governance_audit()
-
+    return _audit_mapping(smoke_result)
 
 def _run_controlled_live_llm_invocation(
     *,
@@ -883,7 +966,11 @@ def _run_controlled_live_llm_invocation(
         },
     )
     result = facade.run(invocation_request)
-    return _llm_invocation_result_summary(result, controlled_live=True)
+    return _llm_invocation_result_summary(
+        result,
+        request=request,
+        controlled_live=True,
+    )
 
 
 def _run_no_live_function_tool(
@@ -891,45 +978,51 @@ def _run_no_live_function_tool(
     request: ControlledAdkRunRequest,
 ) -> dict[str, Any]:
     approval = OperatorApprovalFacts.from_value(request.operator_approval)
+    support = _required_support_providers(request)
+    if support.no_live_function_tool_runner is None:
+        return _function_tool_not_run_summary(
+            failure_type="function_tool_runner_unavailable"
+        )
     try:
-        product_run = run_no_live_adk_function_tool_product_entry(
-            options=runtime_composition_options_from_tool_metadata(
-                dict(request.runtime_input.metadata)
-            ),
-            task_ref=f"runtime-input://{request.runtime_input.runtime_id}",
-            task_kind="controlled_adk_run_product_entry",
-            evidence_ref=request.productization_gate.sanitized_evidence_ref,
-            invocation_id=(
-                f"function-tool-{request.runtime_input.invocation_ref.invocation_id}"
-            ),
-            runtime_id=request.runtime_input.runtime_id,
-            tool_confirmation_granted=_tool_confirmation_granted(approval),
-            tool_approval_ref=(
-                approval.tool_confirmation_approval_ref
-                or approval.approval_ref
-            ),
-            tool_confirmation_decision_source=(
-                approval.tool_confirmation_decision_source
-                or "runtime_container.operator_approval"
-            ),
-            metadata={
-                "source": "runtime_container.controlled_adk_run_entry",
-                "product_entry": "cognition_run",
-                "audit_ref": request.productization_gate.audit_ref,
-                "sanitized_evidence_ref": (
-                    request.productization_gate.sanitized_evidence_ref
+        product_run = support.no_live_function_tool_runner(
+            ControlledRunFunctionToolRequest(
+                options_metadata=dict(request.runtime_input.metadata),
+                task_ref=f"runtime-input://{request.runtime_input.runtime_id}",
+                task_kind="controlled_adk_run_product_entry",
+                evidence_ref=request.productization_gate.sanitized_evidence_ref,
+                invocation_id=(
+                    "function-tool-"
+                    f"{request.runtime_input.invocation_ref.invocation_id}"
                 ),
-                "governance_summary_output_ref": (
-                    request.productization_gate.governance_summary_output_ref
+                runtime_id=request.runtime_input.runtime_id,
+                tool_confirmation_granted=_tool_confirmation_granted(approval),
+                tool_approval_ref=(
+                    approval.tool_confirmation_approval_ref
+                    or approval.approval_ref
                 ),
-            },
+                tool_confirmation_decision_source=(
+                    approval.tool_confirmation_decision_source
+                    or "runtime_container.operator_approval"
+                ),
+                metadata={
+                    "source": "runtime_container.controlled_adk_run_entry",
+                    "product_entry": "cognition_run",
+                    "audit_ref": request.productization_gate.audit_ref,
+                    "sanitized_evidence_ref": (
+                        request.productization_gate.sanitized_evidence_ref
+                    ),
+                    "governance_summary_output_ref": (
+                        request.productization_gate.governance_summary_output_ref
+                    ),
+                },
+            )
         )
     except Exception as exc:  # noqa: BLE001
         return _function_tool_not_run_summary(
             failure_type="function_tool_run_failed",
             error_type=type(exc).__name__,
         )
-    return product_run.to_governance_audit()
+    return _audit_mapping(product_run)
 
 
 def _function_tool_not_run_summary(
@@ -960,6 +1053,26 @@ def _function_tool_not_run_summary(
         "raw_adk_object_included": False,
         "error_type": error_type,
     }
+
+
+def _audit_mapping(value: Any) -> dict[str, Any]:
+    if isinstance(value, Mapping):
+        return dict(value)
+    if hasattr(value, "to_governance_audit"):
+        audit = value.to_governance_audit()
+        if isinstance(audit, Mapping):
+            return dict(audit)
+    return {}
+
+
+def _public_refs_mapping(value: Any) -> dict[str, Any]:
+    if isinstance(value, Mapping):
+        return dict(value)
+    if hasattr(value, "to_public_refs"):
+        refs = value.to_public_refs()
+        if isinstance(refs, Mapping):
+            return dict(refs)
+    return {}
 
 
 def _tool_audit_summary(tool_audit: Mapping[str, Any] | None) -> dict[str, Any]:
@@ -1177,17 +1290,25 @@ def _llm_governance_precondition(
 def _llm_invocation_result_summary(
     result: LlmInvocationResult,
     *,
+    request: ControlledAdkRunRequest,
     controlled_live: bool = False,
 ) -> dict[str, Any]:
     request_id = result.request_id
-    readonly_bundle = build_llm_invocation_readonly_product_bundle(
-        result,
-        metadata={
-            "source": "runtime_container.controlled_adk_run_entry",
-            "product_entry": "cognition_run",
-        },
+    support = _required_support_providers(request)
+    if support.llm_invocation_readonly_bundle_builder is None:
+        return _llm_invocation_not_run_summary(
+            failure_type="readonly_bundle_builder_unavailable"
+        )
+    readonly_bundle = support.llm_invocation_readonly_bundle_builder(
+        ControlledRunReadonlyBundleRequest(
+            invocation_result=result,
+            metadata={
+                "source": "runtime_container.controlled_adk_run_entry",
+                "product_entry": "cognition_run",
+            },
+        )
     )
-    readonly_refs = readonly_bundle.to_public_refs()
+    readonly_refs = _public_refs_mapping(readonly_bundle)
     readonly_facts = dict(readonly_refs["llm_invocation_readonly_facts"])
     display_text = _optional_string(result.metadata.get("sanitized_response_display"))
     if display_text is not None:

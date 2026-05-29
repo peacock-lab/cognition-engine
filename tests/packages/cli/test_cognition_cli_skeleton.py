@@ -20,17 +20,17 @@ def test_cli_package_metadata_does_not_own_console_script() -> None:
     )
 
     assert pyproject["project"]["name"] == "cognition-system-cli"
-    assert pyproject["project"]["version"] == "0.8.3"
-    assert "cognition-system-runtime-container==0.8.3" not in pyproject["project"][
+    assert pyproject["project"]["version"] == "0.8.4"
+    assert "cognition-system-runtime-container==0.8.4" not in pyproject["project"][
         "dependencies"
     ]
-    assert "cognition-system-config-assembly==0.8.3" in pyproject["project"][
+    assert "cognition-system-config-assembly==0.8.4" in pyproject["project"][
         "dependencies"
     ]
-    assert "cognition-system-config-contexts==0.8.3" in pyproject["project"][
+    assert "cognition-system-config-contexts==0.8.4" in pyproject["project"][
         "dependencies"
     ]
-    assert "cognition-system-contract-core==0.8.3" in pyproject["project"][
+    assert "cognition-system-contract-core==0.8.4" in pyproject["project"][
         "dependencies"
     ]
     assert "scripts" not in pyproject["project"]

@@ -162,7 +162,7 @@ def test_operation_flows_in_v070_root_package_and_release_list() -> None:
         encoding="utf-8"
     )
 
-    assert "cognition-system-operation-flows==0.8.3" in root_pyproject[
+    assert "cognition-system-operation-flows==0.8.4" in root_pyproject[
         "project"
     ]["dependencies"]
     assert '"cognition-system-operation-flows"' in release_script

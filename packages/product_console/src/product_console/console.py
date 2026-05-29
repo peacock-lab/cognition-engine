@@ -67,6 +67,8 @@ ProductConsoleAskRunner = Callable[
 ]
 ProductConsoleAskFollowUpRunner = Callable[..., Any]
 ProductConsoleProviderCredentialStoreFactory = Callable[[], Any]
+ProductConsoleSessionSaveHandler = Callable[[Mapping[str, Any]], Mapping[str, Any]]
+ProductConsoleSessionActionHandler = Callable[[Mapping[str, Any]], Mapping[str, Any]]
 
 
 def build_product_console_home_payload(
@@ -138,6 +140,8 @@ def run_product_console(
     ask_services: EvidenceSummaryAnswerAskEntryServices | None = None,
     ask_runner: ProductConsoleAskRunner | None = None,
     ask_follow_up_runner: ProductConsoleAskFollowUpRunner | None = None,
+    session_save_handler: ProductConsoleSessionSaveHandler | None = None,
+    session_action_handler: ProductConsoleSessionActionHandler | None = None,
     provider_credential_store_factory: (
         ProductConsoleProviderCredentialStoreFactory | None
     ) = None,
@@ -157,8 +161,16 @@ def run_product_console(
             ask_services=ask_services,
             ask_runner=ask_runner,
             ask_follow_up_runner=ask_follow_up_runner,
+            session_save_handler=session_save_handler,
             provider_credential_store_factory=provider_credential_store_factory,
             provider_key_prompt_handlers=provider_key_prompt_handlers,
+        )
+
+    if args[:1] == ("session",):
+        return _run_product_console_session(
+            args[1:],
+            writer=writer,
+            session_action_handler=session_action_handler,
         )
 
     if "--json" in args:
@@ -193,6 +205,12 @@ def render_product_console_help() -> str:
             "开始可复查资料问答：",
             "  cognition-console ask --guided",
             "",
+            "管理已保存的资料问答会话：",
+            "  cognition-console session list --state-root <path>",
+            "  cognition-console session resume-preview --state-root <path> --session-id <id>",
+            "  cognition-console session delete --state-root <path> --session-id <id> --yes",
+            "  cognition-console session expire --state-root <path> --now <iso-time>",
+            "",
             "安全边界：",
             "  默认首页不联网、不调用模型、不读取或保存模型服务密钥；",
             "  ask 子入口只有在你明确授权后才会运行可复查资料问答。",
@@ -216,6 +234,7 @@ def _run_product_console_ask(
     ask_services: EvidenceSummaryAnswerAskEntryServices | None,
     ask_runner: ProductConsoleAskRunner | None,
     ask_follow_up_runner: ProductConsoleAskFollowUpRunner | None,
+    session_save_handler: ProductConsoleSessionSaveHandler | None,
     provider_credential_store_factory: (
         ProductConsoleProviderCredentialStoreFactory | None
     ),
@@ -257,7 +276,12 @@ def _run_product_console_ask(
     runner = ask_runner or _default_ask_runner(ask_services)
     follow_up_runner = ask_follow_up_runner or _default_ask_follow_up_runner()
     result = runner(request)
-    writer(_render_product_console_ask_output(result.output, json_output=json_output))
+    rendered_output = (
+        _with_session_save_hint(result.output)
+        if json_output and session_save_handler is not None
+        else result.output
+    )
+    writer(_render_product_console_ask_output(rendered_output, json_output=json_output))
     if json_output:
         return int(result.exit_code)
     return _run_product_console_ask_follow_up_loop(
@@ -265,6 +289,7 @@ def _run_product_console_ask(
         writer=writer,
         input_reader=input_reader,
         follow_up_runner=follow_up_runner,
+        session_save_handler=session_save_handler,
         json_output=json_output,
     )
 
@@ -337,23 +362,93 @@ def _product_console_closed_output() -> dict[str, Any]:
     }
 
 
+def _run_product_console_session(
+    args: Sequence[str],
+    *,
+    writer: Callable[[str], None],
+    session_action_handler: ProductConsoleSessionActionHandler | None,
+) -> int:
+    json_output = "--json" in args
+    if "--help" in args or "-h" in args or not args:
+        writer(render_product_console_session_help())
+        return 0
+    if session_action_handler is None:
+        writer(
+            _render_product_console_session_result(
+                {
+                    "status": "unavailable",
+                    "reason": "session_action_handler_unavailable",
+                    "recovery_hints": (
+                        "请通过安装态 cognition-console 入口使用 session 子命令。",
+                    ),
+                },
+                json_output=json_output,
+            )
+        )
+        return 3
+    action = args[0]
+    request = {
+        "action": action,
+        "state_root": _option_value(args, "--state-root"),
+        "session_id": _option_value(args, "--session-id"),
+        "now": _option_value(args, "--now"),
+        "confirmed": "--yes" in args,
+        "json_output": json_output,
+    }
+    if action == "delete" and not request["confirmed"]:
+        writer(
+            _render_product_console_session_result(
+                {
+                    "status": "confirmation_required",
+                    "action": "delete",
+                    "session_id": request["session_id"],
+                    "recovery_hints": ("如确认删除，请追加 --yes。",),
+                },
+                json_output=json_output,
+            )
+        )
+        return 3
+    try:
+        result = session_action_handler(request)
+    except Exception as exc:  # pragma: no cover - defensive product boundary.
+        result = {
+            "status": "failed",
+            "action": action,
+            "reason": "session_action_failed",
+            "message": str(exc),
+        }
+    writer(_render_product_console_session_result(result, json_output=json_output))
+    return 0 if result.get("status") == "success" else 3
+
+
 def _run_product_console_ask_follow_up_loop(
     initial_result: Any,
     *,
     writer: Callable[[str], None],
     input_reader: Callable[[str], str],
     follow_up_runner: ProductConsoleAskFollowUpRunner,
+    session_save_handler: ProductConsoleSessionSaveHandler | None,
     json_output: bool,
 ) -> int:
     output = _mapping(initial_result.output)
     exit_code = int(initial_result.exit_code)
     state = getattr(initial_result, "next_state", None)
     if not _product_console_follow_up_available(output, state):
-        return exit_code
+        return _maybe_save_product_console_session(
+            output,
+            writer=writer,
+            input_reader=input_reader,
+            session_save_handler=session_save_handler,
+            turns=(_product_console_session_turn_summary(output, turn_index=1),),
+            exit_code=exit_code,
+        )
 
     writer(_product_console_follow_up_scope_hint())
     turns: list[Mapping[str, Any]] = [
         _product_console_turn_summary(output, turn_index=1)
+    ]
+    session_turns: list[Mapping[str, Any]] = [
+        _product_console_session_turn_summary(output, turn_index=1)
     ]
     previous_output = output
     request_id = str(previous_output.get("request_id") or PRODUCT_CONSOLE_ASK_REQUEST_ID)
@@ -375,7 +470,14 @@ def _run_product_console_ask_follow_up_loop(
             writer("请输入追问问题，或输入 no 结束。")
             continue
         if _product_console_follow_up_exit_requested(decision):
-            return 0
+            return _maybe_save_product_console_session(
+                previous_output,
+                writer=writer,
+                input_reader=input_reader,
+                session_save_handler=session_save_handler,
+                turns=tuple(session_turns),
+                exit_code=0,
+            )
 
         follow_up_index += 1
         result = follow_up_runner(
@@ -398,10 +500,23 @@ def _run_product_console_ask_follow_up_loop(
                 turn_index=len(turns) + 1,
             )
         )
+        session_turns.append(
+            _product_console_session_turn_summary(
+                output,
+                turn_index=len(session_turns) + 1,
+            )
+        )
         if output.get("status") != "success":
             return exit_code
 
-    return exit_code
+    return _maybe_save_product_console_session(
+        previous_output,
+        writer=writer,
+        input_reader=input_reader,
+        session_save_handler=session_save_handler,
+        turns=tuple(session_turns),
+        exit_code=exit_code,
+    )
 
 
 def _product_console_follow_up_available(
@@ -450,9 +565,392 @@ def _product_console_turn_summary(
         "follow_up_turn_index": output.get("follow_up_turn_index"),
         "question_preview": output.get("question_preview"),
         "answer": output.get("answer"),
+        "runtime_visible_summary": _product_console_runtime_visible_summary(output),
         "evidence_refs": output.get("evidence_refs") or [],
         "additional_refs": output.get("additional_refs") or [],
     }
+
+
+def _product_console_session_turn_summary(
+    output: Mapping[str, Any],
+    *,
+    turn_index: int,
+) -> Mapping[str, Any]:
+    return {
+        "turn_index": turn_index,
+        "request_id": output.get("request_id"),
+        "status": output.get("status"),
+        "follow_up": output.get("follow_up") is True,
+        "answer_scoped_transformation": output.get("answer_scoped_transformation")
+        is True,
+        "question_preview": _safe_preview(output.get("question_preview"), limit=160),
+        "answer_preview": _safe_preview(output.get("answer"), limit=220),
+        "answer_run_ref": output.get("answer_run_ref"),
+        "answer_trace_ref": output.get("answer_trace_ref"),
+        "answer_artifact_ref": output.get("answer_artifact_ref"),
+        "observability_summary_ref": output.get("observability_summary_ref"),
+        "trace_inspect_ref": output.get("trace_inspect_ref"),
+        "runtime_visible_summary": _product_console_runtime_visible_summary(output),
+        "evidence_refs": output.get("evidence_refs") or [],
+        "additional_refs": output.get("additional_refs") or [],
+    }
+
+
+def _maybe_save_product_console_session(
+    output: Mapping[str, Any],
+    *,
+    writer: Callable[[str], None],
+    input_reader: Callable[[str], str],
+    session_save_handler: ProductConsoleSessionSaveHandler | None,
+    turns: tuple[Mapping[str, Any], ...],
+    exit_code: int,
+) -> int:
+    if (
+        session_save_handler is None
+        or exit_code != 0
+        or output.get("status") != "success"
+    ):
+        return exit_code
+    try:
+        save_choice = _read_session_save_choice(
+            input_reader=input_reader,
+            writer=writer,
+        )
+        if save_choice is None:
+            writer("session_save: skipped")
+            return exit_code
+        save_mode, prompt_selected_state_root = save_choice
+        _write_session_save_boundary(writer)
+    except KeyboardInterrupt:
+        writer("session_save: interrupted")
+        return 130
+    except EOFError:
+        writer("session_save: closed")
+        return exit_code
+    try:
+        result = session_save_handler(
+            {
+                "action": "save",
+                "save_mode": save_mode,
+                "prompt_selected_state_root": prompt_selected_state_root,
+                "output": _product_console_session_output_summary(output),
+                "turns": turns,
+            }
+        )
+    except Exception as exc:  # pragma: no cover - defensive product boundary.
+        result = {
+            "status": "failed",
+            "reason": "session_save_failed",
+            "message": str(exc),
+        }
+    writer(_render_product_console_session_result(result, json_output=False))
+    return exit_code
+
+
+def _product_console_session_output_summary(
+    output: Mapping[str, Any],
+) -> Mapping[str, Any]:
+    return {
+        "request_id": output.get("request_id"),
+        "status": output.get("status"),
+        "question_preview": _safe_preview(output.get("question_preview"), limit=160),
+        "answer_preview": _safe_preview(output.get("answer"), limit=220),
+        "answer_run_ref": output.get("answer_run_ref"),
+        "answer_trace_ref": output.get("answer_trace_ref"),
+        "answer_artifact_ref": output.get("answer_artifact_ref"),
+        "observability_summary_ref": output.get("observability_summary_ref"),
+        "trace_inspect_ref": output.get("trace_inspect_ref"),
+        "runtime_visible_summary": _product_console_runtime_visible_summary(output),
+        "evidence_refs": output.get("evidence_refs") or [],
+        "additional_refs": output.get("additional_refs") or [],
+    }
+
+
+def _with_session_save_hint(output: Any) -> Mapping[str, Any]:
+    data = dict(_mapping(output))
+    data["session_save_available"] = data.get("status") == "success"
+    if data["session_save_available"]:
+        data["session_save_hint"] = (
+            "text 模式可在本轮成功后显式保存到默认本地状态目录或另选目录；"
+            "JSON 模式不进入保存交互。"
+        )
+        data["session_save_default_local_state_dir_available"] = True
+        data["session_save_next_actions"] = (
+            "text_save_default",
+            "text_save_other_state_root",
+            "text_do_not_save",
+        )
+    return data
+
+
+def render_product_console_session_help() -> str:
+    return "\n".join(
+        (
+            "用法：cognition-console session <action> [options]",
+            "",
+            "管理已保存的可继续资料问答会话。默认读取本地状态目录；",
+            "也可以通过 --state-root 指定其他目录。",
+            "",
+            "可用 action：",
+            "  list [--state-root <path>]",
+            "  resume-preview --session-id <id> [--state-root <path>]",
+            "  delete --session-id <id> --yes [--state-root <path>]",
+            "  expire --now <iso-time> [--state-root <path>]",
+            "",
+            "安全边界：",
+            "  本入口只展示 refs 与安全摘要；不重新读取资料、不调用模型、",
+            "  不恢复 ADK Session、不启用 Memory。",
+        )
+    )
+
+
+def _render_product_console_session_result(
+    result: Mapping[str, Any],
+    *,
+    json_output: bool,
+) -> str:
+    if json_output:
+        return json.dumps(dict(result), ensure_ascii=False, indent=2, sort_keys=True)
+    lines = [
+        "Cognition System / 认知系统产品控制台",
+        "product: 可继续资料问答会话",
+        f"status: {result.get('status') or 'unknown'}",
+    ]
+    for field_name in (
+        "action",
+        "session_id",
+        "continuable_evidence_session_ref",
+        "state_root",
+        "state_root_source",
+        "deleted",
+        "remaining_index_count",
+        "reason",
+        "message",
+    ):
+        if field_name in result:
+            value = result.get(field_name)
+            lines.append(f"{field_name}: {value}")
+    expired_session_ids = result.get("expired_session_ids")
+    if isinstance(expired_session_ids, list | tuple) and expired_session_ids:
+        lines.append("expired_session_ids:")
+        for session_id in expired_session_ids:
+            lines.append(f"- {session_id}")
+    entries = result.get("entries")
+    if isinstance(entries, list):
+        lines.append("entries:")
+        for entry in entries:
+            if isinstance(entry, Mapping):
+                lines.append(
+                    "- "
+                    + ", ".join(
+                        str(part)
+                        for part in (
+                            entry.get("session_id"),
+                            entry.get("session_status"),
+                            entry.get("latest_resume_summary_preview"),
+                        )
+                        if part
+                    )
+                )
+    preview = result.get("resume_preview")
+    if isinstance(preview, Mapping):
+        lines.append("resume_preview:")
+        for key in (
+            "session_id",
+            "record_status",
+            "session_status",
+            "updated_at",
+            "expires_at",
+            "latest_resume_summary_preview",
+            "source_scope_summary",
+            "requires_external_readonly_authorization",
+            "requires_model_authorization",
+        ):
+            if key in preview:
+                lines.append(f"- {key}: {preview[key]}")
+        runtime_summary = preview.get("runtime_summary")
+        if isinstance(runtime_summary, Mapping):
+            lines.extend(_runtime_summary_text_lines(runtime_summary, prefix="- "))
+    hints = result.get("recovery_hints")
+    if isinstance(hints, list | tuple) and hints:
+        lines.append("recovery_hints:")
+        for hint in hints:
+            lines.append(f"- {hint}")
+    return "\n".join(lines)
+
+
+def _read_session_save_choice(
+    *,
+    input_reader: Callable[[str], str],
+    writer: Callable[[str], None],
+) -> tuple[str, str | None] | None:
+    while True:
+        choice = input_reader(
+            "是否保存此会话以便下次继续？"
+            " 1=保存到默认本地状态目录 / 2=选择其他目录 / "
+            "3=不保存 / 4=查看将保存什么: "
+        ).strip().lower()
+        if choice in {"", "1", "y", "yes", "是", "同意", "默认"}:
+            return ("default_local_state_root", None)
+        if choice in {"2", "other", "其他", "另选"}:
+            state_root = _read_required(input_reader, "请输入 session state root 路径: ")
+            return ("prompt_selected_state_root", state_root)
+        if choice in {"3", "n", "no", "否", "不保存"}:
+            return None
+        if choice in {"4", "view", "查看"}:
+            _write_session_save_boundary(writer)
+            continue
+        writer("session_save: unknown_choice")
+
+
+def _write_session_save_boundary(writer: Callable[[str], None]) -> None:
+    writer(
+        "session_save_boundary: 仅保存 refs 与安全摘要；不保存 raw evidence、"
+        "raw prompt、raw provider response、完整答案、secret 或 config context；"
+        "不启用 Memory，不创建 ADK Session。"
+    )
+
+
+def _option_value(args: Sequence[str], option_name: str) -> str | None:
+    for index, value in enumerate(args):
+        if value == option_name and index + 1 < len(args):
+            return args[index + 1]
+        prefix = f"{option_name}="
+        if value.startswith(prefix):
+            return value[len(prefix) :]
+    return None
+
+
+def _safe_preview(value: Any, *, limit: int) -> str | None:
+    if not isinstance(value, str):
+        return None
+    text = value.strip()
+    if not text:
+        return None
+    normalized = text.replace("\n", " ")
+    return normalized[:limit]
+
+
+def _product_console_runtime_visible_summary(
+    output: Mapping[str, Any],
+) -> Mapping[str, Any]:
+    direct = _mapping(output.get("runtime_visible_summary"))
+    if direct:
+        return direct
+    review = _mapping(output.get("review"))
+    runtime = _mapping(review.get("runtime"))
+    if runtime:
+        return {
+            "runtime_summary_ref": runtime.get("runtime_summary_ref"),
+            "runtime_availability_hint": runtime.get("availability_hint"),
+            "runtime_trajectory_summary": runtime.get("trajectory_summary"),
+            "runtime_artifact_index": runtime.get("artifact_index"),
+            "runtime_evaluation_summary": runtime.get("evaluation_summary"),
+        }
+    if any(
+        key in output
+        for key in (
+            "runtime_summary_ref",
+            "runtime_availability_hint",
+            "runtime_trajectory_summary",
+            "runtime_artifact_index",
+            "runtime_evaluation_summary",
+        )
+    ):
+        return {
+            "runtime_summary_ref": output.get("runtime_summary_ref"),
+            "runtime_availability_hint": output.get("runtime_availability_hint"),
+            "runtime_trajectory_summary": output.get("runtime_trajectory_summary"),
+            "runtime_artifact_index": output.get("runtime_artifact_index"),
+            "runtime_evaluation_summary": output.get("runtime_evaluation_summary"),
+        }
+    return {}
+
+
+def _runtime_review_has_visible_facts(runtime: Any) -> bool:
+    return any(
+        (
+            getattr(runtime, "runtime_summary_ref", None),
+            getattr(runtime, "availability_hint", None),
+            getattr(runtime, "trajectory_summary", None),
+            getattr(runtime, "artifact_index", None),
+            getattr(runtime, "evaluation_summary", None),
+        )
+    )
+
+
+def _runtime_review_text_lines(runtime: Any) -> list[str]:
+    availability = _mapping(getattr(runtime, "availability_hint", None))
+    evaluation = _mapping(getattr(runtime, "evaluation_summary", None))
+    lines = ["", "runtime_summary:"]
+    if getattr(runtime, "runtime_summary_ref", None):
+        lines.append(f"- runtime_summary_ref: {runtime.runtime_summary_ref}")
+    if availability.get("runtime_binding_status"):
+        lines.append(
+            f"- runtime_binding_status: {availability['runtime_binding_status']}"
+        )
+    if availability.get("hint"):
+        lines.append(f"- availability_hint: {availability['hint']}")
+    if evaluation.get("evaluation_status"):
+        lines.append(f"- evaluation_status: {evaluation['evaluation_status']}")
+    if evaluation.get("evaluation_summary_ref"):
+        lines.append(
+            f"- evaluation_summary_ref: {evaluation['evaluation_summary_ref']}"
+        )
+    artifact_refs = tuple(
+        item.get("ref")
+        for item in _mapping_tuple(getattr(runtime, "artifact_index", None))
+        if item.get("ref")
+    )
+    if artifact_refs:
+        lines.append("- artifact_refs:")
+        for ref in artifact_refs:
+            lines.append(f"  - {ref}")
+    lines.extend(
+        (
+            "- boundary: 仅展示 runtime 安全摘要；不执行 ADK runtime。",
+            "- boundary: 不自动恢复回答、不调用模型、不重放 Workflow。",
+        )
+    )
+    return lines
+
+
+def _runtime_summary_text_lines(
+    runtime_summary: Mapping[str, Any],
+    *,
+    prefix: str,
+) -> list[str]:
+    lines = [f"{prefix}runtime_summary:"]
+    for key in (
+        "has_runtime_visible_summary",
+        "runtime_visible_summary_ref",
+        "runtime_binding_status",
+        "runtime_availability_hint",
+        "evaluation_status",
+        "evaluation_summary_ref",
+        "user_product_runtime_path_enabled",
+        "auto_resume_answer_enabled",
+        "workflow_replay_enabled",
+    ):
+        if key in runtime_summary:
+            lines.append(f"{prefix}  {key}: {runtime_summary[key]}")
+    artifact_refs = runtime_summary.get("artifact_refs")
+    if isinstance(artifact_refs, list | tuple) and artifact_refs:
+        lines.append(f"{prefix}  artifact_refs:")
+        for ref in artifact_refs:
+            lines.append(f"{prefix}    - {ref}")
+    boundary_hints = runtime_summary.get("boundary_hints")
+    if isinstance(boundary_hints, list | tuple) and boundary_hints:
+        lines.append(f"{prefix}  boundary_hints:")
+        for hint in boundary_hints:
+            lines.append(f"{prefix}    - {hint}")
+    return lines
+
+
+def _mapping_tuple(value: Any) -> tuple[Mapping[str, Any], ...]:
+    if not isinstance(value, list | tuple):
+        return ()
+    return tuple(item for item in value if isinstance(item, Mapping))
 
 
 def _guided_ask_request(
@@ -640,6 +1138,8 @@ def render_product_console_ask_output(output: Mapping[str, Any]) -> str:
             )
     else:
         lines.append(f"review: {display.review.explanation}")
+    if _runtime_review_has_visible_facts(display.review.runtime):
+        lines.extend(_runtime_review_text_lines(display.review.runtime))
     if display.blocking_reasons:
         lines.append("blocking_reasons: " + ", ".join(display.blocking_reasons))
     if display.failure_explanation:
@@ -664,6 +1164,18 @@ def render_product_console_ask_output_json(output: Mapping[str, Any]) -> str:
         command=PRODUCT_CONSOLE_ASK_COMMAND,
     )
     payload = product_console_ask_output_display_dict(display)
+    if "session_save_available" in output:
+        payload["session_save_available"] = bool(output.get("session_save_available"))
+    if output.get("session_save_hint"):
+        payload["session_save_hint"] = output["session_save_hint"]
+    if "session_save_default_local_state_dir_available" in output:
+        payload["session_save_default_local_state_dir_available"] = bool(
+            output.get("session_save_default_local_state_dir_available")
+        )
+    if output.get("session_save_next_actions"):
+        payload["session_save_next_actions"] = list(
+            output["session_save_next_actions"]
+        )
     return json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True)
 
 

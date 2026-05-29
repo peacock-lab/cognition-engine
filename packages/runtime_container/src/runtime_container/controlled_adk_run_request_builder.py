@@ -17,6 +17,7 @@ from contract_core.runtime import (
 
 from runtime_container.controlled_adk_run_entry import (
     ControlledAdkRunRequest,
+    ControlledRunSupportProviders,
     OperatorApprovalFacts,
 )
 from runtime_container.workflow_registry import (
@@ -54,6 +55,7 @@ class ControlledAdkRunRequestBuildInput:
     evidence_id: str | None = None
     llm_invocation_service: GovernedLlmInvocationService | None = None
     agent_shell_live_client: Any | None = None
+    support_providers: ControlledRunSupportProviders | None = None
 
 
 def build_controlled_adk_run_request(
@@ -76,6 +78,7 @@ def build_controlled_adk_run_request(
         evidence_id=build_input.evidence_id or f"cognition-cli-{build_input.runtime_id}",
         llm_invocation_service=build_input.llm_invocation_service,
         agent_shell_live_client=build_input.agent_shell_live_client,
+        support_providers=build_input.support_providers,
     )
 
 
@@ -132,6 +135,7 @@ def build_controlled_adk_run_request_from_registry(
         evidence_id=build_input.evidence_id,
         llm_invocation_service=build_input.llm_invocation_service,
         agent_shell_live_client=build_input.agent_shell_live_client,
+        support_providers=build_input.support_providers,
     )
     return build_controlled_adk_run_request(resolved_input)
 

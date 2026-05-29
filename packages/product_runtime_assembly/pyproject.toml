@@ -1,18 +1,18 @@
 [project]
 name = "cognition-system-product-runtime-assembly"
-version = "0.8.3"
+version = "0.8.4"
 description = "Product runtime assembly package for Cognition System."
-readme = { text = "Cognition System v0.8.3 public product runtime assembly package. See the version-specific public README in the release repository for usage and boundary notes.", content-type = "text/markdown" }
+readme = { text = "Cognition System v0.8.4 public product runtime assembly package. See the version-specific public README in the release repository for usage and boundary notes.", content-type = "text/markdown" }
 requires-python = ">=3.14"
 dependencies = [
-  "cognition-system-behavior-contracts==0.8.3",
-  "cognition-system-cli==0.8.3",
-  "cognition-system-config-contexts==0.8.3",
-  "cognition-system-contract-core==0.8.3",
-  "cognition-system-product-console==0.8.3",
-  "cognition-system-product-gateway==0.8.3",
-  "cognition-system-runtime-container==0.8.3",
-  "cognition-system-schemas==0.8.3",
+  "cognition-system-behavior-contracts==0.8.4",
+  "cognition-system-cli==0.8.4",
+  "cognition-system-config-contexts==0.8.4",
+  "cognition-system-contract-core==0.8.4",
+  "cognition-system-product-console==0.8.4",
+  "cognition-system-product-gateway==0.8.4",
+  "cognition-system-runtime-container==0.8.4",
+  "cognition-system-schemas==0.8.4",
 ]
 
 [project.scripts]

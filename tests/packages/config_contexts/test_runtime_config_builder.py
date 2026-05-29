@@ -124,6 +124,18 @@ def test_build_runtime_config_contexts_from_project_payload() -> None:
         "cleanup_policy": "manual",
         "max_write_bytes": 65536,
     }
+    assert (
+        bundle.continuable_evidence_session_storage.default_local_state_dir_enabled
+        is True
+    )
+    assert (
+        bundle.continuable_evidence_session_storage.env_override_name
+        == "COGNITION_SESSION_STATE_DIR"
+    )
+    assert (
+        bundle.continuable_evidence_session_storage.auto_resume_answer_enabled
+        is False
+    )
     assert bundle.evidence_summary_answer.profile == "smoke_only"
     assert bundle.evidence_summary_answer.enabled_by_default is False
     assert bundle.evidence_summary_answer.exposure_enabled is True

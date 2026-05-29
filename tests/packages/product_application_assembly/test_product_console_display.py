@@ -95,3 +95,52 @@ def test_product_console_ask_display_explains_answer_scoped_transformation() -> 
     assert payload["review"]["status"] == "answer_scoped_transformation"
     assert "上一轮可见答案变换" in payload["review"]["explanation"]
     assert payload["review"]["detail_available"] is False
+
+
+def test_product_console_ask_display_exposes_runtime_visible_summary() -> None:
+    display = build_product_console_ask_output_display(
+        {
+            "status": "success",
+            "answer": "这是一个示例域名。",
+            "runtime_summary_ref": (
+                "continuable-evidence-session-summary://runtime-visible-1"
+            ),
+            "runtime_availability_hint": {
+                "runtime_binding_status": "probed",
+                "hint": "内部 runtime binding safe projection 可用于复查。",
+                "user_product_runtime_path_enabled": True,
+                "auto_resume_answer_enabled": True,
+            },
+            "runtime_trajectory_summary": {
+                "turn_count": 1,
+                "latest_status": "success",
+            },
+            "runtime_artifact_index": [
+                {
+                    "ref": "evidence-summary-answer-artifact://artifact-1",
+                    "kind": "answer_artifact",
+                    "purpose": "runtime_binding_user_visible_artifact_index",
+                }
+            ],
+            "runtime_evaluation_summary": {
+                "evaluation_summary_ref": (
+                    "evaluation://continuable-evidence-session/runtime-binding"
+                ),
+                "evaluation_status": "passed",
+            },
+        },
+        command="cognition-console ask",
+    )
+    payload = product_console_ask_output_display_dict(display)
+
+    runtime = payload["review"]["runtime"]
+    assert runtime["runtime_summary_ref"] == (
+        "continuable-evidence-session-summary://runtime-visible-1"
+    )
+    assert runtime["availability_hint"]["runtime_binding_status"] == "probed"
+    assert runtime["user_product_runtime_path_enabled"] is False
+    assert runtime["auto_resume_answer_enabled"] is False
+    assert runtime["artifact_index"][0]["ref"] == (
+        "evidence-summary-answer-artifact://artifact-1"
+    )
+    assert runtime["evaluation_summary"]["evaluation_status"] == "passed"

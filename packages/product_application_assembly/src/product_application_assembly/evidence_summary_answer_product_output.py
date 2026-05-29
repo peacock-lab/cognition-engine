@@ -59,6 +59,7 @@ class EvidenceSummaryAnswerProductOutputAssemblyResult:
     trace_inspect_summary: dict[str, Any]
     answer_run: dict[str, Any]
     answer_run_summary: dict[str, Any]
+    runtime_visible_summary: dict[str, Any]
     product_response_summary: dict[str, Any]
 
 
@@ -202,6 +203,30 @@ def assemble_evidence_summary_answer_product_output(
     )
     answer_run = evidence_summary_answer_run_status_dict(answer_run_model)
     answer_run_summary = evidence_summary_answer_run_summary_dict(answer_run_model)
+    runtime_visible_summary = _runtime_visible_summary(
+        request_id=request_id,
+        answer_status=str(answer_result.get("status") or "failed"),
+        answer_trace_ref=str(answer_trace["trace_ref"]),
+        answer_trace_status=str(answer_trace["answer_status"]),
+        answer_trace_summary=answer_trace_summary,
+        answer_artifact_ref=str(answer_artifact["artifact_ref"]),
+        answer_artifact_status=str(answer_artifact["artifact_status"]),
+        answer_artifact_summary=answer_artifact_summary,
+        observability_summary_ref=str(observability_summary["summary_ref"]),
+        observability_summary_status=str(observability_summary["status"]),
+        trace_inspect_ref=str(trace_inspect["trace_inspect_ref"]),
+        trace_inspect_status=str(trace_inspect["inspect_status"]),
+        answer_run_ref=str(answer_run["answer_run_ref"]),
+        answer_run_status=str(answer_run["answer_run_status"]),
+        readonly_refs_status=readonly_refs_status,
+        llm_call_attempted=llm_call_attempted,
+        llm_runtime_call_performed=llm_runtime_call_performed,
+        external_readonly_fetch_performed=external_readonly_fetch_performed,
+        external_readonly_network_call_performed=(
+            external_readonly_network_call_performed
+        ),
+        external_network_call_performed=external_network_call_performed,
+    )
     product_response_summary = assemble_evidence_summary_answer_product_summary(
         request_id=request_id,
         answer_status=str(answer_result.get("status") or "failed"),
@@ -243,6 +268,7 @@ def assemble_evidence_summary_answer_product_output(
             answer_run.get("unavailable_reason")
         ),
         evidence_lineage_summary=evidence_lineage_summary,
+        runtime_visible_summary=runtime_visible_summary,
         product_path=product_path,
         metadata=metadata,
     ).product_response_summary
@@ -260,6 +286,7 @@ def assemble_evidence_summary_answer_product_output(
         trace_inspect_summary=trace_inspect_summary,
         answer_run=answer_run,
         answer_run_summary=answer_run_summary,
+        runtime_visible_summary=runtime_visible_summary,
         product_response_summary=product_response_summary,
     )
 
@@ -304,6 +331,7 @@ def assemble_evidence_summary_answer_product_summary(
     answer_run_unavailable_reason: str | None = None,
     parent_answer_run_ref: str | None = None,
     evidence_lineage_summary: Mapping[str, Any] | None = None,
+    runtime_visible_summary: Mapping[str, Any] | None = None,
     product_path: str | None = None,
     metadata: Mapping[str, Any] | None = None,
 ) -> EvidenceSummaryAnswerProductSummaryAssemblyResult:
@@ -314,6 +342,9 @@ def assemble_evidence_summary_answer_product_summary(
         metadata,
         product_path=product_path,
         evidence_lineage_summary=lineage_summary,
+    )
+    runtime_visible_summary_payload = _runtime_visible_summary_mapping(
+        runtime_visible_summary
     )
     observability_summary_payload = dict(safe_observability_summary or {})
     if not observability_summary_payload:
@@ -450,6 +481,7 @@ def assemble_evidence_summary_answer_product_summary(
             "answer_run_summary": answer_run_payload,
             "answer_run_unavailable_reason": answer_run_unavailable_reason,
             "parent_answer_run_ref": parent_answer_run_ref,
+            "runtime_visible_summary": runtime_visible_summary_payload,
             "temporary_follow_up": True,
             "durable_session": False,
             "memory_enabled": False,
@@ -557,6 +589,153 @@ def _product_metadata(
     return product_metadata
 
 
+def _runtime_visible_summary(
+    *,
+    request_id: str,
+    answer_status: str,
+    answer_trace_ref: str | None,
+    answer_trace_status: str | None,
+    answer_trace_summary: Mapping[str, Any],
+    answer_artifact_ref: str | None,
+    answer_artifact_status: str | None,
+    answer_artifact_summary: Mapping[str, Any],
+    observability_summary_ref: str | None,
+    observability_summary_status: str | None,
+    trace_inspect_ref: str | None,
+    trace_inspect_status: str | None,
+    answer_run_ref: str | None,
+    answer_run_status: str | None,
+    readonly_refs_status: str,
+    llm_call_attempted: bool,
+    llm_runtime_call_performed: bool,
+    external_readonly_fetch_performed: bool,
+    external_readonly_network_call_performed: bool,
+    external_network_call_performed: bool,
+) -> dict[str, Any]:
+    slug = _ref_slug(request_id)
+    runtime_summary_ref = (
+        f"continuable-evidence-session-summary://{slug}/runtime-visible"
+    )
+    runtime_binding_ref = f"continuable-evidence-session-runtime-binding://{slug}"
+    runtime_binding_status = "probed" if answer_status == "success" else "unavailable"
+    evaluation_status = "passed" if answer_status == "success" else "not_evaluated"
+    availability_hint = {
+        "runtime_binding_status": runtime_binding_status,
+        "hint": "已生成 runtime 用户可见安全摘要；用户 runtime 路径尚未打开。",
+        "user_product_runtime_path_enabled": False,
+        "default_local_state_dir_enabled": False,
+        "auto_resume_answer_enabled": False,
+        "workflow_replay_enabled": False,
+        "llm_call_enabled": False,
+        "task_runtime_implementation_enabled": False,
+    }
+    trajectory_summary = {
+        "answer_trace_ref": answer_trace_ref,
+        "answer_trace_status": answer_trace_status,
+        "answer_artifact_ref": answer_artifact_ref,
+        "answer_artifact_status": answer_artifact_status,
+        "observability_summary_ref": observability_summary_ref,
+        "observability_summary_status": observability_summary_status,
+        "trace_inspect_ref": trace_inspect_ref,
+        "trace_inspect_status": trace_inspect_status,
+        "answer_run_ref": answer_run_ref,
+        "answer_run_status": answer_run_status,
+        "readonly_refs_status": readonly_refs_status,
+        "llm_call_attempted": llm_call_attempted,
+        "llm_runtime_call_performed": llm_runtime_call_performed,
+        "external_readonly_fetch_performed": external_readonly_fetch_performed,
+        "external_readonly_network_call_performed": (
+            external_readonly_network_call_performed
+        ),
+        "external_network_call_performed": external_network_call_performed,
+        "answer_trace_summary": _safe_scalar_mapping(answer_trace_summary),
+        "answer_artifact_summary": _safe_scalar_mapping(answer_artifact_summary),
+    }
+    evaluation_summary = {
+        "evaluation_summary_ref": (
+            f"evaluation://continuable-evidence-session/runtime-binding/{slug}"
+        ),
+        "evaluation_status": evaluation_status,
+    }
+    artifact_index = _runtime_artifact_index(
+        answer_artifact_ref=answer_artifact_ref,
+        observability_summary_ref=observability_summary_ref,
+        trace_inspect_ref=trace_inspect_ref,
+        answer_run_ref=answer_run_ref,
+    )
+    return {
+        "runtime_visible_summary_ref": runtime_summary_ref,
+        "continuable_evidence_session_ref": f"continuable-evidence-session://{slug}",
+        "runtime_summary_ref": runtime_summary_ref,
+        "runtime_binding_ref": runtime_binding_ref,
+        "runtime_binding_status": runtime_binding_status,
+        "runtime_availability_hint": availability_hint,
+        "runtime_availability_hint_text": availability_hint["hint"],
+        "runtime_trajectory_summary": trajectory_summary,
+        "trajectory_summary": trajectory_summary,
+        "runtime_artifact_index": artifact_index,
+        "artifact_index": artifact_index,
+        "runtime_evaluation_summary": evaluation_summary,
+        "evaluation_summary_ref": evaluation_summary["evaluation_summary_ref"],
+        "evaluation_status": evaluation_status,
+        "user_product_runtime_path_enabled": False,
+        "default_local_state_dir_enabled": False,
+        "auto_resume_answer_enabled": False,
+        "workflow_replay_enabled": False,
+        "llm_call_enabled": False,
+        "task_runtime_implementation_enabled": False,
+        "raw_runtime_object_included": False,
+        "raw_event_payload_included": False,
+        "artifact_body_included": False,
+        "adk_eval_raw_data_included": False,
+    }
+
+
+def _runtime_artifact_index(
+    *,
+    answer_artifact_ref: str | None,
+    observability_summary_ref: str | None,
+    trace_inspect_ref: str | None,
+    answer_run_ref: str | None,
+) -> list[dict[str, Any]]:
+    candidates = (
+        (
+            answer_artifact_ref,
+            "answer_artifact",
+            "runtime_visible_summary_artifact_index",
+        ),
+        (
+            observability_summary_ref,
+            "observability_summary",
+            "runtime_visible_summary_observability_ref",
+        ),
+        (trace_inspect_ref, "trace_inspect", "runtime_visible_summary_trace_ref"),
+        (answer_run_ref, "answer_run", "runtime_visible_summary_answer_run_ref"),
+    )
+    refs: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    for ref, kind, purpose in candidates:
+        if not ref or ref in seen:
+            continue
+        refs.append({"ref": ref, "kind": kind, "purpose": purpose})
+        seen.add(ref)
+    return refs
+
+
+def _runtime_visible_summary_mapping(
+    value: Mapping[str, Any] | None,
+) -> dict[str, Any]:
+    if not isinstance(value, Mapping):
+        return {}
+    return {
+        key: item
+        for key, item in value.items()
+        if isinstance(key, str)
+        and key
+        and isinstance(item, bool | int | float | str | dict | list | tuple)
+    }
+
+
 def _safe_scalar_mapping(value: Mapping[str, Any] | Any) -> dict[str, Any]:
     if not isinstance(value, Mapping):
         return {}
@@ -586,6 +765,13 @@ def _metadata_nonnegative_int(value: Any) -> int:
     if isinstance(value, bool) or not isinstance(value, int):
         return 0
     return value if value >= 0 else 0
+
+
+def _ref_slug(value: str) -> str:
+    normalized = value.strip().lower()
+    chars = tuple(ch if ch.isalnum() else "-" for ch in normalized)
+    slug = "-".join(part for part in "".join(chars).split("-") if part)
+    return slug or "unknown"
 
 
 def _sensitive_text(value: str) -> bool:

@@ -258,6 +258,19 @@ run_workspace:
     source: config/base/runtime.yaml
     candidate_only: true
 
+continuable_evidence_session_storage:
+  default_local_state_dir_enabled: true
+  default_local_state_root_kind: platform_app_state
+  env_override_enabled: true
+  env_override_name: COGNITION_SESSION_STATE_DIR
+  default_retention_days: 30
+  first_save_requires_confirmation: true
+  resume_requires_confirmation: true
+  auto_resume_answer_enabled: false
+  metadata:
+    source: config/base/runtime.yaml
+    product: continuable_evidence_session
+
 evidence_summary_answer:
   enabled_by_default: false
   profile: smoke_only

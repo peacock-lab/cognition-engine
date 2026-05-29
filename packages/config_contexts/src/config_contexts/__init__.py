@@ -12,6 +12,7 @@ from config_contexts.governance import (
     GovernanceMode,
 )
 from config_contexts.runtime import (
+    ContinuableEvidenceSessionStoragePolicyConfigView,
     EvidenceSummaryAnswerPolicyConfigView,
     ReferenceReaderPolicyConfigView,
     RuntimeLlmModelProfileConfigView,
@@ -41,6 +42,7 @@ from config_contexts.skill_candidate import (
 __all__ = [
     "ActionCandidateConfigViewCandidate",
     "AdkRunConfigViewCandidate",
+    "ContinuableEvidenceSessionStoragePolicyConfigView",
     "EvidenceSummaryAnswerPolicyConfigView",
     "GovernanceConfigContext",
     "GovernanceDecisionLevel",
